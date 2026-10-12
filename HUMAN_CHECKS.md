@@ -112,7 +112,7 @@ Needs the piano connected. Run `npm run dev` and open http://localhost:5173/keyf
 Needs the piano connected (Phase 0 check passing). Use a Beginner profile you have not used for Learn yet (a new profile starts at Unit 1).
 
 1. Open http://localhost:5173/keyfall/ and pick the profile. On Home, the Learn tile reads "Unit 1 · Keyboard map". Click Continue.
-   - Good: the Learn path lists ten units; 1 is open, 2 to 5 say Locked, 6 to 10 say Coming soon.
+   - Good: the Learn path lists ten units; 1 is open, 2 to 10 say Locked.
 2. Unit 1: click Start on "Find the key". A key name (like E4) appears with a hint about the black keys. Press that white key on the piano.
    - Good: the key on screen turns green, "Correct" shows, and the next key name appears after a moment. A wrong key turns red, shows the right one, and waits for Next.
 3. Click "Take the test" and answer 20 prompts. Keyboard labels are hidden here.
@@ -214,3 +214,29 @@ Needs the household account (<household email> and its password), the Mac, and t
    - Good: the game works offline; once online again the new run reaches the Mac within a minute.
 7. Sign out on the iPhone (Settings, Sign out).
    - Good: the game still works and keeps all local data; the chip reads "Not syncing".
+
+## Learn Units 6 to 10 on the FP-30X
+
+Needs the piano connected. Use a Beginner profile that has passed Units 1 to 5 (or pass them first). Each unit opens when the one before it is passed.
+
+1. Unit 6 (Rhythm basics): open "Read the rhythm". A quarter, half or whole note or rest is drawn; click the button for its name or its beat count.
+   - Good: a wrong button turns red, shows the answer and waits for Next; the symbol shows under "Needs review" until you get it right 3 times in a row.
+2. Unit 6, "Rhythm tap: quarters and halves", then "rests and a whole note". Put your right hand on middle C. Four clicks count you in, then the metronome clicks every beat; tap C only where a note starts (the staff shows the pattern).
+   - Good: a half note is one tap for two clicks; on a rest you stay silent; the card says how many taps landed on the beat (the window is 200 ms). A tap on a rest counts as an extra tap. Tell me if the taps feel early or late against the clicks (the piano's Bluetooth delay shows up here; run the latency check in Settings first).
+3. Unit 6, "Mini song: Rest Stop". Play it with your right hand, fingers as shown.
+   - Good: the rests are skipped by the screen; the notes only advance on the right key. Take the unit test.
+   - Good: 18 of 20 passes and "Unlocked: Minuet in G" shows; Minuet in G is playable on Play.
+4. Unit 7 (Sharps and flats): "Find the black key" shows names like F♯4 or G♭4 and a hint (sharp is the black key to the right, flat to the left). Press the black key. "Note flash" draws the note with a ♯ or ♭ sign.
+   - Good: the key you press matches the staff sign; the feedback names the key both ways (F♯ also G♭). Play "Mini song: Black Key Lullaby" (black keys only, fingers 2 and 3, then 2, 3 and 4). Take the test.
+   - Good: "Unlocked: Greensleeves".
+5. Unit 8 (Both hands): "Grand staff note flash" shows a note on either staff. "Both hands together" shows one note in the bass staff and one or two in the treble staff; press them at the same time (left hand and right hand).
+   - Good: pressing one key waits; the screen only judges when all keys are down within about a half second; a wrong key turns red and shows the set. Pressing the keys one after the other with a release in between does not count.
+   - Good: "Mini song: Hands Together" asks for left and right keys together on steps with two notes, and one hand on the others. Take the test: "Unlocked: Für Elise (opening)".
+6. Unit 9 (Eighth notes and dotted rhythms): "Read the rhythm", then the two tap lessons (eighth pairs, dotted quarters). Tap C on each note; the metronome plays every beat (60 a minute).
+   - Good: two taps in one click for a pair of eighths, one long tap for a dotted quarter then an eighth that lands halfway through the next click; the card reports the taps on the beat. Tell me if 60 a minute feels too fast or slow for the eighths.
+   - Good: "Mini song: Row, Row, Row Your Boat" plays note by note. Test: "Unlocked: Canon in D".
+7. Unit 10 (Key signatures): "Name the key" shows only a key signature; pick the major key. "Play it in the key" shows a signature and a white-key note on the staff; press the key that note really is (for example F in G major is F♯).
+   - Good: the key you must press matches the signature (G: F♯; D: F♯ C♯; A: F♯ C♯ G♯; F: B♭; B♭: B♭ E♭; E♭: B♭ E♭ A♭). Play the scale lesson (F major, up and down) and "Mini song: Sharp Eyes" (G major) with the fingers shown. Take the test.
+   - Good: Unit 10 passes with no song unlocked.
+8. Switch to an Advanced profile.
+   - Good: the songs behind Units 6 to 9 are open; Unit 10 has no song. The Learn path still starts at Unit 1 and Units 6 to 10 still open in order.

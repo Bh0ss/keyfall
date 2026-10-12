@@ -4,7 +4,15 @@ import { getSongs } from '../../songs/catalog';
 import type { LearnProgressRecord, PlayerLevel } from '../../storage/types';
 import { hrefFor } from '../useRoute';
 
-const KIND = { 'key-finder': 'Key finder', 'note-flash': 'Note flash', 'rhythm-tap': 'Rhythm tap', 'mini-song': 'Mini song' } as const;
+const KIND = {
+  'key-finder': 'Key finder',
+  'note-flash': 'Note flash',
+  'rhythm-tap': 'Rhythm tap',
+  'mini-song': 'Mini song',
+  'rhythm-read': 'Read the rhythm',
+  'both-hands': 'Both hands',
+  'key-sig': 'Key signatures',
+} as const;
 
 export function UnitDetail({ unit, status, progress, level }: { unit: Unit; status: UnitStatus; progress?: LearnProgressRecord; level: PlayerLevel }) {
   const playable = status === 'open' || status === 'passed';
@@ -44,7 +52,7 @@ export function UnitDetail({ unit, status, progress, level }: { unit: Unit; stat
       {status === 'coming-soon' && (
         <section className="card" data-testid="unit-coming-soon">
           <h3>Coming soon</h3>
-          <p>This unit is planned for a later update. Units 1 to 5 are ready now.</p>
+          <p>This unit is planned for a later update.</p>
         </section>
       )}
       {status === 'locked' && (

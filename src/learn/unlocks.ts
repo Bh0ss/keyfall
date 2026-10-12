@@ -23,7 +23,7 @@ export function unitStatus(unit: Unit, passed: ReadonlySet<string>): UnitStatus 
   return !before || passed.has(before.id) ? 'open' : 'locked';
 }
 
-/** The unit to continue with: the first playable unit not passed yet, or null when units 1 to 5 are done. */
+/** The unit to continue with: the first playable unit not passed yet, or null when every unit is done. */
 export function nextUnit(passed: ReadonlySet<string>): Unit | null {
   return UNITS.find((u) => !u.comingSoon && !passed.has(u.id)) ?? null;
 }

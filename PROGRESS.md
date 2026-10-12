@@ -489,3 +489,51 @@ New tests: `tests/bundled-songs.test.ts` and `e2e/songs.spec.ts` now cover all 2
 - Low, fixed: real email addresses replaced with `<household email>`, `<test account 1>`, `<test account 2>` in `HUMAN_CHECKS.md` and `SETUP_STATUS.md` (current files only, no history rewrite). Real emails stay out of tracked files from now on.
 - Lows deferred to Phase 9: a CSP meta tag, bucket `allowed_mime_types` plus a data-size check, an `updated_at` clamp (a far-future client stamp could pin a row).
 - After the final run both test accounts hold 0 rows in every table and 0 objects in `songs`.
+
+## Requested addition (2026-10-12): Learn Units 6-10
+
+A requested addition beyond the spec, which only requires Units 6 to 10 to be defined as "coming soon". CLAUDE.md is unchanged. Units 6 to 10 are now built to the same standard as Units 1 to 5 and the "coming soon" state is gone.
+
+### Built
+
+- Units (all in `src/learn/units.ts`, each with a 20-prompt unit test, practice lessons that feed the review queue, and a mini song with a finger on every note): 6 Rhythm basics (read quarter/half/whole notes and rests, two timed tap lessons, song "Rest Stop"), 7 Sharps and flats (key finder and note flash with sharp/flat spellings, song "Black Key Lullaby" on the five black keys), 8 Both hands (grand-staff note flash, two-hand set prompts, song "Hands Together"), 9 Eighth notes and dotted rhythms (read, two timed tap lessons, "Row, Row, Row Your Boat"), 10 Key signatures (name the key, play a written note with the signature applied, F major scale, song "Sharp Eyes" in G).
+- New pure modules: `src/learn/chord.ts` (`SetJudge`: keys pressed together, 600 ms), `src/learn/keysig.ts` (seven major keys, signature application, scales). Extended: `rhythm.ts` (ten rhythm symbols, pattern layout, tap window, tap pass rule), `staff.ts` (sharp/flat spelling, enharmonic names, VexFlow pitch with accidental, per-bar accidental logic), `generate.ts` (rhythm-name, rhythm-beats, both-hands, keysig-name, in-key prompts; the old note prompts take the same code path and random sequence as before), `run.ts` (`LearnRun` choice and set prompts; `MiniSongRun` rests and two-hand steps).
+- UI: `Staff.tsx` draws accidentals, key signatures, rests, dots, beams, a grand staff with brace, rhythm patterns and two-hand songs. `PromptRunner` handles all prompt kinds (answer buttons for reading prompts, set judging with held keys marked on the keyboard), `RhythmRunner` shows the written pattern and clicks every beat, `MiniSongRunner` skips rests and asks for two keys together. `labels.ts` names review chips. Review-queue ids: pitches 0 to 127, rhythm symbols 200+, key signatures 300+ (no schema change, learn_progress and review_queue sync as before).
+
+### Decisions
+
+- **Unit pass rule unchanged:** one 20-prompt unit test per unit, 18 of 20 (90%). Tap lessons, songs and practice lessons are practice and never gate a unit (as Unit 2's rhythm tap). Rhythm reading prompts are answered with on-screen buttons (the piano cannot say "half note"); tapping is judged against the pattern with timing.
+- **Rhythm tap:** the metronome clicks every beat and the player taps only where a note starts; rests and held beats stay silent. Window is 200 ms, tightened to 40% of the shortest gap (eighths at 60 bpm keep 200 ms). A lesson is done at 75% of beats hit and no more extra taps than a quarter of the beats (the extra-tap rule is new; a tap on a rest counts as extra). Unit 2's pattern behaves as before.
+- **Key signatures:** C and the major keys up to three sharps or flats (G, D, A, F, B-flat, E-flat). Every altered note is one of the five black keys Unit 7 teaches, so nothing untaught appears. Written notes run C4 to B4. Unit 10 gates no song (`unlocks` left empty); no bundled song is gated by it. Units 6 to 9 keep gating Minuet in G, Greensleeves, Fur Elise and Canon/Arabesque/Entertainer as before; `ADVANCED_OPEN_UNITS` stays 5 to 9.
+- **Two-hand prompts:** a set is right when every key is down at once (each within 600 ms of the last, released keys do not count); a key outside the set is wrong at once and every note of the set enters the review queue. Sets are one left note plus one right note, or a left note plus a right-hand third (about a third of prompts when the unit's notes allow it).
+- **Black keys:** shown as a sharp or flat at random; feedback names the key both ways. Unit 7's note pool is the five black keys; the unit 7 song uses only them (so the existing "song notes belong to the unit" rule holds), written with flats.
+- **Mini songs** stay note by note without timing. Songs are original (Rest Stop, Black Key Lullaby, Hands Together, Sharp Eyes) or traditional public domain (Row, Row, Row Your Boat).
+- `UnitStatus 'coming-soon'` and `Unit.comingSoon` stay in the code as an inert capability (every unit is `false`); the Learn path, unit detail and Home no longer show it.
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm test` | exit 0, 31 files, 552 tests (new `tests/learn-units-6-10.test.ts` holds 55) |
+| `npm run build` | exit 0, lazy Learn chunk 1,156.54 kB |
+| `npm run test:e2e` | exit 0, two runs: 76 passed (4.9 min: everything except songs and sync) and 66 passed (8.4 min: `e2e/songs`, `e2e/sync*`), 142 in all |
+
+New unit tests: Units 6 to 10 defined with a 20-prompt test, fingers on every note (both hands), 4 to 8 bars, only taught notes and symbols; key signatures (seven keys, altered letters, application, scale equals the major pattern in every key, every asked note is taught by Unit 7); sharps, flats and enharmonic names, VexFlow pitches, per-bar accidentals and naturals, key-signature cancellation; set judging (together, any order, chord of three, wrong key, released early, held too long); rhythm lengths, layout, labels, tap window and pass rule, late and flooded taps; generators draw only taught symbols, spellings, sets and signatures; `LearnRun` with sets and choices (18 of 20 passes and 17 fails for each of Units 6 to 10); `MiniSongRun` rests and two-hand steps.
+
+New e2e (`e2e/learn-units-6-10.spec.ts`, every test calls `isolateMidi`; earlier units are seeded as passed in IndexedDB, the unit under test is passed through its own screens): all ten units playable and ordered; Unit 6 (reading buttons and review queue, two timed tap lessons at 100%, rest song, test, Minuet in G unlocks); Unit 7 (black key names, accidental on the staff, enharmonic feedback, song, test, Greensleeves); Unit 8 (grand staff, one key waits, early release resets, wrong key misses, simultaneous presses, two-hand song, 17 of 20 fails then 20 of 20 passes, Fur Elise); Unit 9 (reading, two timed tap lessons incl. eighths and dotted notes, song, test, Canon in D); Unit 10 (signature drawn and named, note in key, scale, song, test, nothing unlocked).
+
+### Adapted tests (assertions otherwise unchanged)
+
+- `tests/learn-rules.test.ts`: "ten units; 1 to 5 playable, 6 to 10 coming soon" now says all ten are playable; the unit-6 status after Units 1 to 5 is `'open'` (was `'coming-soon'`) and `'locked'` before; `nextUnit` after Units 1 to 5 is `unit-6` and is `null` after all ten (was `null` after five).
+- `tests/learn-run.test.ts` mini-song check: rests (which have no pitch) are skipped and a two-hand note's left key is checked too; the rule (song notes belong to the unit's notes) is otherwise the same.
+- `e2e/learn.spec.ts` first test: Units 2 to 10 are `locked` at the start and Unit 7 shows the locked card (was `coming-soon` for 6 to 10).
+- `HUMAN_CHECKS.md` Phase 4 step 1: "6 to 10 say Locked".
+- Nothing skipped, deleted or weakened.
+
+### Deferred
+
+- Mini songs are not timed (as in Phase 4); no resume of half-finished runs.
+- Only Units 6 to 9 gate songs, as the spec says; no unit 10 song.
+- Real-piano checks for Units 6 to 10 are in `HUMAN_CHECKS.md`.

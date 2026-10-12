@@ -65,3 +65,29 @@ export async function isolateMidi(page: Page) {
     Object.defineProperty(Navigator.prototype, 'requestMIDIAccess', { value: () => Promise.resolve(empty), configurable: true });
   });
 }
+
+/** Mark Learn units as passed for the first profile in the browser database (units open in order, so a late unit needs the earlier ones). */
+export async function seedPassed(page: Page, unitIds: string[]) {
+  const [profile] = await readStore<{ id: string }>(page, 'profiles');
+  await page.evaluate(
+    ({ pid, ids }) =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('keyfall');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const db = open.result;
+          const tx = db.transaction('learnProgress', 'readwrite');
+          const now = Date.now();
+          for (const unitId of ids) {
+            tx.objectStore('learnProgress').put({
+              id: `${pid}:${unitId}`, profileId: pid, unitId, passed: true, passedAt: now, bestCorrect: 20, bestTotal: 20,
+              attempts: 1, lessonsDone: [], updatedAt: now,
+            });
+          }
+          tx.oncomplete = () => { db.close(); resolve(); };
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+    { pid: profile!.id, ids: unitIds },
+  );
+}

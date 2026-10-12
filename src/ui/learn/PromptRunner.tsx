@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { LearnRun } from '../../learn/run';
-import { clefFor, staffPlace } from '../../learn/staff';
+import type { Prompt } from '../../learn/generate';
+import { keySigById } from '../../learn/keysig';
+import { symbolById } from '../../learn/rhythm';
+import { LearnRun, type AnswerResult } from '../../learn/run';
+import { blackKeyHint, clefFor, isBlackKey, otherSpell, spellName, staffPlace, whiteOf } from '../../learn/staff';
 import { getUnit, UNITS } from '../../learn/units';
 import { virtualInputEnabled } from '../../midi/virtual';
 import { getSongs } from '../../songs/catalog';
@@ -11,8 +14,9 @@ import { hrefFor } from '../useRoute';
 import { Finish } from './Finish';
 import type { RunnerProps } from './LessonRunner';
 import { MiniKeyboard, type KeyMark } from './MiniKeyboard';
-import { NoteStaff } from './Staff';
-import { useNoteOn } from './useNotes';
+import { reviewLabel } from './labels';
+import { GrandStaff, NoteStaff, RhythmStaff, SignatureStaff } from './Staff';
+import { useNoteKeys } from './useNotes';
 
 const ADVANCE_MS = 400;
 const KEY_HINTS: Record<string, string> = {
@@ -25,6 +29,39 @@ const KEY_HINTS: Record<string, string> = {
   B: 'B is the white key just right of the three black keys.',
 };
 const letter = (midi: number) => noteName(midi).replace(/\d/, '');
+
+/** The key name as the prompt shows it; a black key also gets its other name. */
+function keyName(p: Prompt, both = false): string {
+  const name = spellName(p.midi, p.spell);
+  return both && isBlackKey(p.midi) ? `${name} (also ${spellName(p.midi, otherSpell(p.spell ?? 'sharp'))})` : name;
+}
+
+/** Where the note sits on the staff, in words, for the feedback line. */
+function placeOf(p: Prompt): string {
+  if (p.kind !== 'note-flash') return '';
+  const sign = isBlackKey(p.midi) ? ` with a ${p.spell === 'flat' ? 'flat' : 'sharp'}` : '';
+  return `, ${staffPlace(whiteOf(p.midi, p.spell))}${sign}`;
+}
+
+/** What the right answer is, in a sentence, for the feedback line. */
+function answerText(p: Prompt): string {
+  switch (p.kind) {
+    case 'both-hands':
+      return `${(p.set ?? []).map((m) => spellName(m)).join(' + ')}`;
+    case 'rhythm-name':
+      return `a ${symbolById(p.symbol!)!.name.toLowerCase()}`;
+    case 'rhythm-beats':
+      return p.choices!.find((c) => c.id === p.answer)!.label;
+    case 'keysig-name':
+      return p.choices!.find((c) => c.id === p.answer)!.label;
+    case 'in-key': {
+      const sig = keySigById(p.sig!)!;
+      return `${spellName(p.midi, sig.kind === 'flat' ? 'flat' : 'sharp')} in ${sig.name}`;
+    }
+    default:
+      return `${keyName(p, true)}${placeOf(p)}`;
+  }
+}
 
 export function PromptRunner(props: RunnerProps) {
   const [round, setRound] = useState(0);
@@ -75,8 +112,12 @@ function PromptSession({ unit, lesson, profileId, queue, onRetry }: RunnerProps 
   }, [run, lesson, unit.id, profileId]);
 
   const settled = useCallback(
-    (result: 'correct' | 'wrong' | 'ignored') => {
+    (result: AnswerResult) => {
       if (result === 'ignored') return;
+      if (result === 'pending') {
+        bump();
+        return;
+      }
       persist();
       bump();
       if (result === 'correct') timer.current = setTimeout(advance, ADVANCE_MS);
@@ -84,7 +125,10 @@ function PromptSession({ unit, lesson, profileId, queue, onRetry }: RunnerProps 
     [persist, advance],
   );
 
-  useNoteOn((m) => settled(run.answer(m, performance.now())));
+  useNoteKeys(
+    (m) => settled(run.answer(m, performance.now())),
+    (m) => run.release(m),
+  );
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -100,25 +144,35 @@ function PromptSession({ unit, lesson, profileId, queue, onRetry }: RunnerProps 
   const state = run.state;
   const target = prompt?.midi;
   const shown = Math.min(run.total, run.answered + (state === 'asking' ? 1 : 0));
+  const targets = prompt ? (prompt.set ?? (prompt.choices ? [] : [prompt.midi])) : [];
   const marks: Record<number, KeyMark> = {};
-  if (target !== undefined) {
-    if (state === 'right') marks[target] = 'correct';
-    if (state === 'wrong') {
-      marks[target] = 'target';
-      if (run.lastWrong !== null) marks[run.lastWrong] = 'wrong';
-    }
+  if (state === 'right') for (const t of targets) marks[t] = 'correct';
+  if (state === 'wrong') {
+    for (const t of targets) marks[t] = 'target';
+    if (run.lastWrong !== null) marks[run.lastWrong] = 'wrong';
   }
+  if (state === 'asking') for (const m of run.heldKeys) marks[m] = 'correct';
   const review = run.reviewNotes;
-  const finger = target !== undefined ? unit.fingers?.[target] : undefined;
+  const finger = prompt && !prompt.set && !prompt.choices ? unit.fingers?.[prompt.midi] : undefined;
   const handName = unit.number === 4 ? 'left' : 'right';
-  const place = prompt?.kind === 'note-flash' && target !== undefined ? `, ${staffPlace(target)}` : '';
+  const tone = state === 'right' ? 'correct' : state === 'wrong' ? 'wrong' : 'idle';
+  const choiceLabel = prompt?.choices?.find((c) => c.id === run.lastChoice)?.label;
+  const sig = prompt?.sig ? keySigById(prompt.sig) : undefined;
+  const wrongPrefix = run.revealed
+    ? ''
+    : choiceLabel
+      ? `You chose ${choiceLabel}. `
+      : run.lastWrong !== null
+        ? `That was ${spellName(run.lastWrong)}. `
+        : '';
+  const label = lesson.test ? 'Unit test' : { 'note-flash': 'Note flash', 'key-finder': 'Key finder', 'both-hands': 'Both hands', 'rhythm-read': 'Read the rhythm', 'key-sig': 'Key signatures', 'rhythm-tap': 'Rhythm tap', 'mini-song': 'Mini song' }[lesson.kind];
 
   return (
     <main className="main learn-main" data-testid="prompt-runner">
       <header className="header">
         <div className="stack-tight">
           <div className="eyebrow learn-eyebrow">
-            Unit {unit.number} · {lesson.test ? 'Unit test' : lesson.kind === 'note-flash' ? 'Note flash' : 'Key finder'}
+            Unit {unit.number} · {label}
           </div>
           <div className="lesson-title">{unit.name}</div>
         </div>
@@ -155,26 +209,15 @@ function PromptSession({ unit, lesson, profileId, queue, onRetry }: RunnerProps 
           data-index={state === 'asking' ? run.answered : run.answered - 1}
           data-state={state}
           data-target-midi={debug ? target : undefined}
+          data-target-set={debug && prompt?.set ? JSON.stringify(prompt.set) : undefined}
+          data-answer={debug ? prompt?.answer : undefined}
         >
-          {prompt?.kind === 'note-flash' && target !== undefined ? (
-            <>
-              <div className="prompt-ask">Play this note on your keyboard</div>
-              <NoteStaff midi={target} clef={clefFor(target)} tone={state === 'right' ? 'correct' : state === 'wrong' ? 'wrong' : 'idle'} />
-            </>
-          ) : target !== undefined ? (
-            <>
-              <div className="prompt-ask">Find this key and press it</div>
-              <div className="prompt-name" data-testid="learn-key-name">
-                {noteName(target)}
-              </div>
-              <div className="prompt-hint">{unit.number === 1 ? KEY_HINTS[letter(target)] : finger ? `Use finger ${finger} of your ${handName} hand.` : ''}</div>
-            </>
-          ) : null}
+          {prompt && <PromptBody prompt={prompt} unit={unit} tone={tone} state={state} finger={finger} handName={handName} grand={!!lesson.grand} sig={sig} lastChoice={run.lastChoice} onChoose={(id) => settled(run.choose(id, performance.now()))} />}
           <div className="feedback" data-state={state} aria-live="polite" data-testid="learn-feedback">
-            {state === 'right' && target !== undefined && `Correct: that's ${noteName(target)}${place} · ${(run.lastMs / 1000).toFixed(1)} s`}
-            {state === 'wrong' && target !== undefined && `${run.revealed ? '' : `That was ${noteName(run.lastWrong ?? 0)}. `}It's ${noteName(target)}${place}.`}
+            {state === 'right' && prompt && `Correct: that's ${answerText(prompt)} · ${(run.lastMs / 1000).toFixed(1)} s`}
+            {state === 'wrong' && prompt && `${wrongPrefix}It's ${answerText(prompt)}.`}
           </div>
-          <MiniKeyboard range={unit.keyboard} marks={marks} labels={!lesson.test} />
+          {prompt && !prompt.choices && <MiniKeyboard range={unit.keyboard} marks={marks} labels={!lesson.test} />}
         </div>
 
         <div className="learn-side">
@@ -195,7 +238,7 @@ function PromptSession({ unit, lesson, profileId, queue, onRetry }: RunnerProps 
               <div className="review-chips">
                 {review.map((m) => (
                   <span key={m} className="review-chip" data-testid="review-chip">
-                    {noteName(m)}
+                    {reviewLabel(m)}
                   </span>
                 ))}
               </div>
@@ -232,7 +275,7 @@ function PromptFinish({ unitId, lessonTitle, isTest, finished, onRetry }: { unit
   const unit = getUnit(unitId)!;
   const pct = Math.round((finished.correct / finished.total) * 100);
   const score = `${finished.correct} of ${finished.total} right (${pct}%)`;
-  const missed = [...new Set(finished.missed)].map(noteName);
+  const missed = [...new Set(finished.missed)].map(reviewLabel);
   const retry = (label: string) => (
     <button className="btn" data-primary type="button" onClick={onRetry} data-testid="learn-retry">
       {label}
@@ -266,4 +309,98 @@ function PromptFinish({ unitId, lessonTitle, isTest, finished, onRetry }: { unit
     );
   }
   return <Finish tone="fail" passed={false} unitId={unitId} title="Not quite yet" lines={[score, `You need ${Math.ceil(finished.total * 0.9)} of ${finished.total} to pass.`, missLine]} actions={retry('Try again')} />;
+}
+
+interface BodyProps {
+  prompt: Prompt;
+  unit: RunnerProps['unit'];
+  tone: 'idle' | 'correct' | 'wrong';
+  state: string;
+  finger?: number;
+  handName: string;
+  grand: boolean;
+  sig?: ReturnType<typeof keySigById>;
+  lastChoice: string | null;
+  onChoose: (id: string) => void;
+}
+
+/** The part of the card that changes with the prompt kind: what is shown, and what the answer buttons are. */
+function PromptBody({ prompt, unit, tone, state, finger, handName, grand, sig, lastChoice, onChoose }: BodyProps) {
+  const choices = prompt.choices && (
+    <div className="choices" data-testid="choices">
+      {prompt.choices.map((c) => (
+        <button
+          key={c.id}
+          type="button"
+          className="btn choice"
+          disabled={state !== 'asking'}
+          data-testid={`choice-${c.id}`}
+          data-mark={state !== 'asking' ? (c.id === prompt.answer ? 'right' : c.id === lastChoice ? 'wrong' : undefined) : undefined}
+          onClick={() => onChoose(c.id)}
+        >
+          {c.label}
+        </button>
+      ))}
+    </div>
+  );
+  switch (prompt.kind) {
+    case 'note-flash':
+      return (
+        <>
+          <div className="prompt-ask">Play this note on your keyboard</div>
+          {grand ? <GrandStaff midis={[prompt.midi]} spell={prompt.spell} tone={tone} /> : <NoteStaff midi={prompt.midi} spell={prompt.spell} clef={clefFor(prompt.midi)} tone={tone} />}
+        </>
+      );
+    case 'both-hands':
+      return (
+        <>
+          <div className="prompt-ask">Press all of these together, left hand and right hand</div>
+          <GrandStaff midis={prompt.set!} tone={tone} />
+        </>
+      );
+    case 'rhythm-name':
+    case 'rhythm-beats':
+      return (
+        <>
+          <div className="prompt-ask">{prompt.kind === 'rhythm-name' ? 'What is this?' : 'How many beats does this last?'}</div>
+          <RhythmStaff steps={[prompt.symbol!]} tone={tone} />
+          {choices}
+        </>
+      );
+    case 'keysig-name':
+      return (
+        <>
+          <div className="prompt-ask">Which major key has this key signature?</div>
+          <SignatureStaff keySig={sig!} />
+          {choices}
+        </>
+      );
+    case 'in-key':
+      return (
+        <>
+          <div className="prompt-ask">
+            Key of {sig!.name}. Press the key for this note, signature applied
+          </div>
+          <NoteStaff midi={prompt.written!} clef="treble" keySig={sig} tone={tone} />
+        </>
+      );
+    default:
+      return (
+        <>
+          <div className="prompt-ask">Find this key and press it</div>
+          <div className="prompt-name" data-testid="learn-key-name">
+            {spellName(prompt.midi, prompt.spell)}
+          </div>
+          <div className="prompt-hint">
+            {unit.number === 1
+              ? KEY_HINTS[letter(prompt.midi)]
+              : isBlackKey(prompt.midi)
+                ? blackKeyHint(prompt.midi, prompt.spell ?? 'sharp')
+                : finger
+                  ? `Use finger ${finger} of your ${handName} hand.`
+                  : ''}
+          </div>
+        </>
+      );
+  }
 }

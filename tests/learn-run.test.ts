@@ -169,7 +169,8 @@ describe('MiniSongRun', () => {
       for (const l of u.lessons.filter((x) => x.kind === 'mini-song')) {
         const song = l.song!;
         const taught = new Set(u.notes);
-        expect(song.notes.every((n) => taught.has(n.midi))).toBe(true);
+        // Rests carry no pitch; every sounding note (and any left-hand partner) must be one the unit teaches.
+        expect(song.notes.filter((n) => !n.rest).every((n) => taught.has(n.midi) && (!n.left || taught.has(n.left.midi)))).toBe(true);
         const beats = song.notes.reduce((a, n) => a + n.beats, 0);
         expect(beats % song.beatsPerBar).toBe(0);
         const bars = beats / song.beatsPerBar;

@@ -85,22 +85,23 @@ describe('unlock rules', () => {
 });
 
 describe('unit path', () => {
-  it('defines ten units; 1 to 5 are playable and 6 to 10 are coming soon', () => {
+  it('defines ten units, all playable (6 to 10 were "coming soon" before the Learn Units 6 to 10 addition)', () => {
     expect(UNITS).toHaveLength(10);
-    expect(UNITS.slice(0, 5).every((u) => !u.comingSoon)).toBe(true);
-    expect(UNITS.slice(5).every((u) => u.comingSoon)).toBe(true);
+    expect(UNITS.every((u) => !u.comingSoon)).toBe(true);
   });
-  it('opens units in order and never opens a coming-soon unit', () => {
+  it('opens units in order', () => {
     expect(unitStatus(getUnit('unit-1')!, new Set())).toBe('open');
     expect(unitStatus(getUnit('unit-2')!, new Set())).toBe('locked');
     expect(unitStatus(getUnit('unit-2')!, new Set(['unit-1']))).toBe('open');
     expect(unitStatus(getUnit('unit-1')!, new Set(['unit-1']))).toBe('passed');
-    expect(unitStatus(getUnit('unit-6')!, new Set(['unit-1', 'unit-2', 'unit-3', 'unit-4', 'unit-5']))).toBe('coming-soon');
+    expect(unitStatus(getUnit('unit-6')!, new Set(['unit-1', 'unit-2', 'unit-3', 'unit-4', 'unit-5']))).toBe('open');
+    expect(unitStatus(getUnit('unit-6')!, new Set(['unit-1', 'unit-2', 'unit-3', 'unit-4']))).toBe('locked');
   });
-  it('nextUnit is the first unit not yet passed, or null after unit 5', () => {
+  it('nextUnit is the first unit not yet passed, or null after unit 10', () => {
     expect(nextUnit(new Set())!.id).toBe('unit-1');
     expect(nextUnit(new Set(['unit-1', 'unit-2']))!.id).toBe('unit-3');
-    expect(nextUnit(new Set(['unit-1', 'unit-2', 'unit-3', 'unit-4', 'unit-5']))).toBeNull();
+    expect(nextUnit(new Set(['unit-1', 'unit-2', 'unit-3', 'unit-4', 'unit-5']))!.id).toBe('unit-6');
+    expect(nextUnit(new Set(UNITS.map((u) => u.id)))).toBeNull();
   });
   it('taught notes accumulate across units', () => {
     expect(taughtThrough(2)).toEqual(expect.arrayContaining(getUnit('unit-1')!.notes));

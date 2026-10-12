@@ -21,7 +21,7 @@ export default function LearnRoutes({ unitId, lessonId }: { unitId?: string; les
   if (!data) return <div className="shell" data-testid="learn-loading" />;
   const progress = new Map(data.rows.map((r) => [r.unitId, r]));
   const passed = new Set(data.rows.filter((r) => r.passed).map((r) => r.unitId));
-  const unit = (unitId ? getUnit(unitId) : undefined) ?? nextUnit(passed) ?? UNITS[4]!;
+  const unit = (unitId ? getUnit(unitId) : undefined) ?? nextUnit(passed) ?? UNITS[UNITS.length - 1]!;
   const status = unitStatus(unit, passed);
   const lesson = lessonId ? getLesson(unit, lessonId) : undefined;
   const path = <LearnPath passed={passed} progress={progress} activeId={unit.id} />;

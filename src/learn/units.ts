@@ -1,28 +1,44 @@
 import type { PromptKind } from './generate';
+import { layOut, Q, H, W, QR, HR, WR, E, DQ, DH, ER } from './rhythm';
+import type { Spell } from './staff';
+
+type Finger = 1 | 2 | 3 | 4 | 5;
 
 export interface MiniSongNote {
   midi: number;
-  /** Length in quarter-note beats (0.5, 1, 2, 4). */
+  /** Length in quarter-note beats (0.5, 1, 1.5, 2, 3, 4). */
   beats: number;
-  finger?: 1 | 2 | 3 | 4 | 5;
+  finger?: Finger;
+  /** A rest: nothing to play, the song skips it. */
+  rest?: boolean;
+  /** Black keys: written as a sharp or a flat (default: sharp, or flat in a flat key signature). */
+  spell?: Spell;
+  /** A left-hand key struck together with this one (two-hand songs). */
+  left?: { midi: number; finger?: Finger };
 }
 
 /** 4 to 8 bars using only the notes the unit has taught. Traditional tunes, public domain. */
 export interface MiniSong {
   title: string;
   beatsPerBar: number;
+  /** Key signature id (see keysig.ts) drawn on the staff. */
+  keySig?: string;
   notes: MiniSongNote[];
 }
 
 export interface RhythmPattern {
   bpm: number;
-  /** Onsets in beats from the first click. */
+  /** Onsets in beats from the first click: where to tap. Rests have none. */
   beats: number[];
   /** The key to tap. */
   midi: number;
+  /** The written pattern, as rhythm symbol ids; drawn on a staff. */
+  steps?: number[];
+  /** Total length in beats; the metronome clicks every beat. Defaults to the last onset plus one. */
+  length?: number;
 }
 
-export type LessonKind = 'key-finder' | 'note-flash' | 'rhythm-tap' | 'mini-song';
+export type LessonKind = 'key-finder' | 'note-flash' | 'rhythm-tap' | 'mini-song' | 'rhythm-read' | 'both-hands' | 'key-sig';
 
 export interface LessonDef {
   id: string;
@@ -39,6 +55,8 @@ export interface LessonDef {
   optional?: boolean;
   song?: MiniSong;
   pattern?: RhythmPattern;
+  /** Note flash drawn on a grand staff (both clefs). */
+  grand?: boolean;
 }
 
 export interface Unit {
@@ -49,6 +67,8 @@ export interface Unit {
   comingSoon: boolean;
   /** MIDI notes this unit teaches (empty for units that are only defined). */
   notes: number[];
+  /** Rhythm symbols (ids from rhythm.ts) this unit teaches. */
+  symbols?: number[];
   /** Lowest and highest key drawn on the lesson keyboard. */
   keyboard: [number, number];
   /** Finger number per note, where the unit teaches a hand position. */
@@ -66,15 +86,35 @@ const kf = (id: string, title: string, blurb: string, test = false, prompts = 10
 const nf = (id: string, title: string, blurb: string, test = false, prompts = 10): LessonDef => ({
   id, kind: 'note-flash', title, blurb, prompts: test ? 20 : prompts, kinds: ['note-flash'], test,
 });
+const LESSON_KIND: Record<PromptKind, LessonKind> = {
+  'key-finder': 'key-finder',
+  'note-flash': 'note-flash',
+  'both-hands': 'both-hands',
+  'rhythm-name': 'rhythm-read',
+  'rhythm-beats': 'rhythm-read',
+  'keysig-name': 'key-sig',
+  'in-key': 'key-sig',
+};
 const unitTest = (kinds: PromptKind[]): LessonDef => ({
   id: 'test',
-  kind: kinds.includes('note-flash') ? 'note-flash' : 'key-finder',
+  kind: kinds.includes('note-flash') ? 'note-flash' : LESSON_KIND[kinds[0]!],
   title: 'Unit test',
   blurb: '20 prompts. Get 18 right to pass.',
   prompts: 20,
   kinds,
   test: true,
 });
+
+const rest = (beats: number): MiniSongNote => ({ midi: 0, beats, rest: true });
+const flat = (midi: number, beats: number, finger: Finger): MiniSongNote => ({ midi, beats, finger, spell: 'flat' });
+const both = (midi: number, beats: number, finger: Finger, left: number, leftFinger: Finger): MiniSongNote => ({ midi, beats, finger, left: { midi: left, finger: leftFinger } });
+const read = (id: string, title: string, blurb: string, kinds: PromptKind[]): LessonDef => ({
+  id, kind: 'rhythm-read', title, blurb, prompts: 10, kinds,
+});
+const tap = (id: string, title: string, blurb: string, bpm: number, steps: number[]): LessonDef => {
+  const { onsets, length } = layOut(steps);
+  return { id, kind: 'rhythm-tap', title, blurb, optional: true, pattern: { bpm, beats: onsets, midi: 60, steps, length } };
+};
 
 const RIGHT_C: Record<number, 1 | 2 | 3 | 4 | 5> = { 60: 1, 62: 2, 64: 3, 65: 4, 67: 5 };
 const LEFT_C: Record<number, 1 | 2 | 3 | 4 | 5> = { 48: 5, 50: 4, 52: 3, 53: 2, 55: 1 };
@@ -203,11 +243,236 @@ export const UNITS: Unit[] = [
       unitTest(['note-flash']),
     ],
   },
-  { id: 'unit-6', number: 6, name: 'Rhythm basics', blurb: 'Quarter, half and whole notes, and tapping in time.', comingSoon: true, notes: [], keyboard: [60, 72], unlocks: 'Minuet in G', lessons: [] },
-  { id: 'unit-7', number: 7, name: 'Sharps and flats', blurb: 'The black keys and the signs that name them.', comingSoon: true, notes: [], keyboard: [60, 72], unlocks: 'Greensleeves', lessons: [] },
-  { id: 'unit-8', number: 8, name: 'Both hands', blurb: 'Reading and playing both staves together.', comingSoon: true, notes: [], keyboard: [48, 72], unlocks: 'Für Elise (opening)', lessons: [] },
-  { id: 'unit-9', number: 9, name: 'Eighth notes and dotted rhythms', blurb: 'Faster notes and the dot.', comingSoon: true, notes: [], keyboard: [60, 72], unlocks: 'Canon in D', lessons: [] },
-  { id: 'unit-10', number: 10, name: 'Key signatures', blurb: 'Which notes are sharp or flat all song long.', comingSoon: true, notes: [], keyboard: [60, 72], lessons: [] },
+  {
+    id: 'unit-6',
+    number: 6,
+    name: 'Rhythm basics',
+    blurb: 'Quarter, half and whole notes and their rests say how long to wait. Read them, then tap them in time.',
+    comingSoon: false,
+    notes: [60, 62, 64, 65, 67],
+    symbols: [Q, H, W, QR, HR, WR],
+    keyboard: [60, 72],
+    fingers: RIGHT_C,
+    unlocks: 'Minuet in G',
+    mnemonics: [
+      { label: 'Notes', letters: 'quarter 1 beat · half 2 beats · whole 4 beats' },
+      { label: 'Rests are silent', letters: 'the same lengths, with nothing played' },
+    ],
+    lessons: [
+      read('read', 'Read the rhythm', 'A note or rest is shown. Name it or say how many beats it lasts.', ['rhythm-name', 'rhythm-beats']),
+      tap('tap-1', 'Rhythm tap: quarters and halves', 'Tap middle C on each note. A half note lasts two clicks.', 70, [Q, Q, H, Q, Q, H]),
+      tap('tap-2', 'Rhythm tap: rests and a whole note', 'Stay silent on a rest. Tap once on a whole note.', 70, [Q, Q, QR, Q, H, HR, W]),
+      {
+        id: 'song',
+        kind: 'mini-song',
+        title: 'Mini song: Rest Stop',
+        blurb: 'Five bars with rests. Play the notes in order; the rests are skipped.',
+        optional: true,
+        song: {
+          title: 'Rest Stop',
+          beatsPerBar: 4,
+          notes: [
+            { midi: 60, beats: 1, finger: 1 }, { midi: 62, beats: 1, finger: 2 }, { midi: 64, beats: 2, finger: 3 },
+            { midi: 64, beats: 1, finger: 3 }, { midi: 62, beats: 1, finger: 2 }, { midi: 60, beats: 2, finger: 1 },
+            { midi: 67, beats: 1, finger: 5 }, rest(1), { midi: 67, beats: 1, finger: 5 }, rest(1),
+            { midi: 65, beats: 1, finger: 4 }, { midi: 64, beats: 1, finger: 3 }, { midi: 62, beats: 2, finger: 2 },
+            { midi: 60, beats: 4, finger: 1 },
+          ],
+        },
+      },
+      unitTest(['rhythm-name', 'rhythm-beats']),
+    ],
+  },
+  {
+    id: 'unit-7',
+    number: 7,
+    name: 'Sharps and flats',
+    blurb: 'A sharp raises a note one key; a flat lowers it one key. The black keys carry both names.',
+    comingSoon: false,
+    notes: [61, 63, 66, 68, 70],
+    keyboard: [60, 72],
+    unlocks: 'Greensleeves',
+    mnemonics: [
+      { label: 'Sharp ♯', letters: 'the next key up', phrase: 'F♯ is the black key right of F' },
+      { label: 'Flat ♭', letters: 'the next key down', phrase: 'G♭ is the black key left of G' },
+      { label: 'Same key, two names', letters: 'F♯ = G♭ · C♯ = D♭ · D♯ = E♭ · G♯ = A♭ · A♯ = B♭' },
+    ],
+    lessons: [
+      kf('keys', 'Find the black key', 'A sharp or flat name is shown. Press that black key.'),
+      nf('flash', 'Note flash', 'A note with a sharp or flat sign is shown. Press it.'),
+      {
+        id: 'song',
+        kind: 'mini-song',
+        title: 'Mini song: Black Key Lullaby',
+        blurb: 'Six bars on the black keys only, written with flats.',
+        optional: true,
+        song: {
+          title: 'Black Key Lullaby',
+          beatsPerBar: 4,
+          notes: [
+            flat(61, 1, 2), flat(63, 1, 3), flat(61, 1, 2), flat(63, 1, 3),
+            flat(66, 2, 2), flat(63, 2, 3),
+            flat(68, 1, 3), flat(66, 1, 2), flat(68, 1, 3), flat(70, 1, 4),
+            flat(70, 2, 4), flat(68, 2, 3),
+            flat(66, 1, 2), flat(63, 1, 3), flat(61, 1, 2), flat(63, 1, 3),
+            flat(61, 4, 2),
+          ],
+        },
+      },
+      unitTest(['key-finder', 'note-flash']),
+    ],
+  },
+  {
+    id: 'unit-8',
+    number: 8,
+    name: 'Both hands',
+    blurb: 'The grand staff joins treble and bass. Read both, and press keys from both hands at the same time.',
+    comingSoon: false,
+    notes: [48, 50, 52, 53, 55, 60, 62, 64, 65, 67],
+    keyboard: [48, 72],
+    unlocks: 'Für Elise (opening)',
+    mnemonics: [{ label: 'Grand staff', letters: 'treble on top (right hand) · bass below (left hand)', phrase: 'Middle C sits between them' }],
+    lessons: [
+      { id: 'flash', kind: 'note-flash', title: 'Grand staff note flash', blurb: 'A note on the grand staff is shown. Press it.', prompts: 15, kinds: ['note-flash'], grand: true },
+      {
+        id: 'together',
+        kind: 'both-hands',
+        title: 'Both hands together',
+        blurb: 'Notes on both staves are shown. Press them all at the same time.',
+        prompts: 10,
+        kinds: ['both-hands'],
+      },
+      {
+        id: 'song',
+        kind: 'mini-song',
+        title: 'Mini song: Hands Together',
+        blurb: 'Five bars with the left hand joining in. Press both keys together where you see two notes.',
+        optional: true,
+        song: {
+          title: 'Hands Together',
+          beatsPerBar: 4,
+          notes: [
+            both(60, 1, 1, 48, 5), { midi: 62, beats: 1, finger: 2 }, both(64, 1, 3, 52, 3), { midi: 62, beats: 1, finger: 2 },
+            both(60, 1, 1, 48, 5), { midi: 62, beats: 1, finger: 2 }, both(64, 2, 3, 52, 3),
+            both(65, 1, 4, 53, 2), { midi: 64, beats: 1, finger: 3 }, both(62, 1, 2, 50, 4), { midi: 60, beats: 1, finger: 1 },
+            both(67, 1, 5, 55, 1), { midi: 65, beats: 1, finger: 4 }, both(64, 1, 3, 52, 3), { midi: 62, beats: 1, finger: 2 },
+            both(60, 4, 1, 48, 5),
+          ],
+        },
+      },
+      unitTest(['note-flash', 'both-hands']),
+    ],
+  },
+  {
+    id: 'unit-9',
+    number: 9,
+    name: 'Eighth notes and dotted rhythms',
+    blurb: 'Eighth notes split a beat in two. A dot adds half of the note again.',
+    comingSoon: false,
+    notes: [60, 62, 64, 65, 67],
+    symbols: [E, DQ, DH, ER],
+    keyboard: [60, 72],
+    fingers: RIGHT_C,
+    unlocks: 'Canon in D',
+    mnemonics: [
+      { label: 'Eighth note', letters: '½ beat · two eighths fill one beat' },
+      { label: 'The dot adds half', letters: 'dotted quarter = 1½ · dotted half = 3' },
+    ],
+    lessons: [
+      read('read', 'Read the rhythm', 'A note or rest is shown. Name it or say how many beats it lasts.', ['rhythm-name', 'rhythm-beats']),
+      tap('tap-1', 'Rhythm tap: eighth notes', 'Two taps in every beat where you see a pair of eighths.', 60, [Q, E, E, Q, Q, E, E, E, E, H]),
+      tap('tap-2', 'Rhythm tap: dotted rhythms', 'Hold a dotted quarter for a beat and a half, then tap the eighth.', 60, [DQ, E, Q, Q, DQ, E, H]),
+      {
+        id: 'song',
+        kind: 'mini-song',
+        title: 'Mini song: Row, Row, Row Your Boat',
+        blurb: 'Five bars with eighth notes and dotted quarters.',
+        optional: true,
+        song: {
+          title: 'Row, Row, Row Your Boat',
+          beatsPerBar: 4,
+          notes: [
+            { midi: 60, beats: 1, finger: 1 }, { midi: 60, beats: 1, finger: 1 }, { midi: 60, beats: 1.5, finger: 1 }, { midi: 62, beats: 0.5, finger: 2 },
+            { midi: 64, beats: 1.5, finger: 3 }, { midi: 62, beats: 0.5, finger: 2 }, { midi: 64, beats: 1.5, finger: 3 }, { midi: 65, beats: 0.5, finger: 4 },
+            { midi: 67, beats: 4, finger: 5 },
+            { midi: 67, beats: 1.5, finger: 5 }, { midi: 65, beats: 0.5, finger: 4 }, { midi: 64, beats: 1.5, finger: 3 }, { midi: 62, beats: 0.5, finger: 2 },
+            { midi: 60, beats: 4, finger: 1 },
+          ],
+        },
+      },
+      unitTest(['rhythm-name', 'rhythm-beats']),
+    ],
+  },
+  {
+    id: 'unit-10',
+    number: 10,
+    name: 'Key signatures',
+    blurb: 'Sharps or flats at the start of the staff apply to every note of that name, all song long.',
+    comingSoon: false,
+    notes: [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 74, 76, 77],
+    keyboard: [60, 77],
+    mnemonics: [
+      { label: 'Sharps, in order', letters: 'F C G D A E B', phrase: 'Father Charles Goes Down And Ends Battle' },
+      { label: 'Flats, in order', letters: 'B E A D G C F', phrase: 'Battle Ends And Down Goes Charles’s Father' },
+      { label: 'Keys in this unit', letters: 'C · G (1♯) · D (2♯) · A (3♯) · F (1♭) · B♭ (2♭) · E♭ (3♭)' },
+    ],
+    lessons: [
+      {
+        id: 'read',
+        kind: 'key-sig',
+        title: 'Name the key',
+        blurb: 'A key signature is shown. Pick the major key it belongs to.',
+        prompts: 10,
+        kinds: ['keysig-name'],
+      },
+      {
+        id: 'in-key',
+        kind: 'key-sig',
+        title: 'Play it in the key',
+        blurb: 'A key signature and a note are shown. Press the key that note really is, signature applied.',
+        prompts: 10,
+        kinds: ['in-key'],
+      },
+      {
+        id: 'scale',
+        kind: 'mini-song',
+        title: 'Scale: F major',
+        blurb: 'Up and down one octave. The signature turns every B into B♭.',
+        optional: true,
+        song: {
+          title: 'F major scale',
+          beatsPerBar: 4,
+          keySig: 'F',
+          notes: [
+            { midi: 65, beats: 1, finger: 1 }, { midi: 67, beats: 1, finger: 2 }, { midi: 69, beats: 1, finger: 3 }, { midi: 70, beats: 1, finger: 4 },
+            { midi: 72, beats: 1, finger: 1 }, { midi: 74, beats: 1, finger: 2 }, { midi: 76, beats: 1, finger: 3 }, { midi: 77, beats: 1, finger: 4 },
+            { midi: 77, beats: 1, finger: 4 }, { midi: 76, beats: 1, finger: 3 }, { midi: 74, beats: 1, finger: 2 }, { midi: 72, beats: 1, finger: 1 },
+            { midi: 70, beats: 1, finger: 4 }, { midi: 69, beats: 1, finger: 3 }, { midi: 67, beats: 1, finger: 2 }, { midi: 65, beats: 1, finger: 1 },
+          ],
+        },
+      },
+      {
+        id: 'song',
+        kind: 'mini-song',
+        title: 'Mini song: Sharp Eyes',
+        blurb: 'Five bars in G major. The signature makes every F an F♯.',
+        optional: true,
+        song: {
+          title: 'Sharp Eyes',
+          beatsPerBar: 4,
+          keySig: 'G',
+          notes: [
+            { midi: 67, beats: 1, finger: 1 }, { midi: 69, beats: 1, finger: 2 }, { midi: 71, beats: 1, finger: 3 }, { midi: 74, beats: 1, finger: 5 },
+            { midi: 71, beats: 1, finger: 3 }, { midi: 69, beats: 1, finger: 2 }, { midi: 67, beats: 2, finger: 1 },
+            { midi: 64, beats: 1, finger: 2 }, { midi: 66, beats: 1, finger: 3 }, { midi: 67, beats: 1, finger: 4 }, { midi: 69, beats: 1, finger: 5 },
+            { midi: 67, beats: 1, finger: 4 }, { midi: 66, beats: 1, finger: 3 }, { midi: 64, beats: 1, finger: 2 }, { midi: 62, beats: 1, finger: 1 },
+            { midi: 67, beats: 4, finger: 4 },
+          ],
+        },
+      },
+      unitTest(['keysig-name', 'in-key']),
+    ],
+  },
 ];
 
 export function getUnit(id: string): Unit | undefined {
@@ -217,6 +482,11 @@ export function getUnit(id: string): Unit | undefined {
 export function unitNumber(id: string): number {
   const n = Number(/^unit-(\d+)$/.exec(id)?.[1]);
   return Number.isInteger(n) ? n : 0;
+}
+
+/** Every rhythm symbol taught by units up to and including this number. */
+export function taughtSymbolsThrough(n: number): number[] {
+  return [...new Set(UNITS.filter((u) => u.number <= n).flatMap((u) => u.symbols ?? []))];
 }
 
 /** Every note taught by units up to and including this number. */

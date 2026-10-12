@@ -35,15 +35,15 @@ test.describe('Learn', () => {
     await isolateMidi(page);
   });
 
-  test('rail and Home lead into Learn; units 6 to 10 are coming soon; unit 2 is locked at the start', async ({ page }) => {
+  test('rail and Home lead into Learn; units 2 to 10 are locked at the start; unit 2 is locked', async ({ page }) => {
     await gotoApp(page, '/');
     await expect(page.getByTestId('rail-learn')).toHaveAttribute('href', '#/learn');
     await page.getByTestId('learn-continue').click();
     await expect(page.getByTestId('unit-title')).toHaveText('Keyboard map');
-    for (const n of [2, 3, 4, 5]) await expect(page.getByTestId(`learn-unit-${n}`)).toHaveAttribute('data-status', 'locked');
-    for (const n of [6, 7, 8, 9, 10]) await expect(page.getByTestId(`learn-unit-${n}`)).toHaveAttribute('data-status', 'coming-soon');
+    // Units 6 to 10 used to read "coming soon"; they are playable now and open in order like the rest.
+    for (const n of [2, 3, 4, 5, 6, 7, 8, 9, 10]) await expect(page.getByTestId(`learn-unit-${n}`)).toHaveAttribute('data-status', 'locked');
     await page.goto('/#/learn/unit-7');
-    await expect(page.getByTestId('unit-coming-soon')).toBeVisible();
+    await expect(page.getByTestId('unit-locked')).toBeVisible();
     await page.goto('/#/learn/unit-2');
     await expect(page.getByTestId('unit-locked')).toBeVisible();
   });

@@ -1601,6 +1601,8 @@ a.unit-row:hover {
 
 .beat-dots {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 14px;
   margin: 12px 0;
 }
@@ -1614,6 +1616,35 @@ a.unit-row:hover {
 
 .beat-dot[data-on='true'] {
   background: var(--accent);
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 560px;
+  margin: 8px 0;
+}
+
+.choice {
+  background: #fff;
+  color: var(--key-white-ink);
+  border: 1px solid #b8bdc8;
+}
+
+.choice:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.choice[data-mark='right'] {
+  background: var(--correct);
+  color: #0b3a22;
+}
+
+.choice[data-mark='wrong'] {
+  background: var(--miss);
+  color: #3a0c06;
 }
 
 .staff-song svg {
