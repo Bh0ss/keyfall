@@ -432,3 +432,60 @@ New tests: `tests/bundled-songs.test.ts` and `e2e/songs.spec.ts` now cover all 2
 - `tests/musicxml.test.ts`: the "open from the start" test now looks at Mary and Twinkle by id; before, it asserted they were the only open songs.
 - `tests/import.test.ts`: unchanged (the estimator check covers all 29 songs).
 - `tests/bundled-songs.test.ts` and `e2e/songs.spec.ts`: lists extended to 29; the e2e Advanced profile still records Units 2 to 5 as passed; the e2e unlock test lists three more songs.
+
+## Phase 8: Sync
+
+### Built
+
+- Migrations (`supabase/migrations/`, applied with `supabase db push`; `supabase migration list` shows both with local and remote columns equal: `20261012120000` sync_tables, `20261012120100` scores_max_rule):
+  - Seven tables: `profiles`, `scores`, `attempts` (miss log inside `data`), `learn_progress`, `imported_songs` (metadata plus `storage_path`), and two added for the existing Dexie data, `note_stats` and `review_queue`. Shape for all: `household_id uuid not null default auth.uid()` (FK to `auth.users`, cascade), `id text`, `updated_at bigint`, `deleted_at bigint`, `data jsonb`, `server_at timestamptz`; primary key `(household_id, id)`. `scores` also has `score integer`, `imported_songs` has `storage_path text`.
+  - Each table: RLS enabled and forced; four policies (select, insert, update, delete), all `to authenticated` with `household_id = auth.uid()` (update has `with check` too); `revoke all ... from public, anon`; `grant select, insert, update, delete ... to authenticated` only.
+  - Triggers: `keyfall_touch` (before insert/update) stamps `server_at` and drops an update whose `updated_at` is not newer (last write wins on the server too; skipped for `scores`); `keyfall_keep_max_score` on `scores` drops an update whose score is not higher. Both functions have execute revoked from public, anon and authenticated, and a fixed `search_path`.
+  - Storage: private bucket `songs` (public false, 10 MB limit) and four `storage.objects` policies (select, insert, update, delete) for `authenticated` where the first path folder is `auth.uid()`. Objects are `<uid>/<song id>`.
+- `src/sync/`: `client.ts` (Supabase client from `import.meta.env`, null when unset, `persistSession`, `detectSessionInUrl: false` so the hash router is never parsed), `types.ts` (`Remote` interface, row shape), `tables.ts` (local-to-remote table map and record codec), `merge.ts` (the merge rule), `engine.ts` (push queue, pull, imported-song file handling), `remote.ts` (Supabase implementation of `Remote`), `controller.ts` (auth and status store, sign in and out, 60 s interval, online retry, debounced push after local writes).
+- UI: `src/ui/AccountPanel.tsx` (email + password sign-in, signed-in card with status, Sync now, Sign out; `AccountChip` on Home). Mounted in Settings, on the profile picker (so a fresh device can sign in before it has a profile), and the chip beside the connection chip on Home. `profiles.refresh()` re-reads profiles after a pull. `initSync()` starts from `App` once storage is ready.
+- Tests: `tests/sync-owner.test.ts` (8: empty device syncs, used device waits and sends nothing, Upload, Start fresh, other account, same-owner re-sign-in with offline changes, sync positions wiped, clear on sign-out), `tests/sync-merge.test.ts`, `tests/sync-engine.test.ts` (two Dexie databases as two devices syncing through `tests/sync-fake-remote.ts`, which applies the same server rules as the migration), `e2e/sync.spec.ts`, `e2e/sync-rls.spec.ts`, `e2e/sync-helpers.ts`. `playwright.config.ts` loads only `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` and `TEST_USER_*` from the gitignored env files, and sets trace, video and screenshot off.
+- Deploy: `.github/workflows/deploy.yml` already passes `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from repo `vars` to the build; `gh variable list` shows both. Nothing changed there.
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm test` | exit 0, 30 files, 492 tests (25 new: 6 merge, 11 engine, 8 owner) |
+| `npm run build` | exit 0 |
+| `npm run test:e2e` | exit 0, 136 passed (132 before plus 4 new), 10.4 min |
+| `supabase migration list` | 2 migrations, local and remote both present and equal |
+
+- New e2e: `sync.spec.ts` (3 tests now). A used device waits for a choice: no rows reach the server after sign-in (5 s wait) or after Cancel, and Start fresh uploads nothing and removes the local profile. The first test records a Mary score (4,800) and imports a song in one context while signed out, signs in, then a second fresh context (new storage) signs in from the profile picker, gets the profile, score, attempt and imported song (file downloaded from the bucket and rebuilt), and Stats shows the score; the row is also read back from the server. `sync-rls.spec.ts` uses the real API: account 1 writes a row in all 7 tables and a file; account 2 cannot list, fetch by id, update, delete or forge-insert any of them, and cannot download, list, upload into or remove from account 1's folder; anon sees nothing; positive controls prove account 1 and 2 can use their own data. Both clean up by id; after the full run both test accounts hold 0 rows in every table and 0 files.
+- The merge test was red first for a real reason: the engine test showed the server's last-write-wins rule would have dropped a higher score sent from a device with an older clock. Fixed in `20261012120100_scores_max_rule.sql` (scores follow the max rule only).
+
+### Decisions
+
+- **Row shape is generic (`data jsonb`) with a few typed columns** rather than one column per field. The Dexie schema keeps evolving; a JSON body means no migration per new field. Typed columns exist only where the server needs them (`score` for the max rule, `storage_path`).
+- **Synced:** profiles (with settings), scores, attempts, learn progress, review queue, note stats (so label fade follows the player), imported songs. **Not synced:** latency offsets (they describe one keyboard and Bluetooth link on one device) and the sessionStorage "who is playing" choice.
+- **The queue is "what the server has acknowledged" per account**, kept in `meta` as id to updatedAt per table. A row is pending when its stamp differs. Rows pulled from the server are marked acknowledged, so they never echo back; offline changes stay pending across restarts; no per-write bookkeeping is needed in the repositories (a Dexie hook only schedules a push 2 s later). Keys, not rows, are scanned. The pull position is the server's `server_at`, not client clocks, so a device with a wrong clock cannot hide rows.
+- **Merge:** last write wins by `updatedAt`; an equal stamp keeps local. Scores keep the max (tie keeps local). Deletes are a write: `deletedAt` plus a new `updatedAt`, so a later edit beats an earlier delete. Only imported songs are deletable today.
+- **Imported songs:** the original file goes to `songs/<uid>/<song id>` once (a meta flag stops re-uploads on metadata edits); the row carries title, composer, level, split mode and point, format and file name. Other devices download the file and rebuild the Song with `analyseFile` and `buildSong` (the same code as the import screen), so notes are identical without shipping the notes. A deleted song removes its file and keeps the tombstone row.
+- **Device ownership (Kasumi review, replaces "local data belongs to the device"):** a `sync.owner` uid in Dexie `meta` records which account this device's data is synced with. On sign-in: same owner, or an empty device (which then becomes the account's), syncs normally. Otherwise (local rows never synced to this account: first sign-in on a used device, or a different account) nothing is sent and, stricter than the requested pull-only, nothing is pulled either, so a cancel cannot leave another account's rows mixed in. The Account card asks: "Upload this device's data to <email>" (claims the device, then syncs), "Start fresh (discard local data on this device)" (clears the synced tables and all sync positions, keeps latency offsets, claims the device, pulls), or "Cancel (sign out)" (local data untouched, still unsent). The choice survives a reload because the owner check reruns on the stored session. Sign-out offers "Sign out and clear local data on this device" for shared devices. Logic in `src/sync/owner.ts`; `syncNow` is a no-op while a choice is pending.
+- **Same-name profiles created separately on two signed-out devices** both survive the merge (ids differ); the name-unique rule is only enforced per device. Not auto-merged; Edit renames one.
+- **Sign-in is also on the profile picker**, not only in Settings, because a fresh device has no profile and Settings needs one. Settings' title is now "Settings" with Latency check as a section heading.
+- **Failures are quiet:** offline or a rejected request sets the status to "Sync paused" with the reason, the game keeps working, the next pass (60 s, back online, or Sync now) retries. A table that fails does not block the others.
+- **E2E env:** `playwright.config.ts` reads only the keys it needs from `.env.local` and `.env.test.local` (existing environment variables win); the specs throw, not skip, when they are missing. Trace, video and screenshots are off so typed passwords cannot be captured.
+- **Not done:** a UI to delete profiles or attempts (no tombstone path needed yet); conflict UI for same-name profiles; the `songs` bucket's 10 MB limit mirrors the import limit.
+
+### Where secrets are read (no values anywhere in the repo)
+
+- `src/sync/client.ts`: `import.meta.env.VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (public by design; inlined at build time).
+- `.github/workflows/deploy.yml`: the same two, from repo `vars`.
+- `playwright.config.ts`: parses `.env.local` and `.env.test.local`, copies only `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `TEST_USER_1/2_EMAIL/PASSWORD` into `process.env`.
+- `e2e/sync-helpers.ts`: reads those from `process.env`; `e2e/sync.spec.ts` types the account 1 credentials into the sign-in form.
+- `supabase db push` and `migration list` used `SUPABASE_DB_PASSWORD` from the shell environment only. The service-role key is not used or stored.
+
+### Review: Kasumi, SHIP-WITH-FIXES (no critical or high)
+
+- Medium, fixed: auto-push on account switch (see the device ownership decision).
+- Low, fixed: real email addresses replaced with `<household email>`, `<test account 1>`, `<test account 2>` in `HUMAN_CHECKS.md` and `SETUP_STATUS.md` (current files only, no history rewrite). Real emails stay out of tracked files from now on.
+- Lows deferred to Phase 9: a CSP meta tag, bucket `allowed_mime_types` plus a data-size check, an `updated_at` clamp (a far-future client stamp could pin a row).
+- After the final run both test accounts hold 0 rows in every table and 0 objects in `songs`.

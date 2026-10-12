@@ -81,6 +81,11 @@ export const profiles = {
     sessionSet(null);
     set({ activeId: null });
   },
+  /** Re-read the profiles after sync changed storage. A profile that vanished drops back to the picker. */
+  async refresh(): Promise<void> {
+    const list = await listProfiles(getDb());
+    set({ profiles: list, activeId: list.some((p) => p.id === state.activeId) ? state.activeId : null });
+  },
   async create(input: ProfileInput): Promise<Profile> {
     const p = await createProfile(getDb(), input);
     await reload();

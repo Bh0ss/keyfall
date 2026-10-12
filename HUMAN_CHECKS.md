@@ -194,3 +194,23 @@ Needs the piano and the dev server or the Pages site. Units 1 to 5 must be passe
    - Auld Lang Syne, bar 2: a B3 neighbour note that the common 4/4 version does not have.
    - Scarborough Fair: the rhythm (the reference was rubato), and whether A natural minor (F natural) is acceptable or the tune should be Dorian (F sharp).
 3. The classical pieces have no finger numbers. Check that the Schumann pieces' left hand and the Arabesque and Sonatina runs are playable at the set tempos, and that the sheet view looks right (the Sonatina is in cut time; it may show 4/4).
+
+## Phase 8: sign in and sync between the Mac and the iPhone
+
+Needs the household account (<household email> and its password), the Mac, and the iPhone in Web MIDI Browser. Use the Pages site on both (https://bh0ss.github.io/keyfall/) once the Actions run for the Phase 8 push is green.
+
+1. On the Mac, open Settings. Under Account, enter the household email and password and press Sign in.
+   - Good: the card changes to "Signed in as ..." and the status reads "Synced" within a few seconds. The Home screen shows a green "Synced" chip beside the keyboard chip.
+2. Play Mary Had a Little Lamb in Full mode to the end on the Mac with your profile.
+   - Good: Results shows your score. Within about 3 seconds the Account status shows a fresh "Synced" time.
+3. On the iPhone, open the site in Web MIDI Browser. On the profile picker, use Sync across devices to sign in with the same account (or Settings if you already have a profile there).
+   - Good: your profiles appear on the picker without creating them again. Open your profile, then Stats and the Mary song list.
+   - Good: Stats and the Mary high-score board show the score from the Mac.
+4. Import a small .mid or .musicxml on the iPhone (Play, Import). On the Mac, wait up to a minute (or press Sync now in Settings), then open Songs.
+   - Good: the imported song appears on the Mac and plays. Remove it on the Mac; after the next sync it disappears from the iPhone too.
+5. Play the same song on the iPhone with a lower score than the Mac's.
+   - Good: the high score on both devices stays at the higher one.
+6. Turn the iPhone offline (airplane mode), play a song, turn it back on.
+   - Good: the game works offline; once online again the new run reaches the Mac within a minute.
+7. Sign out on the iPhone (Settings, Sign out).
+   - Good: the game still works and keeps all local data; the chip reads "Not syncing".

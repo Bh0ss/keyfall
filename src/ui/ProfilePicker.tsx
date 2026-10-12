@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { MAX_NAME_LENGTH, PROFILE_COLOURS } from '../storage/profiles';
 import type { PlayerLevel, Profile } from '../storage/types';
+import { AccountPanel } from './AccountPanel';
 import { profiles, useProfiles } from './profileStore';
 
 const LEVELS: { id: PlayerLevel; label: string; hint: string }[] = [
@@ -156,6 +157,7 @@ export function ProfilePicker() {
         </header>
         {list.length === 0 && <p className="muted">Create a profile to keep your scores and settings. Each player gets their own.</p>}
         {body}
+        <AccountPanel compact />
       </main>
     </div>
   );

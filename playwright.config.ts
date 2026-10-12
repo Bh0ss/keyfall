@@ -1,4 +1,16 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { parseEnv } from 'node:util';
 import { defineConfig, devices } from '@playwright/test';
+
+// The sync specs sign in to Supabase. Read only the keys they need from the gitignored env files into the
+// environment (never printed, never written anywhere); real environment variables win over the files.
+const ENV_KEYS = /^(VITE_SUPABASE_URL|VITE_SUPABASE_ANON_KEY|TEST_USER_[12]_(EMAIL|PASSWORD))$/;
+for (const file of ['.env.local', '.env.test.local']) {
+  if (!existsSync(file)) continue;
+  for (const [k, v] of Object.entries(parseEnv(readFileSync(file, 'utf8')))) {
+    if (ENV_KEYS.test(k) && v && process.env[k] === undefined) process.env[k] = v;
+  }
+}
 
 /**
  * Three ways to run:
@@ -17,7 +29,8 @@ const iphone = { ...devices['iPhone 15 landscape'], defaultBrowserType: 'chromiu
 
 export default defineConfig({
   testDir: 'e2e',
-  use: { baseURL },
+  // Traces, videos and screenshots can capture typed passwords: keep them off.
+  use: { baseURL, trace: 'off', video: 'off', screenshot: 'off' },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /phone\.spec\.ts/ },
     { name: 'iphone-landscape', use: iphone, testMatch: /phone\.spec\.ts/ },

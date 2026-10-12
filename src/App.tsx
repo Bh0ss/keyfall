@@ -13,6 +13,7 @@ import { SongGate } from './ui/SongGate';
 import { virtualInputEnabled } from './midi/virtual';
 import { loadLibrary, useLibrary } from './songs/library';
 import { getDb } from './storage/db';
+import { initSync } from './sync/controller';
 
 const LearnRoutes = lazy(() => import('./ui/learn/LearnRoutes'));
 // The MIDI parser is only needed when a file is imported.
@@ -62,7 +63,10 @@ export function App() {
     void initProfiles();
   }, []);
   useEffect(() => {
-    if (state.status === 'ready') void loadLibrary(getDb());
+    if (state.status === 'ready') {
+      void loadLibrary(getDb());
+      initSync();
+    }
   }, [state.status]);
 
   if (state.status === 'loading' || (state.status === 'ready' && state.activeId && !library.ready)) return <div className="shell" data-testid="app-loading" />;

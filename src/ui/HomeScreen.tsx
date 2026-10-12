@@ -4,6 +4,7 @@ import { useLibrary } from '../songs/library';
 import { getDb } from '../storage/db';
 import { profileAttempts } from '../storage/attempts';
 import { bestPerSong, profileScores } from '../storage/scores';
+import { AccountChip } from './AccountPanel';
 import { AppLayout } from './AppLayout';
 import { ConnectionChip } from './ConnectionChip';
 import { Avatar } from './ProfilePicker';
@@ -57,6 +58,7 @@ export function HomeScreen() {
           </div>
           <div className="row">
             <ConnectionChip snapshot={snapshot} helpHref="#setup" />
+            <AccountChip />
             <button className="avatar-btn" type="button" aria-label="Switch profile" data-testid="switch-profile" onClick={() => profiles.switchProfile()}>
               <Avatar profile={profile} />
             </button>

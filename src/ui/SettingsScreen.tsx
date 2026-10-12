@@ -4,6 +4,7 @@ import { LATENCY_CLICKS, LATENCY_INTERVAL_MS, deviceKey, medianOffset } from '..
 import { midi } from '../midi/engine';
 import { getDb } from '../storage/db';
 import { clearLatency, saveLatency, savedLatency } from '../storage/latency';
+import { AccountPanel } from './AccountPanel';
 import { AppLayout } from './AppLayout';
 import { audioContext, outputLatencyMs, scheduleClick } from './audio';
 import { useMidi } from './useMidi';
@@ -107,13 +108,15 @@ export function SettingsScreen() {
           <div>
             <div className="mark">Kf</div>
             <div className="eyebrow">Settings</div>
-            <h1 className="title">Latency check</h1>
+            <h1 className="title">Settings</h1>
           </div>
           <a className="btn" href={hrefFor.home()}>
             Home
           </a>
         </header>
+        <AccountPanel />
         <section className="card" data-testid="latency-card">
+          <h2>Latency check</h2>
           <p>
             Eight clicks play. Tap any one key on the keyboard in time with each click. Keyfall measures how late the keyboard reaches the game and
             subtracts that from every note you play.

@@ -17,6 +17,7 @@
     "@fontsource/bricolage-grotesque": "^5.3.0",
     "@fontsource/dm-sans": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
+    "@supabase/supabase-js": "^2.117.2",
     "@tonejs/midi": "^2.0.28",
     "dexie": "^4.4.6",
     "opensheetmusicdisplay": "^2.2.0",

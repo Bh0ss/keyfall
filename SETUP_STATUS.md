@@ -23,8 +23,8 @@ Never write secret values here.
 | 3e | Supabase MCP (read-only) | partial | local scope for this folder (not in repo); project_ref ubheylmkufyuamrgaqev, read_only=true; OAuth pending: run /mcp › supabase › Authenticate in a Claude session started in this folder |
 | 4a | Email + password auth on, confirmation off | done | verified: email on, signups open, email confirmation off |
 | 4b | Redirect URLs (localhost:5173, Pages URL) | done | site URL https://bh0ss.github.io/keyfall/; redirect URLs localhost:5173 and Pages URL (with /** variants); verified via Management API |
-| 4c | Household account | done | hossbrendan+family@gmail.com, confirmed; password held by Captain only |
-| 4d | Two test accounts, .env.test.local | done | hossbrendan+keyfall-test1/test2@gmail.com created and sign-in verified; credentials in .env.test.local (chmod 600, gitignored) |
+| 4c | Household account | done | <household email>, confirmed; password held by Captain only |
+| 4d | Two test accounts, .env.test.local | done | <test account 1> and <test account 2> created and sign-in verified; credentials in .env.test.local (chmod 600, gitignored) |
 | 5 | Playwright + Chromium, MIDI permission test | done | 1.63.0; e2e/midi-permission.spec.ts passes (headless Chromium grants Web MIDI only with both midi and midi-sysex granted; ungranted context is denied; requestMIDIAccess resolves to MIDIAccess with the grant) |
 | 6 | autoMode.environment trust entries | done | .claude-accounts/personal/settings.json (account user settings; project files are ignored by auto mode per docs); $defaults kept; repo public, Supabase project, Supabase API; may be reset by an archstart reinstall |
 | 7a | FP-30X paired in Audio MIDI Setup | done | Bluetooth LE connected; CoreMIDI source "FP-30X MIDI Bluetooth" online |
