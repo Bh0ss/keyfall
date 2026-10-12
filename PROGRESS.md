@@ -626,7 +626,7 @@ Kasumi's Phase 8 lows (Content-Security-Policy, server limits migration) and a w
 | `npm run lighthouse` | exit 0, accessibility 100 on Home, Play, Songs, Learn, Stats, Settings |
 | `supabase migration list` | 4 migrations, local and remote equal |
 
-**Live run (against https://bh0ss.github.io/keyfall/ after Miranda pushes): PENDING, to be filled in by the verifier.** The first live run, before the harness fixes above, was 256 passed, 3 failed. Command: `npm run test:e2e:live` (all projects; set `KEYFALL_BASE_URL` to override the URL). Result: exit ___, ___ passed, ___ skipped, ___ failed.
+**Live run:** Final live run against https://bh0ss.github.io/keyfall/ at 2d84923 (deploy run https://github.com/Bh0ss/keyfall/actions/runs/38319596300, success): full Playwright suite, all four projects — 179 passed, 0 failed, 3 skipped (orientation-specific iPad tests). chromium songs.spec 62 passed (all 29 bundled songs autoplay to the end at 100% in Full mode, and the sheet view renders for each); chromium other specs 102 passed (Learn units 1–10 each passed, MIDI/MusicXML/.mxl import fixtures imported and played, two-context Supabase sync, RLS and server-limit tests); iphone-landscape 4 passed; ipad-landscape 5 passed, 2 skipped; ipad-portrait 6 passed, 1 skipped. Earlier live run at 5e012f7 had 3 harness failures (absolute '/' paths, localhost-only origin check) — fixed in 2d84923.
 
 ### Decisions
 
