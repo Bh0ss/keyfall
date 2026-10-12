@@ -1,10 +1,10 @@
 import type { Song } from './song';
-import type { WaitSession } from './wait';
+import type { PlaySession } from './session';
 
 /** The song screen currently open, so debug tooling (autoplay) can drive it. */
 export interface PlayHandle {
   song: Song;
-  session: WaitSession;
+  session: PlaySession;
   /** Start the song if it has not started yet. */
   ensureStarted(): void;
 }

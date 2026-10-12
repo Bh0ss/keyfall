@@ -123,3 +123,32 @@ describe('runAutoplay against a Wait session', () => {
     await expect(runAutoplay({} as MidiEngine, {}, null)).rejects.toThrow(/no song/);
   });
 });
+
+describe('planAutoplay in timed modes', () => {
+  it('missRate skips notes instead of stalling the song', () => {
+    const plan = planAutoplay(mary, { missRate: 0.3, seed: 5, hesitationMs: 900 }, { timed: true });
+    const ps = presses(plan).filter((e) => e.intent === 'correct');
+    expect(ps.length).toBeLessThan(26);
+    expect(ps.length).toBeGreaterThan(10);
+    for (const p of ps) {
+      const n = mary.notes.find((x) => Math.abs(x.startBeat * 625 - p.atMs) < 1e-6);
+      expect(n).toBeDefined();
+    }
+    expect(plan.filter((e) => e.kind === 'release')).toHaveLength(ps.length);
+  });
+
+  it('missRate 0 and 1 are all or nothing', () => {
+    expect(presses(planAutoplay(mary, { missRate: 0 }, { timed: true }))).toHaveLength(26);
+    expect(presses(planAutoplay(mary, { missRate: 1 }, { timed: true }))).toHaveLength(0);
+  });
+
+  it('speed stretches the timeline but not the offset', () => {
+    const ps = presses(planAutoplay(mary, { offsetMs: 30 }, { speed: 0.5, timed: true }));
+    expect(ps[0]!.atMs).toBe(30);
+    expect(ps[1]!.atMs).toBe(1250 + 30);
+  });
+
+  it('Wait-mode plans are unchanged by the new options', () => {
+    expect(planAutoplay(mary, { missRate: 0.3, seed: 5 })).toEqual(planAutoplay(mary, { missRate: 0.3, seed: 5 }, { speed: 1, timed: false }));
+  });
+});

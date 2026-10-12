@@ -16,8 +16,8 @@ export interface AccuracyProfile {
   wrongKeyRate?: number;
   /**
    * Chance (0-1) the player is slow on a note. In Wait mode that is a pause of
-   * hesitationMs before the press (the song waits for them); later modes may
-   * treat it as a skipped note. Default 0.
+   * hesitationMs before the press (the song waits for them). In the timed modes
+   * the song does not wait, so the note is skipped (never pressed). Default 0.
    */
   missRate?: number;
   /** Length of a hesitation. Default 600. */
@@ -55,8 +55,17 @@ function rng(seed: number): () => number {
   };
 }
 
+export interface PlanOptions {
+  /** Playback speed (1 = nominal tempo). Offsets and jitter stay in real milliseconds. */
+  speed?: number;
+  /** Timed modes: missRate skips notes instead of stalling the song. */
+  timed?: boolean;
+}
+
 /** Turn a song and a profile into a time-ordered list of key presses and releases. */
-export function planAutoplay(song: Song, profile: AccuracyProfile = {}): AutoplayEvent[] {
+export function planAutoplay(song: Song, profile: AccuracyProfile = {}, opts: PlanOptions = {}): AutoplayEvent[] {
+  const speed = opts.speed ?? 1;
+  const timed = opts.timed ?? false;
   const { offsetMs = 0, jitterMs = 0, wrongKeyRate = 0, missRate = 0, hesitationMs = 600, holdFraction = 0.8 } = profile;
   const rand = rng(profile.seed ?? 1);
   const events: AutoplayEvent[] = [];
@@ -64,6 +73,7 @@ export function planAutoplay(song: Song, profile: AccuracyProfile = {}): Autopla
 
   let stall = 0;
   let lastStallBeat = NaN;
+  let skipStep = false;
   const releases: { midi: number; at: number; pressAt: number }[] = [];
   for (const n of song.notes) {
     const sameStep = Math.abs(n.startBeat - lastStallBeat) < 1e-6;
@@ -72,9 +82,13 @@ export function planAutoplay(song: Song, profile: AccuracyProfile = {}): Autopla
     const rJit = rand();
     const rWrong = rand();
     const rPick = rand();
-    if (!sameStep && rMiss < missRate) stall += hesitationMs;
+    if (!sameStep) {
+      skipStep = timed && rMiss < missRate;
+      if (!timed && rMiss < missRate) stall += hesitationMs;
+    }
     lastStallBeat = n.startBeat;
-    const pressAt = Math.round((beatsToMs(n.startBeat, song.bpm) + offsetMs + (rJit * 2 - 1) * jitterMs + stall) * 1000) / 1000;
+    const pressAt =
+      Math.round((beatsToMs(n.startBeat, song.bpm) / speed + offsetMs + (rJit * 2 - 1) * jitterMs + stall) * 1000) / 1000;
     if (!sameStep && rWrong < wrongKeyRate) {
       const choices = [-2, -1, 1, 2]
         .map((d) => n.midi + d)
@@ -85,8 +99,9 @@ export function planAutoplay(song: Song, profile: AccuracyProfile = {}): Autopla
         events.push({ atMs: pressAt - WRONG_LEAD_MS + WRONG_HOLD_MS, kind: 'release', midi: m, intent: 'wrong' });
       }
     }
+    if (skipStep) continue;
     events.push({ atMs: pressAt, kind: 'press', midi: n.midi, intent: 'correct' });
-    const hold = Math.max(40, beatsToMs(n.durationBeats, song.bpm) * holdFraction);
+    const hold = Math.max(40, (beatsToMs(n.durationBeats, song.bpm) / speed) * holdFraction);
     releases.push({ midi: n.midi, at: pressAt + hold, pressAt });
   }
   // Never hold a key into the next press of the same pitch.
@@ -124,10 +139,11 @@ export async function runAutoplay(
   env: AutoplayEnv = realEnv,
 ): Promise<AutoplayResult> {
   if (!handle) throw new Error('autoplay: no song is open. Open a song on the Play screen first.');
-  const plan = planAutoplay(handle.song, profile);
+  const { speed, kind } = handle.session;
+  const plan = planAutoplay(handle.song, profile, { speed, timed: kind === 'timed' });
   handle.ensureStarted();
   // Wall-clock time at which the song reaches beat 0 if nothing interrupts it.
-  const t0 = env.now() - beatsToMs(handle.session.beatAt(env.now()), handle.song.bpm);
+  const t0 = env.now() - beatsToMs(handle.session.beatAt(env.now()), handle.song.bpm) / speed;
   const held = new Set<number>();
   const result: AutoplayResult = { presses: 0, wrongPresses: 0 };
   for (const e of plan) {

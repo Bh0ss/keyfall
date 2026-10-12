@@ -409,3 +409,158 @@
   margin: 0;
   color: #c9cfda;
 }
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.setup-row {
+  justify-content: center;
+}
+
+.setup-note {
+  font-size: 13px;
+}
+
+.setup-note a {
+  color: var(--accent);
+}
+
+.seg {
+  display: inline-flex;
+  border: 1px solid #3a4252;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.seg button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--text);
+  border: 0;
+  border-right: 1px solid #3a4252;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.seg button:last-child {
+  border-right: 0;
+}
+
+.seg button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn[aria-pressed='true'] {
+  border-color: var(--accent);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #c9cfda;
+}
+
+.field select {
+  min-height: 44px;
+  min-width: 60px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid #3a4252;
+  border-radius: 10px;
+  padding: 0 10px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+}
+
+.grade-pop {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 34px;
+  pointer-events: none;
+  animation: grade-pop 0.7s ease-out forwards;
+}
+
+.grade-pop[data-grade='perfect'] {
+  color: var(--accent);
+}
+
+.grade-pop[data-grade='great'] {
+  color: #6fe3a8;
+}
+
+.grade-pop[data-grade='good'] {
+  color: #4da8ff;
+}
+
+.grade-pop[data-grade='miss'] {
+  color: #ff6b5a;
+}
+
+@keyframes grade-pop {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grade-pop {
+    animation-duration: 0.01s;
+  }
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.summary dl {
+  display: flex;
+  gap: 24px;
+  margin: 0;
+}
+
+.summary dt {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.summary dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.summary-stars {
+  font-size: 36px;
+  letter-spacing: 6px;
+  color: #3a4252;
+}
+
+.summary-stars [data-on='true'] {
+  color: var(--accent);
+}

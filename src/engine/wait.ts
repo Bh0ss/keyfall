@@ -1,8 +1,9 @@
 import { Clock, beatsToMs } from './clock';
+import { loopRange, type MeasureLoop } from './loop';
+import type { PlaySession, PressResult, SessionStatus } from './session';
 import type { Hand, Song, SongNote } from './song';
 
-export type SessionStatus = 'ready' | 'playing' | 'waiting' | 'paused' | 'finished';
-export type PressResult = 'correct' | 'wrong' | 'ignored';
+export type { PressResult, SessionStatus };
 
 export interface WaitOptions {
   /** Which hand the player plays; the other hand auto-plays visually. */
@@ -12,6 +13,8 @@ export interface WaitOptions {
   /** How far ahead of a note a correct key is already accepted. */
   earlyWindowBeats?: number;
   speed?: number;
+  /** Practise only these measures; the song wraps back to the start of the loop. */
+  loop?: MeasureLoop;
 }
 
 export interface WaitStats {
@@ -33,13 +36,17 @@ interface Step {
  * Wait mode: the song stops at each note (or chord) until the right keys are
  * pressed. No timing grade; the score is correct keys and time to press.
  */
-export class WaitSession {
+export class WaitSession implements PlaySession {
+  readonly kind = 'wait' as const;
   status: SessionStatus = 'ready';
   /** Bumps on every observable state change (for useSyncExternalStore). */
   version = 0;
   readonly leadInBeats: number;
   readonly endBeat: number;
+  readonly playStartBeat: number;
+  readonly speed: number;
 
+  private readonly loop: boolean;
   private clock: Clock;
   private steps: Step[] = [];
   private cursor = 0;
@@ -58,18 +65,26 @@ export class WaitSession {
     readonly song: Song,
     opts: WaitOptions = {},
   ) {
-    this.clock = new Clock(song.bpm, opts.speed ?? 1);
+    this.speed = opts.speed ?? 1;
+    this.clock = new Clock(song.bpm, this.speed);
     this.leadInBeats = opts.leadInBeats ?? 4;
     this.earlyWindow = opts.earlyWindowBeats ?? 1;
     const hands = opts.hands ?? 'both';
-    const played = song.notes.filter((n) => hands === 'both' || n.hand === (hands as Hand));
+    const range = opts.loop ? loopRange(song, opts.loop) : null;
+    this.playStartBeat = range ? range.startBeat : 0;
+    const played = song.notes.filter(
+      (n) =>
+        (hands === 'both' || n.hand === (hands as Hand)) &&
+        (!range || (n.startBeat >= range.startBeat - 1e-6 && n.startBeat < range.endBeat - 1e-6)),
+    );
     for (const n of played) {
       const last = this.steps[this.steps.length - 1];
       if (last && Math.abs(last.startBeat - n.startBeat) < 1e-6) last.notes.push(n);
       else this.steps.push({ startBeat: n.startBeat, notes: [n], hit: new Set() });
     }
-    this.endBeat = song.notes.reduce((m, n) => Math.max(m, n.startBeat + n.durationBeats), 0);
-    this.clock.seek(-this.leadInBeats, 0);
+    this.endBeat = range ? range.endBeat : song.notes.reduce((m, n) => Math.max(m, n.startBeat + n.durationBeats), 0);
+    this.loop = range !== null;
+    this.clock.seek(this.playStartBeat - this.leadInBeats, 0);
   }
 
   subscribe(listener: () => void): () => void {
@@ -88,6 +103,10 @@ export class WaitSession {
 
   isHit(noteId: string): boolean {
     return this.hitIds.has(noteId);
+  }
+
+  isMissed(): boolean {
+    return false;
   }
 
   /** Whether the note belongs to the hand the player plays. */
@@ -118,7 +137,7 @@ export class WaitSession {
   }
 
   start(nowMs: number): void {
-    this.clock.seek(-this.leadInBeats, nowMs);
+    this.clock.seek(this.playStartBeat - this.leadInBeats, nowMs);
     this.clock.resume(nowMs);
     this.status = 'playing';
     this.changed();
@@ -159,6 +178,13 @@ export class WaitSession {
         this.status = 'waiting';
         this.changed();
       }
+    } else if (this.loop && beat >= this.endBeat) {
+      for (const st of this.steps) st.hit.clear();
+      this.hitIds.clear();
+      this.correct = 0;
+      this.cursor = 0;
+      this.clock.seek(this.playStartBeat - this.leadInBeats, nowMs);
+      this.changed();
     } else if (beat >= this.endBeat) {
       this.clock.pause(nowMs);
       this.status = 'finished';

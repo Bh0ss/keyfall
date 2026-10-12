@@ -42,3 +42,39 @@ Needs the piano connected (Phase 0 check passing).
 9. At the end: "Song complete" shows 26 of 26 notes. Retry starts over. Also try Twinkle Twinkle Little Star.
    - Check the fingering feels playable (pinky on G and A); tell me if it should change.
 10. Judge the motion: notes should fall smoothly, no stutter, no visible lag between a key press and the key lighting.
+
+## Phase 2: scoring, latency check, metronome, count-in, loop on the FP-30X
+
+Needs the piano connected. Run `npm run dev` and open http://localhost:5173/keyfall/ in Chrome.
+
+### Latency check
+
+1. Open Songs, then Settings (or go to http://localhost:5173/keyfall/#/settings).
+2. Click "Start latency check". Eight clicks play, one every 0.75 s after a short pause.
+3. Tap one piano key right on each click (use the same key).
+   - Good: the counter climbs 1/8 to 8/8, then "Your offset is +NN ms (8 taps matched). Saved for this device." Bluetooth MIDI usually lands somewhere around +10 to +60 ms. Repeat twice; the results should be within about 15 ms of each other.
+   - Bad: "Not enough taps matched" means you missed several clicks; try again.
+4. Leave the page and open a song in Full: the setup panel shows "Latency offset: +NN ms".
+
+### Full mode scoring
+
+1. Play, Mary Had a Little Lamb, pick Full, press Start (or any key). One bar of count-in clicks, then the notes fall.
+2. Play it slightly early or late on purpose and then cleanly.
+   - Good: a grade pops up for each note (Perfect, Great, Good or Miss), the combo multiplier steps up every 10 hits (x2 after 10 in a row, up to x4), a wrong key or missed note drops it back to x1, missed notes turn coral.
+   - Good: at the end the summary shows score, accuracy, stars (70 / 85 / 95%), notes hit and longest streak. A clean run is 4800.
+3. After the latency check, notes you feel are exactly on time should read Perfect. If everything reads early or late, run the latency check again.
+
+### Practice at 70% speed
+
+1. Choose Practice, then 70%, Start.
+   - Good: the song runs noticeably slower, timing windows feel roomy (Perfect is +/-100 ms), the header says "Practice 70%".
+2. Try Expert: windows are tight (Perfect +/-25 ms) and note names start off.
+
+### Metronome, count-in and loop
+
+1. In the setup panel turn Metronome on, keep Count-in on, press Start.
+   - Good: four count-in clicks (higher pitch on the first), then a click on every beat, matching the notes' pulse.
+2. Turn Count-in off and Metronome off: silent start.
+3. Turn A-B loop on, pick bars 1 to 2, Start (Wait or Practice).
+   - Good: only those two bars are playable (the rest is dimmed), the passage repeats after the last note, with a bar of count-in clicks if Count-in is on. The score restarts for the loop each pass.
+4. Wait mode still holds the song at every note, with no timing grade.

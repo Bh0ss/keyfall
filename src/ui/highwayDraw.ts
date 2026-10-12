@@ -1,5 +1,5 @@
 import type { Hand, SongNote } from '../engine/song';
-import type { WaitSession } from '../engine/wait';
+import type { PlaySession } from '../engine/session';
 import type { PressedKeys } from '../midi/pressed';
 import type { Layout } from './highwayLayout';
 import { noteName } from './keyboardLayout';
@@ -20,7 +20,7 @@ const MONO = "'JetBrains Mono', ui-monospace, monospace";
 
 export interface HighwayState {
   layout: Layout;
-  session: WaitSession;
+  session: PlaySession;
   beat: number;
   pressed: PressedKeys;
   labels: boolean;
@@ -81,6 +81,7 @@ function drawNote(
   const hgt = bottom - 3 - y;
   const colours = HAND[n.hand];
   const hit = s.session.isHit(n.id);
+  const missed = s.session.isMissed(n.id);
   const played = s.session.isPlayed(n);
 
   ctx.save();
@@ -89,6 +90,10 @@ function drawNote(
     ctx.shadowBlur = 24;
     ctx.fillStyle = '#F5A524';
     ctx.strokeStyle = '#FFD27A';
+  } else if (missed) {
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = 'rgba(255, 107, 90, 0.22)';
+    ctx.strokeStyle = '#FF6B5A';
   } else if (!played) {
     ctx.globalAlpha = 0.5;
     ctx.fillStyle = colours.fill;

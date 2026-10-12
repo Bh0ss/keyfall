@@ -14,9 +14,14 @@ export function SongPicker() {
             <div className="eyebrow">Keyfall</div>
             <h1 className="title">Pick a song</h1>
           </div>
-          <a className="btn" href={hrefFor.connect()}>
-            Keyboard check
-          </a>
+          <div className="row">
+            <a className="btn" href={hrefFor.settings()}>
+              Settings
+            </a>
+            <a className="btn" href={hrefFor.connect()}>
+              Keyboard check
+            </a>
+          </div>
         </header>
         <ul className="song-list" aria-label="Songs">
           {songs.map((s) => (
