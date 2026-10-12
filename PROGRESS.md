@@ -382,9 +382,9 @@ New e2e (`e2e/import.spec.ts`, all through the real file input): each of the fiv
 
 | Check | Result |
 | --- | --- |
-| GitHub Actions run | PENDING: run URL and conclusion |
-| `curl -I https://bh0ss.github.io/keyfall/` | PENDING: expect 200 |
-| `npm run test:e2e:live` | PENDING: expect 4 passed |
+| GitHub Actions run | https://github.com/Bh0ss/keyfall/actions/runs/38284699507, conclusion success, SHA 23e516a1ece2792e32acdea01ad8b8441f1ab485 |
+| `curl -I https://bh0ss.github.io/keyfall/` | HTTP 200, title `Keyfall` |
+| `npm run test:e2e:live` | iphone-landscape 4 passed (exit 0) |
 
 ### Decisions
 
