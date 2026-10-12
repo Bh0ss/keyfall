@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { test } from './fixtures';
 import { createProfile, gotoApp, isolateMidi, readStore } from './helpers';
 
 test.use({ permissions: ['midi', 'midi-sysex'] });
@@ -42,14 +43,14 @@ test.describe('Learn', () => {
     await expect(page.getByTestId('unit-title')).toHaveText('Keyboard map');
     // Units 6 to 10 used to read "coming soon"; they are playable now and open in order like the rest.
     for (const n of [2, 3, 4, 5, 6, 7, 8, 9, 10]) await expect(page.getByTestId(`learn-unit-${n}`)).toHaveAttribute('data-status', 'locked');
-    await page.goto('/#/learn/unit-7');
+    await page.goto('./?debug=1#/learn/unit-7');
     await expect(page.getByTestId('unit-locked')).toBeVisible();
-    await page.goto('/#/learn/unit-2');
+    await page.goto('./?debug=1#/learn/unit-2');
     await expect(page.getByTestId('unit-locked')).toBeVisible();
   });
 
   test('passes Unit 1 with virtual input, answering every prompt from the screen', async ({ page }) => {
-    await gotoApp(page, '/#/learn/unit-1');
+    await gotoApp(page, './?debug=1#/learn/unit-1');
     await page.getByTestId('learn-start-test').click();
     await expect(page.getByTestId('learn-count')).toHaveText('1 / 20');
     await expect(page.getByTestId('learn-prompt')).toHaveAttribute('data-kind', 'key-finder');
@@ -69,7 +70,7 @@ test.describe('Learn', () => {
   });
 
   test('a wrong key shows the answer and waits; failing the test does not pass the unit', async ({ page }) => {
-    await gotoApp(page, '/#/learn/unit-1');
+    await gotoApp(page, './?debug=1#/learn/unit-1');
     await page.getByTestId('learn-start-test').click();
     await runPrompts(page, 20, 3);
     await expect(page.getByTestId('learn-result')).toHaveAttribute('data-passed', 'false');
@@ -85,7 +86,7 @@ test.describe('Learn', () => {
   });
 
   test('missed notes land in the review queue and stay until answered right 3 times in a row', async ({ page }) => {
-    await gotoApp(page, '/#/learn/unit-1');
+    await gotoApp(page, './?debug=1#/learn/unit-1');
     await page.getByTestId('learn-start-keys').click();
     const missed = await targetOf(page);
     await press(page, missed === 60 ? 62 : 60);
@@ -104,37 +105,37 @@ test.describe('Learn', () => {
     await gotoApp(page, '/');
     // Locked at the start: Home, song list and a direct link.
     await expect(page.getByTestId('home-song-ode-to-joy')).toHaveAttribute('data-locked', 'true');
-    await page.goto('/#/songs');
+    await page.goto('./?debug=1#/songs');
     await expect(page.getByTestId('song-ode-to-joy')).toHaveAttribute('data-locked', 'true');
-    await page.goto('/#/play/ode-to-joy');
+    await page.goto('./?debug=1#/play/ode-to-joy');
     await expect(page.getByTestId('song-locked')).toBeVisible();
 
     // Unit 1 alone does not open it.
-    await page.goto('/#/learn/unit-1');
+    await page.goto('./?debug=1#/learn/unit-1');
     await page.getByTestId('learn-start-test').click();
     await runPrompts(page, 20);
     await expect(page.getByTestId('learn-result')).toContainText('passed');
-    await page.goto('/#/songs');
+    await page.goto('./?debug=1#/songs');
     await expect(page.getByTestId('song-ode-to-joy')).toHaveAttribute('data-locked', 'true');
-    await page.goto('/#/play/ode-to-joy');
+    await page.goto('./?debug=1#/play/ode-to-joy');
     await expect(page.getByTestId('song-locked')).toBeVisible();
 
     // Unit 2 opens it.
-    await page.goto('/#/learn/unit-2');
+    await page.goto('./?debug=1#/learn/unit-2');
     await page.getByTestId('learn-start-test').click();
     await expect(page.getByTestId('learn-count')).toHaveText('1 / 20');
     await runPrompts(page, 20);
     await expect(page.getByTestId('learn-result')).toHaveAttribute('data-passed', 'true');
     await expect(page.getByTestId('learn-result')).toContainText('Unlocked: Ode to Joy');
-    await page.goto('/#/songs');
+    await page.goto('./?debug=1#/songs');
     await expect(page.getByTestId('song-ode-to-joy')).not.toHaveAttribute('data-locked', 'true');
     // Jingle Bells needs Unit 3 and stays locked.
     await expect(page.getByTestId('song-jingle-bells')).toHaveAttribute('data-locked', 'true');
-    await page.goto('/');
+    await page.goto('./?debug=1');
     await expect(page.getByTestId('songs-summary')).toContainText('13 of 29 unlocked');
 
     // And the unlocked song plays to the end.
-    await page.goto('/#/play/ode-to-joy');
+    await page.goto('./?debug=1#/play/ode-to-joy');
     await expect(page.getByTestId('play-ready')).toBeVisible();
     const result = await page.evaluate(() => window.__keyfall!.autoplay({}));
     expect(result.wrongPresses).toBe(0);
@@ -142,21 +143,21 @@ test.describe('Learn', () => {
   });
 
   test('an Advanced profile keeps units 2 to 4 songs locked but is not asked to learn first to see the path', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./?debug=1');
     await createProfile(page, 'Alexa', 'advanced');
-    await page.goto('/#/songs');
+    await page.goto('./?debug=1#/songs');
     await expect(page.getByTestId('song-ode-to-joy')).toHaveAttribute('data-locked', 'true');
     await expect(page.getByTestId('song-mary-had-a-little-lamb')).not.toHaveAttribute('data-locked', 'true');
   });
 
   test('note flash draws a treble staff in Unit 3 and a bass staff in Unit 4, and checks the key', async ({ page }) => {
-    await gotoApp(page, '/#/learn/unit-1');
+    await gotoApp(page, './?debug=1#/learn/unit-1');
     await page.getByTestId('learn-start-test').click();
     await runPrompts(page, 20);
-    await page.goto('/#/learn/unit-2');
+    await page.goto('./?debug=1#/learn/unit-2');
     await page.getByTestId('learn-start-test').click();
     await runPrompts(page, 20);
-    await page.goto('/#/learn/unit-3/flash');
+    await page.goto('./?debug=1#/learn/unit-3/flash');
     await expect(page.getByTestId('learn-prompt')).toHaveAttribute('data-kind', 'note-flash');
     await expect(page.getByTestId('staff').locator('svg')).toBeVisible();
     await expect(page.getByTestId('staff').locator('.vf-stavenote')).toHaveCount(1);
@@ -171,18 +172,18 @@ test.describe('Learn', () => {
     await page.getByTestId('learn-start-test').click();
     await runPrompts(page, 20);
     await expect(page.getByTestId('learn-result')).toContainText('Unlocked: Jingle Bells');
-    await page.goto('/#/learn/unit-4/flash');
+    await page.goto('./?debug=1#/learn/unit-4/flash');
     const bass = await targetOf(page);
     expect(bass).toBeLessThan(60);
     await expect(page.getByTestId('staff').locator('.vf-stavenote')).toHaveCount(1);
   });
 
   test('the optional mini song and rhythm tap lessons are playable from Unit 2 once it is open', async ({ page }) => {
-    await gotoApp(page, '/#/learn/unit-1');
+    await gotoApp(page, './?debug=1#/learn/unit-1');
     await page.getByTestId('learn-start-test').click();
     await runPrompts(page, 20);
 
-    await page.goto('/#/learn/unit-2/song');
+    await page.goto('./?debug=1#/learn/unit-2/song');
     await expect(page.getByTestId('song-staff').locator('svg')).toBeVisible();
     await expect(page.getByTestId('mini-progress')).toHaveText('0 / 17');
     await press(page, 61);
@@ -195,7 +196,7 @@ test.describe('Learn', () => {
     await page.getByTestId('learn-back').click();
     await expect(page.getByTestId('lesson-song')).toHaveAttribute('data-done', 'true');
 
-    await page.goto('/#/learn/unit-2/rhythm');
+    await page.goto('./?debug=1#/learn/unit-2/rhythm');
     await page.getByTestId('rhythm-start').click();
     const card = page.getByTestId('rhythm-card');
     await expect(card).toHaveAttribute('data-tap-times', /\[/);

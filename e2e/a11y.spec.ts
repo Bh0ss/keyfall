@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { test } from './fixtures';
 import { gotoApp, isolateMidi } from './helpers';
 
 test.use({ permissions: ['midi', 'midi-sysex'] });
@@ -41,20 +42,20 @@ async function audit(page: Page) {
 }
 
 const SCREENS: [string, string, string][] = [
-  ['Home', '/#/', 'home'],
-  ['Songs', '/#/songs', 'song-mary-had-a-little-lamb'],
-  ['Learn path', '/#/learn', 'learn-screen'],
-  ['Unit', '/#/learn/unit-1', 'unit-detail'],
-  ['Stats', '/#/stats', 'stats'],
-  ['Settings', '/#/settings', 'latency-card'],
-  ['Keyboard check', '/#/keyboard', ''],
-  ['Import', '/#/import', 'import-file'],
-  ['Play setup', '/#/play/mary-had-a-little-lamb', 'play-ready'],
+  ['Home', './?debug=1#/', 'home'],
+  ['Songs', './?debug=1#/songs', 'song-mary-had-a-little-lamb'],
+  ['Learn path', './?debug=1#/learn', 'learn-screen'],
+  ['Unit', './?debug=1#/learn/unit-1', 'unit-detail'],
+  ['Stats', './?debug=1#/stats', 'stats'],
+  ['Settings', './?debug=1#/settings', 'latency-card'],
+  ['Keyboard check', './?debug=1#/keyboard', ''],
+  ['Import', './?debug=1#/import', 'import-file'],
+  ['Play setup', './?debug=1#/play/mary-had-a-little-lamb', 'play-ready'],
 ];
 
 test.describe('accessibility', () => {
   test('every control on every main screen is at least 44 px and has a name', async ({ page }) => {
-    await gotoApp(page, '/#/');
+    await gotoApp(page, './?debug=1#/');
     for (const [name, url, ready] of SCREENS) {
       await page.goto(url);
       if (ready) await expect(page.getByTestId(ready).first()).toBeAttached();
@@ -64,11 +65,11 @@ test.describe('accessibility', () => {
   });
 
   test('a lesson prompt and the Results screen meet the same bar', async ({ page }) => {
-    await gotoApp(page, '/#/learn/unit-1/keys');
+    await gotoApp(page, './?debug=1#/learn/unit-1/keys');
     await expect(page.getByTestId('learn-prompt')).toBeVisible();
     await page.waitForTimeout(350);
     expect(await audit(page), 'lesson').toEqual([]);
-    await page.goto('/#/play/mary-had-a-little-lamb');
+    await page.goto('./?debug=1#/play/mary-had-a-little-lamb');
     await page.evaluate(() => window.__keyfall!.autoplay({ wrongKeyRate: 0.3, seed: 2 }));
     await expect(page.getByTestId('play-finished')).toBeVisible({ timeout: 30_000 });
     expect(await audit(page), 'end card').toEqual([]);
@@ -79,7 +80,7 @@ test.describe('accessibility', () => {
   });
 
   test('every focused control shows a focus ring and Tab reaches the content in page order', async ({ page }) => {
-    await gotoApp(page, '/#/');
+    await gotoApp(page, './?debug=1#/');
     await expect(page.getByTestId('home')).toBeVisible();
     const seen: string[] = [];
     for (let i = 0; i < 14; i++) {
@@ -98,7 +99,7 @@ test.describe('accessibility', () => {
   });
 
   test('the skip link moves focus into the page, and the page has one main landmark and one h1', async ({ page }) => {
-    await gotoApp(page, '/#/stats');
+    await gotoApp(page, './?debug=1#/stats');
     await page.keyboard.press('Tab');
     await page.keyboard.press('Enter');
     expect(await page.evaluate(() => document.activeElement?.tagName)).toBe('MAIN');
@@ -108,7 +109,7 @@ test.describe('accessibility', () => {
   });
 
   test('text is readable from a metre away: no body text under 13 px, nothing clipped sideways', async ({ page }) => {
-    await gotoApp(page, '/#/');
+    await gotoApp(page, './?debug=1#/');
     await page.waitForTimeout(350);
     const small = await page.evaluate(() => {
       const out: string[] = [];
@@ -124,7 +125,7 @@ test.describe('accessibility', () => {
   });
 
   test('contrast: text and muted text meet 4.5:1 on their surfaces', async ({ page }) => {
-    await gotoApp(page, '/#/');
+    await gotoApp(page, './?debug=1#/');
     const ratio = await page.evaluate(() => {
       const lum = (hex: string) => {
         const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));

@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { test } from './fixtures';
 import { gotoApp, isolateMidi, readStore, seedPassed } from './helpers';
 
 test.use({ permissions: ['midi', 'midi-sysex'] });
@@ -14,9 +15,9 @@ async function press(page: Page, ...midis: number[]) {
 
 /** Open a unit as a player who has passed every unit before it. */
 async function openUnit(page: Page, n: number, lesson = '') {
-  await gotoApp(page, '/#/learn');
+  await gotoApp(page, './?debug=1#/learn');
   await seedPassed(page, unitIds(n - 1));
-  await page.goto(`/#/learn/unit-${n}${lesson ? `/${lesson}` : ''}`);
+  await page.goto(`./?debug=1#/learn/unit-${n}${lesson ? `/${lesson}` : ''}`);
 }
 
 interface Card {
@@ -69,7 +70,7 @@ async function passTest(page: Page, n: number) {
 
 /** Tap middle C at the times the page says (debug attribute), then wait for the verdict. */
 async function tapPattern(page: Page, lesson: string, expectedLine: RegExp) {
-  await page.goto(`/#/learn/unit-${lesson.split(':')[0]}/${lesson.split(':')[1]}`);
+  await page.goto(`./?debug=1#/learn/unit-${lesson.split(':')[0]}/${lesson.split(':')[1]}`);
   await page.getByTestId('rhythm-start').click();
   const rhythmCard = page.getByTestId('rhythm-card');
   await expect(rhythmCard).toHaveAttribute('data-tap-times', /\[/);
@@ -112,26 +113,26 @@ test.describe('Learn units 6 to 10', () => {
   });
 
   test('the path lists all ten units as playable, and a unit opens only after the one before it', async ({ page }) => {
-    await gotoApp(page, '/#/learn');
+    await gotoApp(page, './?debug=1#/learn');
     for (const n of [2, 3, 4, 5, 6, 7, 8, 9, 10]) await expect(page.getByTestId(`learn-unit-${n}`)).toHaveAttribute('data-status', 'locked');
     await seedPassed(page, unitIds(5));
-    await page.goto('/#/learn/unit-6');
+    await page.goto('./?debug=1#/learn/unit-6');
     await expect(page.getByTestId('learn-unit-6')).toHaveAttribute('data-status', 'open');
     await expect(page.getByTestId('learn-unit-7')).toHaveAttribute('data-status', 'locked');
     await expect(page.getByTestId('unit-coming-soon')).toHaveCount(0);
     await expect(page.getByTestId('unit-title')).toHaveText('Rhythm basics');
-    await page.goto('/#/learn/unit-10');
+    await page.goto('./?debug=1#/learn/unit-10');
     await expect(page.getByTestId('unit-locked')).toBeVisible();
   });
 
   test('Unit 6: reads rhythm, taps it in time, plays the rest song, passes and unlocks Minuet in G', async ({ page }) => {
     await openUnit(page, 6);
     await expect(page.getByTestId('lesson-tap-1')).toBeVisible();
-    await page.goto('/#/songs');
+    await page.goto('./?debug=1#/songs');
     await expect(page.getByTestId('song-minuet-in-g')).toHaveAttribute('data-locked', 'true');
 
     // Reading practice: a staff symbol and buttons; a wrong button shows the answer and queues the symbol.
-    await page.goto('/#/learn/unit-6/read');
+    await page.goto('./?debug=1#/learn/unit-6/read');
     await expect(page.getByTestId('rhythm-staff').locator('.vf-stavenote')).toHaveCount(1);
     const c = await card(page);
     expect(c.answer).toMatch(/^(s|b)/);
@@ -149,16 +150,16 @@ test.describe('Learn units 6 to 10', () => {
     await tapPattern(page, '6:tap-2', /5 of 5 taps on the beat/);
 
     // The song with rests: rests are skipped, only the 11 sounding notes are played.
-    await page.goto('/#/learn/unit-6/song');
+    await page.goto('./?debug=1#/learn/unit-6/song');
     await expect(page.getByTestId('song-staff').locator('.vf-stavenote')).toHaveCount(14);
     await expect(page.getByTestId('mini-progress')).toHaveText('0 / 12');
     await playSong(page, 12);
     await expect(page.getByTestId('learn-result')).toContainText('No wrong keys');
 
-    await page.goto('/#/learn/unit-6');
+    await page.goto('./?debug=1#/learn/unit-6');
     await passTest(page, 6);
     await expect(page.getByTestId('learn-result')).toContainText('Unlocked: Minuet in G');
-    await page.goto('/#/songs');
+    await page.goto('./?debug=1#/songs');
     await expect(page.getByTestId('song-minuet-in-g')).not.toHaveAttribute('data-locked', 'true');
   });
 
@@ -172,7 +173,7 @@ test.describe('Learn units 6 to 10', () => {
     // The feedback gives the other name of the same key.
     await expect(page.getByTestId('learn-feedback')).toContainText('also');
 
-    await page.goto('/#/learn/unit-7/flash');
+    await page.goto('./?debug=1#/learn/unit-7/flash');
     await expect(page.getByTestId('staff').locator('.vf-stavenote')).toHaveCount(1);
     await expect(page.getByTestId('staff')).toHaveAttribute('data-accidental', /^(#|b)$/);
     const t = Number(await page.getByTestId('learn-prompt').getAttribute('data-target-midi'));
@@ -180,12 +181,12 @@ test.describe('Learn units 6 to 10', () => {
     await expect(page.getByTestId('learn-feedback')).toContainText('Correct');
     await expect(page.getByTestId('learn-feedback')).toContainText(/sharp|flat/);
 
-    await page.goto('/#/learn/unit-7/song');
+    await page.goto('./?debug=1#/learn/unit-7/song');
     await expect(page.getByTestId('mini-progress')).toHaveText('0 / 17');
     await playSong(page, 17);
     await expect(page.getByTestId('learn-result')).toContainText('No wrong keys');
 
-    await page.goto('/#/learn/unit-7');
+    await page.goto('./?debug=1#/learn/unit-7');
     await passTest(page, 7);
     await expect(page.getByTestId('learn-result')).toContainText('Unlocked: Greensleeves');
   });
@@ -198,7 +199,7 @@ test.describe('Learn units 6 to 10', () => {
     await expect(page.getByTestId('learn-feedback')).toContainText('Correct');
 
     // A set: one key alone does not settle it; the second key, held with the first, does.
-    await page.goto('/#/learn/unit-8/together');
+    await page.goto('./?debug=1#/learn/unit-8/together');
     await expect(page.getByTestId('staff').locator('.vf-stave')).toHaveCount(2);
     const c = await card(page);
     expect(c.kind).toBe('both-hands');
@@ -213,21 +214,21 @@ test.describe('Learn units 6 to 10', () => {
     await expect(page.getByTestId('learn-prompt')).toHaveAttribute('data-state', 'right');
     await expect(page.getByTestId('learn-feedback')).toContainText('Correct');
     await page.evaluate((ms) => ms.forEach((m) => window.__keyfall!.release(m)), set);
-    // A wrong second key misses the set.
-    await page.goto('/#/learn/unit-8/together');
+    // A wrong second key misses the set. (A reload: the same hash URL would not start a fresh lesson.)
+    await page.reload();
     const c2 = await card(page);
     await press(page, c2.set![0]!, 61);
     await expect(page.getByTestId('learn-prompt')).toHaveAttribute('data-state', 'wrong');
     await expect(page.getByTestId('review-chip').first()).toBeVisible();
 
-    await page.goto('/#/learn/unit-8/song');
+    await page.goto('./?debug=1#/learn/unit-8/song');
     await expect(page.getByTestId('song-staff').locator('.vf-stave')).toHaveCount(10);
     await expect(page.getByTestId('mini-progress')).toHaveText('0 / 16');
     await playSong(page, 16);
     await expect(page.getByTestId('learn-result')).toContainText('No wrong keys');
 
     // Under 90% fails; a clean run passes.
-    await page.goto('/#/learn/unit-8');
+    await page.goto('./?debug=1#/learn/unit-8');
     await page.getByTestId('learn-start-test').click();
     await runPrompts(page, 20, 3);
     await expect(page.getByTestId('learn-result')).toHaveAttribute('data-passed', 'false');
@@ -241,25 +242,25 @@ test.describe('Learn units 6 to 10', () => {
 
   test('Unit 9: eighth and dotted rhythm reading and timed taps, the song, passes and unlocks Canon in D', async ({ page }) => {
     await openUnit(page, 9);
-    await page.goto('/#/songs');
+    await page.goto('./?debug=1#/songs');
     await expect(page.getByTestId('song-canon-in-d')).toHaveAttribute('data-locked', 'true');
 
-    await page.goto('/#/learn/unit-9/read');
+    await page.goto('./?debug=1#/learn/unit-9/read');
     await expect(page.getByTestId('rhythm-staff').locator('.vf-stavenote')).toHaveCount(1);
     await expect(page.getByTestId('choices').locator('button').first()).toBeVisible();
 
     await tapPattern(page, '9:tap-1', /10 of 10 taps on the beat/);
     await tapPattern(page, '9:tap-2', /7 of 7 taps on the beat/);
 
-    await page.goto('/#/learn/unit-9/song');
+    await page.goto('./?debug=1#/learn/unit-9/song');
     await expect(page.getByTestId('mini-progress')).toHaveText('0 / 14');
     await playSong(page, 14);
     await expect(page.getByTestId('learn-result')).toContainText('No wrong keys');
 
-    await page.goto('/#/learn/unit-9');
+    await page.goto('./?debug=1#/learn/unit-9');
     await passTest(page, 9);
     await expect(page.getByTestId('learn-result')).toContainText('Unlocked: Canon in D');
-    await page.goto('/#/songs');
+    await page.goto('./?debug=1#/songs');
     await expect(page.getByTestId('song-canon-in-d')).not.toHaveAttribute('data-locked', 'true');
   });
 
@@ -271,23 +272,23 @@ test.describe('Learn units 6 to 10', () => {
     await page.getByTestId(`choice-${c.answer}`).click();
     await expect(page.getByTestId('learn-feedback')).toContainText('Correct');
 
-    await page.goto('/#/learn/unit-10/in-key');
+    await page.goto('./?debug=1#/learn/unit-10/in-key');
     await expect(page.getByTestId('learn-prompt')).toHaveAttribute('data-kind', 'in-key');
     await expect(page.getByTestId('staff').locator('.vf-stavenote')).toHaveCount(1);
     const k = Number(await page.getByTestId('learn-prompt').getAttribute('data-target-midi'));
     await press(page, k);
     await expect(page.getByTestId('learn-feedback')).toContainText('Correct');
 
-    await page.goto('/#/learn/unit-10/scale');
+    await page.goto('./?debug=1#/learn/unit-10/scale');
     await expect(page.getByTestId('mini-progress')).toHaveText('0 / 16');
     await playSong(page, 16);
     await expect(page.getByTestId('learn-result')).toContainText('No wrong keys');
-    await page.goto('/#/learn/unit-10/song');
+    await page.goto('./?debug=1#/learn/unit-10/song');
     await expect(page.getByTestId('mini-progress')).toHaveText('0 / 16');
     await playSong(page, 16);
     await expect(page.getByTestId('learn-result')).toContainText('No wrong keys');
 
-    await page.goto('/#/learn/unit-10');
+    await page.goto('./?debug=1#/learn/unit-10');
     await expect(page.getByTestId('unit-unlocks')).toHaveCount(0);
     await passTest(page, 10);
     await expect(page.getByTestId('learn-result')).not.toContainText('Unlocked');

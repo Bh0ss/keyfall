@@ -263,3 +263,12 @@ Needs the piano connected. Use a Beginner profile that has passed Units 1 to 5 (
    - Home shows Level, title, XP bar, the daily streak and "n of 17 badges". Finish a song: the end card and Results show "+XP", a level up when earned and any new badge (Opening Night, Full Marks, Flawless, ...). Passing a Learn unit adds 150 XP.
    - Good: play on two days in a row and the streak reads 2-day; skip a day and it resets after the day is missed (it says "play today to keep it" while it is still alive). Stats lists all 17 badges, earned ones lit.
    - Sign in on a second device: level, streak and badges match (they are worked out from the synced runs and Learn progress).
+
+## Phase 9 Part B: after the security hardening goes live
+
+Open https://bh0ss.github.io/keyfall/ on the Mac and on the iPhone or iPad (Web MIDI Browser).
+
+1. Play a song, open its sheet view, and sign in on Settings.
+   - Good: everything looks and works as before (fonts, sheet music, sign-in, sync status). The site now restricts what it may load, so a blank sheet or a stuck sign-in would mean the policy blocked something; tell me which screen.
+2. Import a MIDI or MusicXML file, then check it appears on your other device.
+   - Good: it syncs. Files other than MIDI and MusicXML cannot be stored in your account any more.

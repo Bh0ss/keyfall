@@ -1,10 +1,10 @@
-import { expect, test, type Page } from '@playwright/test';
-import { createProfile, readStore, switchTo } from './helpers';
+import { expect, type Page } from '@playwright/test';
+import { test } from './fixtures';
+import { createProfile, readStore, switchTo, maryXml, ORIGIN } from './helpers';
 import type { AccuracyProfile } from '../src/midi/autoplay';
 import { parseMusicXml } from '../src/songs/musicxml';
 
-const ORIGIN = 'http://localhost:5173';
-const MARY = '/#/play/mary-had-a-little-lamb';
+const MARY = './?debug=1#/play/mary-had-a-little-lamb';
 
 test.beforeEach(async ({ context, page }) => {
   await context.grantPermissions(['midi', 'midi-sysex'], { origin: ORIGIN });
@@ -30,7 +30,7 @@ test.describe('profiles and high scores', () => {
   test.setTimeout(150_000);
 
   test('two profiles play, and both stay on the high-score board after a reload', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./?debug=1');
     await expect(page.getByTestId('profile-picker')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Welcome to Keyfall' })).toBeVisible();
     await createProfile(page, 'Alex');
@@ -67,14 +67,14 @@ test.describe('profiles and high scores', () => {
     expect((await readStore(page, 'attempts')).length).toBe(2);
 
     // Stats for the profile in this session (Sam).
-    await page.goto('/#/stats');
+    await page.goto('./?debug=1#/stats');
     await expect(page.getByTestId('stats-songs')).toHaveText('1');
     await expect(page.getByTestId('stats-attempts')).toHaveText('1');
     await expect(page.getByTestId('stats-best-row')).toHaveCount(1);
     await expect(page.getByTestId('stats-best-row')).toContainText('3,360');
 
     // Home: Mary has 3 stars for Sam, so the suggestion moves on to the next song. Alex has his own stars.
-    await page.goto('/#/');
+    await page.goto('./?debug=1#/');
     await expect(page.getByTestId('home-stars-mary-had-a-little-lamb')).toHaveText('★★★');
     await expect(page.getByTestId('home-stars-twinkle-twinkle-little-star')).toHaveText('☆☆☆');
     await expect(page.getByTestId('up-next-title')).toHaveText('Twinkle Twinkle Little Star');
@@ -84,7 +84,7 @@ test.describe('profiles and high scores', () => {
   });
 
   test('a lower score does not replace the best; the board keeps the max', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./?debug=1');
     await createProfile(page, 'Alex');
     await playFullAndOpenResults(page, { offsetMs: 0 });
     await expect(page.getByTestId('results-score')).toHaveText('4,800');
@@ -97,7 +97,7 @@ test.describe('profiles and high scores', () => {
   });
 
   test('results: timing, most-missed notes, bars, and Practice my mistakes loops the worst bars', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./?debug=1');
     await createProfile(page, 'Alex');
     await playFullAndOpenResults(page, { offsetMs: -40, missRate: 0.35, seed: 5 });
 
@@ -147,7 +147,7 @@ test.describe('profiles and high scores', () => {
   });
 
   test('a clean run has nothing to practise, and Retry returns to the same mode', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./?debug=1');
     await createProfile(page, 'Alex');
     await playFullAndOpenResults(page, { offsetMs: 0 });
     await expect(page.getByTestId('practice-mistakes-off')).toBeVisible();
@@ -158,7 +158,7 @@ test.describe('profiles and high scores', () => {
   });
 
   test('Wait mode results show first-try notes instead of timing grades', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./?debug=1');
     await createProfile(page, 'Alex');
     await page.goto(MARY);
     await page.evaluate(() => window.__keyfall!.autoplay({ wrongKeyRate: 0.4, seed: 3, hesitationMs: 0, offsetMs: 0 }));
@@ -175,13 +175,13 @@ test.describe('profiles and high scores', () => {
 
 test.describe('profile picker, Home and settings per profile', () => {
   test('the picker shows on every launch, profiles can be edited, names are unique', async ({ page, context }) => {
-    await page.goto('/');
+    await page.goto('./?debug=1');
     await createProfile(page, 'Alex');
     await expect(page.getByTestId('connection-chip')).toHaveText('No keyboard found');
 
     // A new tab is a new launch: the picker, with Alex on it.
     const second = await context.newPage();
-    await second.goto('/');
+    await second.goto('./?debug=1');
     await expect(second.getByTestId('profile-picker')).toBeVisible();
     await expect(second.getByRole('heading', { name: "Who's playing?" })).toBeVisible();
     await second.getByRole('button', { name: 'Edit Alex' }).click();
@@ -209,7 +209,7 @@ test.describe('profile picker, Home and settings per profile', () => {
   });
 
   test('Home: connection chip, up-next, Learn tile, avatar switches profile', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./?debug=1');
     await createProfile(page, 'Alex');
     await expect(page.getByTestId('connection-chip')).toBeVisible();
     await expect(page.getByTestId('up-next-title')).toHaveText('Mary Had a Little Lamb');
@@ -225,7 +225,7 @@ test.describe('profile picker, Home and settings per profile', () => {
   });
 
   test('play settings and note-label mode are remembered per profile', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./?debug=1');
     await createProfile(page, 'Alex');
     await page.goto(MARY);
     await expect(page.getByTestId('toggle-labels')).toHaveText('Note names: On');
@@ -258,11 +258,10 @@ test.describe('profile picker, Home and settings per profile', () => {
 
   test('finishing a run updates the per-pitch hit streaks that drive label fade', async ({ page }) => {
     test.setTimeout(90_000);
-    await page.goto('/');
+    await page.goto('./?debug=1');
     await createProfile(page, 'Alex');
     const profileId = (await readStore<{ id: string }>(page, 'profiles'))[0]!.id;
-    const res = await page.request.get('/keyfall/src/songs/mary-had-a-little-lamb.musicxml');
-    const mary = parseMusicXml(await res.text(), { id: 'mary-had-a-little-lamb', level: 1 });
+    const mary = parseMusicXml(maryXml(), { id: 'mary-had-a-little-lamb', level: 1 });
     const count = (midi: number) => mary.notes.filter((n) => n.midi === midi).length;
     // E4 is one hit short of fading; D4 has a long streak that one slip will reset.
     await page.evaluate(

@@ -1,4 +1,15 @@
+import { readFileSync } from 'node:fs';
 import { expect, type Page } from '@playwright/test';
+
+/** Origin of the app under test, same rules as playwright.config.ts (live URL, preview, or dev server). */
+export const ORIGIN = new URL(
+  process.env.KEYFALL_BASE_URL?.trim() || (process.env.KEYFALL_PREVIEW === '1' ? 'http://localhost:4173' : 'http://localhost:5173'),
+).origin;
+
+/** The bundled Mary arrangement, read from the repo so oracles do not depend on how the server exposes song files. */
+export function maryXml(): string {
+  return readFileSync(new URL('../src/songs/mary-had-a-little-lamb.musicxml', import.meta.url), 'utf8');
+}
 
 /** Fill the profile form (the picker shows it first when no profile exists) and wait for the app. */
 export async function createProfile(page: Page, name: string, level: 'beginner' | 'advanced' = 'beginner') {
@@ -24,7 +35,7 @@ export async function gotoApp(page: Page, url: string, name = 'Tester') {
 
 /** Switch profile from the avatar button on Home and pick (or create) the named one. */
 export async function switchTo(page: Page, name: string, level: 'beginner' | 'advanced' = 'beginner') {
-  await page.goto('/#/');
+  await page.goto('./?debug=1#/');
   await page.getByTestId('switch-profile').click();
   await expect(page.getByTestId('profile-picker')).toBeVisible();
   const existing = page.getByRole('button', { name: `Play as ${name}` });

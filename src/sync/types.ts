@@ -20,7 +20,7 @@ export interface Remote {
   upsert(table: RemoteTable, rows: RemoteRow[]): Promise<void>;
   /** Rows with server_at >= since (all rows when null), ordered by server_at then id. */
   fetchSince(table: RemoteTable, since: string | null, offset: number, limit: number): Promise<RemoteRow[]>;
-  upload(path: string, bytes: ArrayBuffer): Promise<void>;
+  upload(path: string, bytes: ArrayBuffer, contentType?: string): Promise<void>;
   download(path: string): Promise<ArrayBuffer>;
   remove(path: string): Promise<void>;
 }

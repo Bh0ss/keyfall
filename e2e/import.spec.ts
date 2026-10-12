@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { test } from './fixtures';
 import { FIXTURE_NOTE_COUNT, MELODY, musicXml, mxl, oneTrackMidi, singleStaffMusicXml, twoTrackMidi, zipBomb } from '../tests/fixtures/generate';
 import { createProfile, gotoApp, isolateMidi, readStore, switchTo } from './helpers';
 
@@ -35,7 +36,7 @@ async function pickFile(page: Page, name: string, data: Buffer, mimeType = 'appl
 
 /** Import a fixture through the UI and land on the song list. Returns the imported song id. */
 async function importThroughUi(page: Page, f: Fixture): Promise<string> {
-  await gotoApp(page, '/#/import');
+  await gotoApp(page, './?debug=1#/import');
   await pickFile(page, f.file, buffer(f), f.mime);
   const form = page.getByTestId('import-form');
   await expect(form).toBeVisible();
@@ -50,7 +51,7 @@ async function importThroughUi(page: Page, f: Fixture): Promise<string> {
 }
 
 async function playToEnd(page: Page, songId: string, total: number) {
-  await page.goto(`/#/play/${songId}`);
+  await page.goto(`./?debug=1#/play/${songId}`);
   await expect(page.getByTestId('play-ready')).toBeVisible();
   await page.getByTestId('mode-full').click();
   const result = await page.evaluate(() => window.__keyfall!.autoplay({}));
@@ -80,7 +81,7 @@ test.describe('sheet view of an import', () => {
   test('MIDI import renders a score labelled approximate', async ({ page }) => {
     test.setTimeout(90_000);
     const id = await importThroughUi(page, FIXTURES[0]!);
-    await page.goto(`/#/play/${id}`);
+    await page.goto(`./?debug=1#/play/${id}`);
     await expect(page.getByTestId('play-ready')).toBeVisible();
     await page.getByTestId('view-sheet').click();
     const sheet = page.getByTestId('sheet');
@@ -96,7 +97,7 @@ test.describe('sheet view of an import', () => {
   test('MusicXML import shows its own score without the approximate label', async ({ page }) => {
     test.setTimeout(90_000);
     const id = await importThroughUi(page, FIXTURES[2]!);
-    await page.goto(`/#/play/${id}`);
+    await page.goto(`./?debug=1#/play/${id}`);
     await expect(page.getByTestId('play-ready')).toBeVisible();
     await page.getByTestId('view-sheet').click();
     const sheet = page.getByTestId('sheet');
@@ -108,7 +109,7 @@ test.describe('sheet view of an import', () => {
 
 test.describe('import screen: hands, difficulty, metadata', () => {
   test('one track splits at middle C and the split point is adjustable', async ({ page }) => {
-    await gotoApp(page, '/#/import');
+    await gotoApp(page, './?debug=1#/import');
     await pickFile(page, 'a.mid', Buffer.from(oneTrackMidi()));
     await expect(page.getByTestId('import-split-groups')).toHaveCount(0);
     await expect(page.getByTestId('import-split-pitch')).toBeChecked();
@@ -125,7 +126,7 @@ test.describe('import screen: hands, difficulty, metadata', () => {
   });
 
   test('two tracks split by track by default, with the pitch split as an option', async ({ page }) => {
-    await gotoApp(page, '/#/import');
+    await gotoApp(page, './?debug=1#/import');
     await pickFile(page, 'a.mid', Buffer.from(twoTrackMidi()));
     await expect(page.getByTestId('import-split-groups')).toBeChecked();
     await expect(page.getByTestId('import-hand-counts')).toHaveText('Right hand 14 notes · Left hand 2 notes');
@@ -135,7 +136,7 @@ test.describe('import screen: hands, difficulty, metadata', () => {
   });
 
   test('title and composer come from the file and can be edited; difficulty is estimated and can be overridden', async ({ page }) => {
-    await gotoApp(page, '/#/import');
+    await gotoApp(page, './?debug=1#/import');
     await pickFile(page, 'a.musicxml', Buffer.from(musicXml()));
     await expect(page.getByTestId('import-title')).toHaveValue('Frere Jacques');
     await expect(page.getByTestId('import-composer')).toHaveValue('Traditional');
@@ -161,7 +162,7 @@ test.describe('import screen: hands, difficulty, metadata', () => {
   });
 
   test('a MIDI import says its sheet view is approximate', async ({ page }) => {
-    await gotoApp(page, '/#/import');
+    await gotoApp(page, './?debug=1#/import');
     await pickFile(page, 'a.mid', Buffer.from(oneTrackMidi()));
     await expect(page.getByTestId('import-approx-note')).toContainText('approximate');
     await pickFile(page, 'a.musicxml', Buffer.from(musicXml()));
@@ -174,20 +175,20 @@ test.describe('imported songs belong to the whole household', () => {
     test.setTimeout(120_000);
     const id = await importThroughUi(page, FIXTURES[1]!);
     await switchTo(page, 'Second');
-    await page.goto('/#/songs');
+    await page.goto('./?debug=1#/songs');
     await expect(page.getByTestId(`song-${id}`)).toContainText('Frere Jacques');
     await page.reload();
     await expect(page.getByTestId(`song-${id}`)).toContainText('Frere Jacques');
     await playToEnd(page, id, FIXTURE_NOTE_COUNT);
     await page.getByTestId('see-results').click();
     await expect(page.getByTestId('results')).toContainText('Frere Jacques');
-    await page.goto('/#/stats');
+    await page.goto('./?debug=1#/stats');
     const row = page.getByTestId('stats-best-row');
     await expect(row).toHaveCount(1);
     await expect(row).toHaveAttribute('data-song', id);
     await expect(row).toContainText('Frere Jacques');
     // Home lists it too.
-    await page.goto('/#/');
+    await page.goto('./?debug=1#/');
     await expect(page.getByTestId('home')).toContainText('Frere Jacques');
   });
 
@@ -195,7 +196,7 @@ test.describe('imported songs belong to the whole household', () => {
     test.setTimeout(120_000);
     const id = await importThroughUi(page, FIXTURES[0]!);
     await playToEnd(page, id, FIXTURE_NOTE_COUNT);
-    await page.goto('/#/songs');
+    await page.goto('./?debug=1#/songs');
     await page.getByTestId(`song-edit-${id}`).click();
     await expect(page.getByTestId('import-form')).toBeVisible();
     await expect(page.getByTestId('import-hand-counts')).toHaveText('Right hand 14 notes · Left hand 2 notes');
@@ -210,9 +211,9 @@ test.describe('imported songs belong to the whole household', () => {
     await page.getByTestId('import-delete-confirm').click();
     await expect(page).toHaveURL(/#\/songs$/);
     await expect(page.getByTestId(`song-${id}`)).toHaveCount(0);
-    await page.goto('/#/stats');
+    await page.goto('./?debug=1#/stats');
     await expect(page.getByTestId('stats-best-row')).toContainText('Renamed Round');
-    await page.goto(`/#/play/${id}`);
+    await page.goto(`./?debug=1#/play/${id}`);
     await expect(page.getByText('Song not found')).toBeVisible();
   });
 });
@@ -220,7 +221,7 @@ test.describe('imported songs belong to the whole household', () => {
 test.describe('bad files get a friendly message', () => {
   test('garbage, oversize, a zip bomb, wrong type, and an XML file that is not a score', async ({ page }) => {
     test.setTimeout(120_000);
-    await gotoApp(page, '/#/import');
+    await gotoApp(page, './?debug=1#/import');
     const error = page.getByTestId('import-error');
 
     await pickFile(page, 'bad.mid', Buffer.from('this is not a midi file'));
@@ -246,7 +247,7 @@ test.describe('bad files get a friendly message', () => {
   });
 
   test('the input only offers the five accepted types', async ({ page }) => {
-    await gotoApp(page, '/#/import');
+    await gotoApp(page, './?debug=1#/import');
     await expect(page.getByTestId('import-file')).toHaveAttribute('accept', '.mid,.midi,.musicxml,.xml,.mxl');
   });
 
@@ -256,7 +257,7 @@ test.describe('bad files get a friendly message', () => {
       const u = new URL(r.url());
       if (u.hostname !== 'localhost') external.push(r.url());
     });
-    await gotoApp(page, '/#/songs');
+    await gotoApp(page, './?debug=1#/songs');
     await page.getByTestId('import-link').click();
     await expect(page.getByTestId('import-screen')).toBeVisible();
     await pickFile(page, 'a.mxl', Buffer.from(mxl()));
@@ -268,7 +269,7 @@ test.describe('bad files get a friendly message', () => {
 });
 
 test('a profile can be created before importing (picker flow)', async ({ page }) => {
-  await page.goto('/#/import');
+  await page.goto('./?debug=1#/import');
   await createProfile(page, 'Importer');
   await expect(page.getByTestId('import-screen')).toBeVisible();
 });

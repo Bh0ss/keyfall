@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { loadEnv } from 'vite';
 import { defineConfig, type Plugin } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { cspPolicy } from './scripts/csp.ts';
 import { BUNDLED_ENTRIES } from './src/songs/entries.ts';
 import { parseMusicXml } from './src/songs/musicxml.ts';
 import { summarize } from './src/songs/summary.ts';
@@ -29,9 +31,27 @@ function songIndex(): Plugin {
   };
 }
 
+/**
+ * Content-Security-Policy as a <meta> tag, in the production build only: the dev server's HMR client needs an
+ * inline script and a websocket back to Vite, so a strict policy there would break `npm run dev`.
+ */
+function contentSecurityPolicy(): Plugin {
+  let policy = cspPolicy();
+  return {
+    name: 'keyfall-csp',
+    apply: 'build',
+    configResolved(config) {
+      policy = cspPolicy(loadEnv(config.mode, config.envDir || process.cwd(), 'VITE_').VITE_SUPABASE_URL);
+    },
+    transformIndexHtml: () => [
+      { tag: 'meta', attrs: { 'http-equiv': 'Content-Security-Policy', content: policy }, injectTo: 'head-prepend' },
+    ],
+  };
+}
+
 export default defineConfig({
   base: '/keyfall/',
-  plugins: [react(), songIndex()],
+  plugins: [react(), songIndex(), contentSecurityPolicy()],
   server: { port: 5173, strictPort: true },
   test: { include: ['tests/**/*.test.ts'] },
 });

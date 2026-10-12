@@ -1,4 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { expect, type Page } from '@playwright/test';
+import { test } from './fixtures';
 import { createProfile, readStore } from './helpers';
 
 test.use({ permissions: ['midi', 'midi-sysex'] });
@@ -43,11 +45,9 @@ const SONGS: Bundled[] = [
   { id: 'joplin-the-entertainer', title: "The Entertainer", file: 'joplin-the-entertainer', units: [] },
 ];
 
-/** Bars in the bundled MusicXML, counted from the file the dev server serves. */
-async function barsIn(page: Page, file: string): Promise<number> {
-  const res = await page.request.get(`src/songs/${file}.musicxml`);
-  expect(res.ok()).toBe(true);
-  return ((await res.text()).match(/<measure[ >]/g) ?? []).length;
+/** Bars in the bundled MusicXML, counted from the repo file (the production build does not serve src/). */
+function barsIn(file: string): number {
+  return (readFileSync(new URL(`../src/songs/${file}.musicxml`, import.meta.url), 'utf8').match(/<measure[ >]/g) ?? []).length;
 }
 
 /** An Advanced profile with Units 2 to 5 recorded as passed (Units 5 to 9 and Clair de Lune/the Nocturne are open to Advanced by rule). */
@@ -56,7 +56,7 @@ async function advancedPlayer(page: Page, units: string[] = ['unit-2', 'unit-3',
     const empty = { inputs: new Map(), outputs: new Map(), onstatechange: null };
     Object.defineProperty(Navigator.prototype, 'requestMIDIAccess', { value: () => Promise.resolve(empty), configurable: true });
   });
-  await page.goto('/#/');
+  await page.goto('./?debug=1#/');
   await page.getByTestId('app-ready').or(page.getByTestId('profile-picker')).first().waitFor({ state: 'attached' });
   await createProfile(page, 'Pro', 'advanced');
   const [profile] = await readStore<{ id: string }>(page, 'profiles');
@@ -88,7 +88,7 @@ test.describe('every bundled song plays to the end in Full mode at 100% accuracy
     test(`${song.title}`, async ({ page }) => {
       test.setTimeout(420_000);
       await advancedPlayer(page);
-      await page.goto(`/#/play/${song.id}`);
+      await page.goto(`./?debug=1#/play/${song.id}`);
       await expect(page.getByTestId('play-ready')).toBeVisible();
       await page.getByTestId('mode-full').click();
       const result = await page.evaluate(() => window.__keyfall!.autoplay({}));
@@ -108,13 +108,13 @@ test.describe('sheet view renders for every bundled song', () => {
     test(`${song.title}`, async ({ page }) => {
       test.setTimeout(120_000);
       await advancedPlayer(page);
-      await page.goto(`/#/play/${song.id}`);
+      await page.goto(`./?debug=1#/play/${song.id}`);
       await expect(page.getByTestId('play-ready')).toBeVisible();
       await page.getByTestId('view-sheet').click();
       const sheet = page.getByTestId('sheet');
       await expect(sheet).toHaveAttribute('data-state', 'ready', { timeout: 60_000 });
       await expect(sheet.locator('svg').first()).toBeVisible();
-      await expect(sheet).toHaveAttribute('data-measures', String(await barsIn(page, song.file)));
+      await expect(sheet).toHaveAttribute('data-measures', String(barsIn(song.file)));
       expect(Number(await sheet.getAttribute('data-mapped'))).toBeGreaterThan(20);
       await expect(page.getByTestId('sheet-cursor')).toBeVisible();
     });
@@ -125,7 +125,7 @@ test.describe('sheet view in play', () => {
   test('notes turn green when hit and coral when missed, and the cursor moves with the clock', async ({ page }) => {
     test.setTimeout(120_000);
     await advancedPlayer(page);
-    await page.goto('/#/play/mary-had-a-little-lamb');
+    await page.goto('./?debug=1#/play/mary-had-a-little-lamb');
     await expect(page.getByTestId('play-ready')).toBeVisible();
     await page.getByTestId('mode-full').click();
     await page.getByTestId('view-sheet').click();
@@ -151,7 +151,7 @@ test.describe('sheet view in play', () => {
 
   test('split view shows the score above the highway; the view is remembered per profile', async ({ page }) => {
     await advancedPlayer(page);
-    await page.goto('/#/play/mary-had-a-little-lamb');
+    await page.goto('./?debug=1#/play/mary-had-a-little-lamb');
     await expect(page.getByTestId('play-ready')).toBeVisible();
     await page.getByTestId('view-split').click();
     await expect(page.getByTestId('sheet')).toHaveAttribute('data-state', 'ready');
@@ -169,7 +169,7 @@ test.describe('sheet view in play', () => {
 
   test('Expert: labels start off and the sheet view is available', async ({ page }) => {
     await advancedPlayer(page);
-    await page.goto('/#/play/mary-had-a-little-lamb');
+    await page.goto('./?debug=1#/play/mary-had-a-little-lamb');
     await page.getByTestId('mode-expert').click();
     await expect(page.getByTestId('toggle-labels')).toHaveText('Note names: Off');
     await page.getByTestId('view-sheet').click();
@@ -180,15 +180,15 @@ test.describe('sheet view in play', () => {
 test.describe('unlocks for the new songs', () => {
   test('a Beginner profile finds the later songs locked; an Advanced one has Units 6 to 9, Clair de Lune and the Nocturne open', async ({ page }) => {
     await advancedPlayer(page, []);
-    await page.goto('/#/songs');
+    await page.goto('./?debug=1#/songs');
     for (const id of ['minuet-in-g', 'greensleeves', 'fur-elise-opening', 'canon-in-d', 'clair-de-lune', 'chopin-nocturne-op72-1', 'bach-prelude-in-c', 'burgmuller-arabesque', 'joplin-the-entertainer']) {
       await expect(page.getByTestId(`song-${id}`)).not.toHaveAttribute('data-locked', 'true');
     }
     await expect(page.getByTestId('song-locked-when-the-saints-go-marching-in')).toBeVisible();
-    await page.goto('/#/');
+    await page.goto('./?debug=1#/');
     await page.getByTestId('switch-profile').click();
     await createProfile(page, 'Newbie', 'beginner');
-    await page.goto('/#/songs');
+    await page.goto('./?debug=1#/songs');
     for (const id of ['when-the-saints-go-marching-in', 'minuet-in-g', 'greensleeves', 'fur-elise-opening', 'canon-in-d', 'clair-de-lune', 'chopin-nocturne-op72-1', 'bach-prelude-in-c', 'burgmuller-arabesque', 'joplin-the-entertainer']) {
       await expect(page.getByTestId(`song-locked-${id}`)).toBeVisible();
     }

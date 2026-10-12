@@ -595,3 +595,55 @@ New tests: unit `progress` (levels, streak incl. DST and midnight, every badge t
 - The sheet view while a song is being fetched shows the existing "Loading the score" text only after the song chunk arrives; very slow networks show the blank play loader first.
 - Range sliders and select boxes are not piano-operable (none is on a main path).
 - `combo` sound is defined but not yet played.
+
+## Phase 9: Polish, Part B
+
+Kasumi's Phase 8 lows (Content-Security-Policy, server limits migration) and a whole e2e suite that runs against any base URL, locally against `vite preview` of the production build and on the live site. The optional pull-cursor overlap window was not done (deferred).
+
+### Built
+
+- **Content-Security-Policy** (`scripts/csp.ts`, plugin `keyfall-csp` in `vite.config.ts`): a `<meta http-equiv>` injected into `index.html` by `transformIndexHtml` in the production build only (`apply: 'build'`); the dev server has no CSP because Vite's HMR client needs an inline script and a websocket. The Supabase host comes from `VITE_SUPABASE_URL` at build time (falls back to the project host). Final policy: `default-src 'self'; script-src 'self'; connect-src 'self' https://ubheylmkufyuamrgaqev.supabase.co wss://ubheylmkufyuamrgaqev.supabase.co; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self'; style-src-attr 'unsafe-inline'; worker-src 'self' blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'`. `frame-ancestors` is ignored in a meta tag and GitHub Pages cannot send headers, so clickjacking protection is not available.
+- **Migrations** (`supabase/migrations/`, applied with `supabase db push`, password from the shell environment only): `20261012130000_server_limits.sql` (songs bucket `allowed_mime_types`: audio/midi, audio/x-midi, application/vnd.recordare.musicxml+xml, application/vnd.recordare.musicxml, application/xml, text/xml, application/octet-stream; check constraint `<table>_data_size` = `pg_column_size(data) < 65536` on all 7 synced tables; `keyfall_touch` clamps `updated_at` and `deleted_at` to `clock_timestamp() + 5 minutes`, before the last-write-wins comparison) and `20261012130100_server_limits_null_fix.sql` (see Decisions). All 7 tables were empty when the constraints went on, so nothing existing could violate them. `supabase migration list`: 4 migrations, local and remote columns equal for each (`20261012120000`, `20261012120100`, `20261012130000`, `20261012130100`).
+- **Client** (`src/sync/rules.ts`, `remote.ts`, `types.ts`): the allowed types, size cap and clock margin as constants; `Remote.upload` takes an optional content type, default `application/octet-stream` (already what the client sent, and on the list, so no behaviour change for the app).
+- **Fake remote mirrors the rules** (`tests/sync-fake-remote.ts`): rejects a body of 64 KiB or more, clamps stamps past an injectable server clock, refuses content types outside the list.
+- **Whole suite runs against any base URL**: every spec uses base-relative URLs with `?debug=1` (`./?debug=1#/songs`), the file-read oracles (Mary's MusicXML, bar counts) read the repo file instead of fetching `src/` from the server, the permission origin comes from `ORIGIN` in `e2e/helpers.ts` (same rules as `playwright.config.ts`), `isolateMidi` is unchanged and still used where it was.
+- **CSP guard in every e2e test** (`e2e/fixtures.ts`): an automatic fixture wraps `test`, collecting the browser's CSP console reports and `securitypolicyviolation` events for the test's context and failing the test on any. `sync.spec.ts` also watches the extra contexts it opens. It is a no-op against the dev server and a hard check on `vite preview` and the live site. Proven to fire with a throwaway probe (a blocked fetch to another host was reported).
+- **Scripts**: `npm run test:e2e:live` now runs every project and spec (was phone and iPad only); new `npm run test:e2e:preview` (`KEYFALL_PREVIEW=1 playwright test`, needs `npm run build` first).
+- **New tests**: `tests/sync-limits.test.ts` (fake remote size cap, clamp, null `deleted_at` stays null, a clamped row does not pin later edits, mime list; the migration file matches the client constants; CSP directives) and a second `e2e/sync-rls.spec.ts` test against the real API (60 KB body fits, 70 KB refused on all 7 tables, future stamp clamped to within 5 minutes of the server clock, past stamp and null `deleted_at` untouched, a later real edit wins, octet-stream accepted, text/html, image/png, application/javascript refused).
+
+### Checks (local, run from /Users/bhoss/code/Bh0ss/keyfall)
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm test` | exit 0, 37 files, 672 tests passed |
+| `npm run build` | exit 0 |
+| `npm run test:e2e` (dev server, all 4 projects) | exit 0, 175 passed, 3 skipped (the orientation-specific iPad tests skip in the other orientation, as in Part A) |
+| `KEYFALL_PREVIEW=1 npx playwright test` (production build under `vite preview`, all 4 projects, CSP guard live) | exit 0, 175 passed, 3 skipped, 0 CSP violations |
+| `npm run lighthouse` | exit 0, accessibility 100 on Home, Play, Songs, Learn, Stats, Settings |
+| `supabase migration list` | 4 migrations, local and remote equal |
+
+**Live run (against https://bh0ss.github.io/keyfall/ after Miranda pushes): PENDING, to be filled in by the verifier.** Command: `npm run test:e2e:live` (all projects; set `KEYFALL_BASE_URL` to override the URL). Result: exit ___, ___ passed, ___ skipped, ___ failed.
+
+### Decisions
+
+- **CSP only in the production build**, as the Captain specified; `style-src 'self'` plus `style-src-attr 'unsafe-inline'` instead of a blanket `'unsafe-inline'`: OSMD and VexFlow only need inline style attributes, and the sheet view renders for every bundled song under it with no violations.
+- **Real bug caught by the e2e, fixed by a second migration**: in the first server-limits migration `least(new.deleted_at, ceiling)` returned the ceiling for a NULL `deleted_at` (Postgres `least` ignores NULL), which soft-deleted every synced row 5 minutes in the future and broke the two-context sync test. Fixed in `20261012130100` (clamp `deleted_at` only when set); a unit test and the live API test now guard it. The remote tables were empty throughout, so no data was affected. The applied migration was not edited.
+- **Upload content type stays `application/octet-stream`**: the file is stored verbatim and its kind is known from the row, and it is on the allowed list.
+- **Clamp, not reject** for future stamps (Captain's wording); the 5 minute margin is shared by the trigger, the fake and the tests.
+- **Fake size check uses JSON byte length**, a slightly stricter stand-in for `pg_column_size` (which measures stored, possibly compressed, size).
+- The preview and live suites need `?debug=1` for the virtual input; every URL carries it, so one set of specs serves the dev server, the preview and the live site.
+
+### Adapted tests (assertions otherwise unchanged)
+
+- All 18 `e2e/*.spec.ts` plus `helpers.ts`: absolute URLs (`/#/songs`, `/`, `/keyfall/`) became base-relative (`./?debug=1#/songs`, `./?debug=1`); `test` now comes from `./fixtures` (adds the CSP guard); `ORIGIN` comes from `helpers.ts`.
+- `scoring.spec.ts`, `profiles.spec.ts`: Mary's MusicXML is read from the repo file (`maryXml()`) instead of `page.request.get('/keyfall/src/songs/...')`, which only the dev server serves. `songs.spec.ts`: `barsIn` reads the repo file likewise.
+- `learn-units-6-10.spec.ts` Unit 8: the second `page.goto` to `./?debug=1#/learn/unit-8/together` became `page.reload()`. The old absolute URL differed from the app URL, so it forced a full load; the relative one is a hash-only navigation and would not start a fresh lesson.
+- `sync-rls.spec.ts`: the storage uploads now pass `contentType: 'application/octet-stream'`, because the bucket now refuses the client library's default (`text/plain`); the forged-upload case is therefore still refused for the RLS reason, not the mime type.
+- Nothing skipped, deleted or weakened.
+
+### Deferred
+
+- Pull-cursor overlap window for late commits (optional in the backlog).
+- Clickjacking protection (`frame-ancestors`) needs a host that can send headers.

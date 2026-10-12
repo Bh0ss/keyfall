@@ -1,10 +1,10 @@
-import { expect, test, type Browser, type Page } from '@playwright/test';
+import { expect, type Browser, type Page } from '@playwright/test';
+import { test, watchCsp } from './fixtures';
 import { musicXml } from '../tests/fixtures/generate';
-import { createProfile, isolateMidi, readStore } from './helpers';
+import { createProfile, isolateMidi, readStore, ORIGIN } from './helpers';
 import { SYNC_TABLES, signedInClient, testUser } from './sync-helpers';
 
-const ORIGIN = 'http://localhost:5173';
-const MARY = '/#/play/mary-had-a-little-lamb';
+const MARY = './?debug=1#/play/mary-had-a-little-lamb';
 const RUN = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 const NAME = `E2E Sync ${RUN}`;
 const FILE = `e2e-sync-${RUN}.musicxml`;
@@ -13,10 +13,18 @@ const FILE = `e2e-sync-${RUN}.musicxml`;
 async function freshPage(browser: Browser): Promise<Page> {
   const context = await browser.newContext({ baseURL: `${ORIGIN}/keyfall/` });
   await context.grantPermissions(['midi', 'midi-sysex'], { origin: ORIGIN });
+  cspViolations.push(watchCsp(context));
   const page = await context.newPage();
   await isolateMidi(page);
   return page;
 }
+
+/** Content-Security-Policy violations seen by the extra contexts a test opens (the built-in fixture only watches its own). */
+const cspViolations: string[][] = [];
+test.afterEach(() => {
+  const seen = cspViolations.splice(0).flat();
+  expect(seen, 'Content-Security-Policy violations').toEqual([]);
+});
 
 async function signInOnPage(page: Page) {
   const u = testUser(1);
@@ -55,7 +63,7 @@ test.describe('sync across devices', () => {
   test('a score recorded in one browser context shows up in a second fresh context after sign-in', async ({ browser }) => {
     // Device 1: works signed out, then signs in.
     const one = await freshPage(browser);
-    await one.goto('/');
+    await one.goto('./?debug=1');
     await expect(one.getByTestId('profile-picker')).toBeVisible();
     await createProfile(one, NAME);
     await expect(one.getByTestId('account-chip')).toHaveText('Not syncing');
@@ -66,14 +74,14 @@ test.describe('sync across devices', () => {
     await expect(one.getByTestId('summary')).toBeVisible({ timeout: 20_000 });
 
     // Import a song too, so the original file has to travel through the private bucket.
-    await one.goto('/#/import');
+    await one.goto('./?debug=1#/import');
     await one.getByTestId('import-file').setInputFiles({ name: FILE, mimeType: 'application/vnd.recordare.musicxml+xml', buffer: Buffer.from(musicXml()) });
     await expect(one.getByTestId('import-form')).toBeVisible();
     await one.getByTestId('import-save').click();
     await expect(one).toHaveURL(/#\/songs$/);
     const importedId = (await one.getByTestId(/^song-imp-/).getAttribute('data-testid'))!.replace(/^song-/, '');
 
-    await one.goto('/#/settings');
+    await one.goto('./?debug=1#/settings');
     await expect(one.getByTestId('account-card')).toHaveAttribute('data-state', 'signed-out');
     await signInOnPage(one);
     // This device has local data that was never synced to the account: it waits for an explicit choice.
@@ -88,7 +96,7 @@ test.describe('sync across devices', () => {
 
     // Device 2: a brand-new context. It has no profile, signs in from the picker, and gets everything.
     const two = await freshPage(browser);
-    await two.goto('/');
+    await two.goto('./?debug=1');
     await expect(two.getByTestId('profile-picker')).toBeVisible();
     expect(await readStore(two, 'scores')).toEqual([]);
     await signInOnPage(two);
@@ -102,9 +110,9 @@ test.describe('sync across devices', () => {
     await expect.poll(async () => (await readStore<{ id: string }>(two, 'songs')).map((s) => s.id), { timeout: 30_000 }).toEqual([importedId]);
     expect((await readStore<{ misses: unknown[] }>(two, 'attempts'))).toHaveLength(1);
 
-    await two.goto('/#/stats');
+    await two.goto('./?debug=1#/stats');
     await expect(two.getByTestId('stats-best-row').first()).toHaveAttribute('data-song', 'mary-had-a-little-lamb');
-    await two.goto('/#/songs');
+    await two.goto('./?debug=1#/songs');
     await expect(two.getByTestId(`song-${importedId}`)).toBeVisible();
 
     // The server really holds it, scoped to the household.
@@ -120,9 +128,9 @@ test.describe('sync across devices', () => {
     test.setTimeout(90_000);
     const name = `${NAME} hold`;
     const page = await freshPage(browser);
-    await page.goto('/');
+    await page.goto('./?debug=1');
     await createProfile(page, name);
-    await page.goto('/#/settings');
+    await page.goto('./?debug=1#/settings');
     await signInOnPage(page);
     await expect(page.getByTestId('account-card')).toHaveAttribute('data-state', 'choose', { timeout: 20_000 });
 
@@ -146,9 +154,9 @@ test.describe('sync across devices', () => {
     test.setTimeout(90_000);
     const name = `${NAME} fresh`;
     const page = await freshPage(browser);
-    await page.goto('/');
+    await page.goto('./?debug=1');
     await createProfile(page, name);
-    await page.goto('/#/settings');
+    await page.goto('./?debug=1#/settings');
     await signInOnPage(page);
     await expect(page.getByTestId('account-card')).toHaveAttribute('data-state', 'choose', { timeout: 20_000 });
     await page.getByTestId('choice-fresh').click();

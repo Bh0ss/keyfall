@@ -1,8 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
-import { gotoApp } from './helpers';
+import { expect, type Page } from '@playwright/test';
+import { test } from './fixtures';
+import { gotoApp, ORIGIN } from './helpers';
 
-const ORIGIN = 'http://localhost:5173';
-const MARY = '/#/play/mary-had-a-little-lamb';
+const MARY = './?debug=1#/play/mary-had-a-little-lamb';
 
 const status = (page: Page) => page.getByTestId('play-status');
 
@@ -19,7 +19,7 @@ test.beforeEach(async ({ context, page }) => {
 });
 
 test('song list opens a song and Start begins Wait mode', async ({ page }) => {
-  await gotoApp(page, '/#/songs');
+  await gotoApp(page, './?debug=1#/songs');
   await expect(page.getByTestId('song-mary-had-a-little-lamb')).toContainText('Mary Had a Little Lamb');
   await expect(page.getByTestId('song-twinkle-twinkle-little-star')).toContainText('Twinkle Twinkle Little Star');
   await page.getByTestId('song-mary-had-a-little-lamb').getByRole('link', { name: 'Play' }).click();
@@ -110,7 +110,7 @@ test('autoplay with late timing, wrong keys and hesitations still finishes; wron
 });
 
 test('autoplay without an open song rejects', async ({ page }) => {
-  await gotoApp(page, '/#/songs');
+  await gotoApp(page, './?debug=1#/songs');
   const msg = await page.evaluate(() => window.__keyfall!.autoplay({}).then(() => 'ok', (e: Error) => e.message));
   expect(msg).toMatch(/no song is open/);
 });

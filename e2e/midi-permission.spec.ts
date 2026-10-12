@@ -1,6 +1,7 @@
-import { expect, test, type Browser } from '@playwright/test';
+import { expect, type Browser } from '@playwright/test';
+import { test } from './fixtures';
+import { ORIGIN } from './helpers';
 
-const ORIGIN = 'http://localhost:5173';
 
 type Permission = 'midi' | 'midi-sysex';
 
@@ -16,7 +17,7 @@ async function probe(browser: Browser, grants: Permission[], sysex: boolean): Pr
   try {
     if (grants.length > 0) await context.grantPermissions(grants, { origin: ORIGIN });
     const page = await context.newPage();
-    await page.goto('/keyfall/');
+    await page.goto('./?debug=1');
     return await page.evaluate(async (sysexFlag) => {
       const state = (await navigator.permissions.query({ name: 'midi' as PermissionName })).state;
       try {

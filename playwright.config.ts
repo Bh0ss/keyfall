@@ -16,8 +16,8 @@ for (const file of ['.env.local', '.env.test.local']) {
  * Three ways to run:
  *  - default: the dev server on :5173 (everything).
  *  - KEYFALL_PREVIEW=1: `vite preview` of the production build on :4173 (no dev-only behaviour; pages need ?debug=1).
- *  - KEYFALL_BASE_URL=<url>: a live deployment, no local server. Only the phone and iPad projects run against it
- *    (the older specs address the dev server by absolute path).
+ *  - KEYFALL_BASE_URL=<url>: a live deployment, no local server. Every spec uses base-relative URLs with ?debug=1,
+ *    so the whole suite (all four projects) runs against it.
  */
 const live = process.env.KEYFALL_BASE_URL?.trim();
 const preview = process.env.KEYFALL_PREVIEW === '1';

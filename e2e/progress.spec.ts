@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { test } from './fixtures';
 import { gotoApp, isolateMidi, readStore } from './helpers';
 
 test.use({ permissions: ['midi', 'midi-sysex'] });
@@ -16,7 +17,7 @@ const press = (page: Page, midi: number) =>
 
 /** Play Mary to the end in Full mode at +0 ms (26 notes, 3 stars, no mistakes). */
 async function playMary(page: Page) {
-  await page.goto('/#/play/mary-had-a-little-lamb');
+  await page.goto('./?debug=1#/play/mary-had-a-little-lamb');
   await page.getByTestId('mode-full').click();
   await page.evaluate(() => window.__keyfall!.autoplay({}));
   await expect(page.getByTestId('play-finished')).toBeVisible({ timeout: 30_000 });
@@ -24,7 +25,7 @@ async function playMary(page: Page) {
 
 test.describe('XP, levels, streak, badges', () => {
   test('a new profile starts at level 1 with no streak and no badges', async ({ page }) => {
-    await gotoApp(page, '/#/');
+    await gotoApp(page, './?debug=1#/');
     const strip = page.getByTestId('progress-strip');
     await expect(strip).toBeVisible();
     await expect(page.getByTestId('level-bar-level')).toHaveText('Level 1');
@@ -34,7 +35,7 @@ test.describe('XP, levels, streak, badges', () => {
   });
 
   test('finishing a song earns XP, a level, a streak day and badges; Results, Home and Stats agree', async ({ page }) => {
-    await gotoApp(page, '/#/');
+    await gotoApp(page, './?debug=1#/');
     await playMary(page);
     // The end card already celebrates: level 2 (179 XP) and the first badges.
     const card = page.getByTestId('play-finished').getByTestId('earned-card');
@@ -53,14 +54,14 @@ test.describe('XP, levels, streak, badges', () => {
     const [profile] = await readStore<{ badges: Record<string, number> }>(page, 'profiles');
     expect(Object.keys(profile!.badges).sort()).toEqual([...attempt!.newBadges].sort());
 
-    await page.goto('/#/');
+    await page.goto('./?debug=1#/');
     await expect(page.getByTestId('level-bar-level')).toHaveText('Level 2');
     await expect(page.getByTestId('level-bar-xp')).toHaveText('179 XP · 121 to level 3');
     await expect(page.getByTestId('streak-chip')).toHaveAttribute('data-days', '1');
     await expect(page.getByTestId('streak-chip')).toContainText('1-day streak');
     await expect(page.getByTestId('badge-count')).toHaveText('3 of 17 badges');
 
-    await page.goto('/#/stats');
+    await page.goto('./?debug=1#/stats');
     await expect(page.getByTestId('stats-xp')).toHaveText('179 XP');
     await expect(page.getByTestId('badges-count')).toHaveText('3 of 17 earned');
     await expect(page.getByTestId('badge-flawless')).toHaveAttribute('data-earned', 'true');
@@ -73,13 +74,13 @@ test.describe('XP, levels, streak, badges', () => {
     const again = page.getByTestId('play-finished').getByTestId('earned-card');
     await expect(again.getByTestId('level-up')).toContainText('level 3');
     await expect(again.locator('[data-testid^="earned-"]')).toHaveCount(0);
-    await page.goto('/#/stats');
+    await page.goto('./?debug=1#/stats');
     await expect(page.getByTestId('stats-xp')).toHaveText('358 XP');
     await expect(page.getByTestId('stats-level-level')).toHaveText('Level 3');
   });
 
   test('a streak that is alive but not played today says so', async ({ page }) => {
-    await gotoApp(page, '/#/');
+    await gotoApp(page, './?debug=1#/');
     // Yesterday and the day before: write two attempts straight into the app database.
     const [profile] = await readStore<{ id: string }>(page, 'profiles');
     await page.evaluate(
@@ -112,13 +113,13 @@ test.describe('XP, levels, streak, badges', () => {
     await expect(page.getByTestId('streak-chip')).toHaveAttribute('data-days', '2');
     await expect(page.getByTestId('streak-chip')).toContainText('play today to keep it');
     await playMary(page);
-    await page.goto('/#/');
+    await page.goto('./?debug=1#/');
     await expect(page.getByTestId('streak-chip')).toHaveAttribute('data-days', '3');
     await expect(page.getByTestId('streak-chip')).not.toContainText('play today');
   });
 
   test('passing a Learn unit adds XP, a badge and a level, with the same celebration on the end card', async ({ page }) => {
-    await gotoApp(page, '/#/learn/unit-1');
+    await gotoApp(page, './?debug=1#/learn/unit-1');
     await page.getByTestId('learn-start-test').click();
     for (let i = 0; i < 20; i++) {
       const target = Number(await page.getByTestId('learn-prompt').getAttribute('data-target-midi'));
@@ -133,7 +134,7 @@ test.describe('XP, levels, streak, badges', () => {
     const result = page.getByTestId('learn-result');
     await expect(result).toContainText('Level up! You are level 2.');
     await expect(result).toContainText('New badge: ');
-    await page.goto('/#/stats');
+    await page.goto('./?debug=1#/stats');
     await expect(page.getByTestId('stats-xp')).toHaveText('150 XP');
     await expect(page.getByTestId('badge-learn-first-unit')).toHaveAttribute('data-earned', 'true');
   });
@@ -157,11 +158,11 @@ test.describe('sound and motion', () => {
 
   test('menu sounds play, and the Sounds switch silences them for the profile', async ({ page }) => {
     await countOscillators(page);
-    await gotoApp(page, '/#/songs');
+    await gotoApp(page, './?debug=1#/songs');
     await press(page, 26); // D1: next
     await expect.poll(() => oscillators(page)).toBeGreaterThan(0);
 
-    await page.goto('/#/settings');
+    await page.goto('./?debug=1#/settings');
     await page.getByTestId('pref-sound').click();
     await expect(page.getByTestId('pref-sound')).toHaveAttribute('aria-checked', 'false');
     const before = await oscillators(page);
@@ -174,22 +175,22 @@ test.describe('sound and motion', () => {
   });
 
   test('Reduce animation and the system setting both turn the animations off', async ({ page }) => {
-    await gotoApp(page, '/#/');
+    await gotoApp(page, './?debug=1#/');
     const duration = () => page.getByTestId('progress-strip').evaluate(() => parseFloat(getComputedStyle(document.querySelector('.main')!).animationDuration));
     expect(await duration()).toBeGreaterThan(0.1);
-    await page.goto('/#/settings');
+    await page.goto('./?debug=1#/settings');
     await page.getByTestId('pref-reduceMotion').click();
     await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduced');
     await expect.poll(async () => (await readStore<{ settings: { reduceMotion?: boolean } }>(page, 'profiles'))[0]!.settings.reduceMotion).toBe(true);
-    await page.goto('/#/');
+    await page.goto('./?debug=1#/');
     await expect(page.getByTestId('progress-strip')).toBeVisible();
     expect(await duration()).toBeLessThan(0.001);
 
-    await page.goto('/#/settings');
+    await page.goto('./?debug=1#/settings');
     await page.getByTestId('pref-reduceMotion').click();
     await expect.poll(async () => (await readStore<{ settings: { reduceMotion?: boolean } }>(page, 'profiles'))[0]!.settings.reduceMotion).toBe(false);
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/#/');
+    await page.goto('./?debug=1#/');
     await expect(page.getByTestId('progress-strip')).toBeVisible();
     expect(await duration()).toBeLessThan(0.001);
   });

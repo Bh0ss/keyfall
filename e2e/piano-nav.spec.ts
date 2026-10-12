@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { test } from './fixtures';
 import { gotoApp, isolateMidi } from './helpers';
 
 test.use({ permissions: ['midi', 'midi-sysex'] });
@@ -40,7 +41,7 @@ async function press(page: Page, selector: string) {
 
 test.describe('piano-key navigation', () => {
   test('the first-run legend appears once, is operable by piano, and Settings shows it', async ({ page }) => {
-    await gotoApp(page, '/#/');
+    await gotoApp(page, './?debug=1#/');
     const legend = page.getByTestId('nav-legend');
     await expect(legend).toBeVisible();
     await expect(legend.getByTestId('key-legend')).toContainText('A0');
@@ -50,12 +51,12 @@ test.describe('piano-key navigation', () => {
     await page.reload();
     await expect(page.getByTestId('home')).toBeVisible();
     await expect(page.getByTestId('nav-legend')).toHaveCount(0);
-    await page.goto('/#/settings');
+    await page.goto('./?debug=1#/settings');
     await expect(page.getByTestId('prefs-card').getByTestId('key-legend')).toBeVisible();
   });
 
   test('a visible ring marks the selected item', async ({ page }) => {
-    await gotoApp(page, '/#/songs');
+    await gotoApp(page, './?debug=1#/songs');
     await tap(page, D1);
     await expect(page.locator('html')).toHaveAttribute('data-nav', 'piano');
     const ring = await page.evaluate(() => {
@@ -70,7 +71,7 @@ test.describe('piano-key navigation', () => {
   });
 
   test('every main screen is reachable and operable with the five keys alone', async ({ page }) => {
-    await gotoApp(page, '/#/');
+    await gotoApp(page, './?debug=1#/');
     await expect(page.getByTestId('home')).toBeVisible();
 
     // Stats and back (A0), Settings and Home (E1).
@@ -147,7 +148,7 @@ test.describe('piano-key navigation', () => {
   });
 
   test('play a whole song, then Results, with the five keys and the song notes only', async ({ page }) => {
-    await gotoApp(page, '/#/songs');
+    await gotoApp(page, './?debug=1#/songs');
     await press(page, '[href$="#/play/mary-had-a-little-lamb"]');
     await expect(page).toHaveURL(/#\/play\/mary-had-a-little-lamb$/);
     await expect(page.getByTestId('play-ready')).toBeVisible();
@@ -190,7 +191,7 @@ test.describe('piano-key navigation', () => {
   });
 
   test('command keys never start a song or count as wrong keys, but song notes still do', async ({ page }) => {
-    await gotoApp(page, '/#/play/mary-had-a-little-lamb');
+    await gotoApp(page, './?debug=1#/play/mary-had-a-little-lamb');
     await expect(page.getByTestId('play-ready')).toBeVisible();
     await tap(page, D1);
     await tap(page, B0);
@@ -203,7 +204,7 @@ test.describe('piano-key navigation', () => {
     // A0, C1, C4, E4 as quarter notes: two of the five command notes are song notes.
     const note = (step: string, octave: number) => `<note><pitch><step>${step}</step><octave>${octave}</octave></pitch><duration>1</duration><type>quarter</type></note>`;
     const xml = `<?xml version="1.0" encoding="UTF-8"?><score-partwise version="3.1"><work><work-title>Low Keys</work-title></work><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time></attributes>${note('A', 0)}${note('C', 1)}${note('C', 4)}${note('E', 4)}</measure></part></score-partwise>`;
-    await gotoApp(page, '/#/import');
+    await gotoApp(page, './?debug=1#/import');
     await page.getByTestId('import-file').setInputFiles({ name: 'low-keys.musicxml', mimeType: 'application/vnd.recordare.musicxml+xml', buffer: Buffer.from(xml) });
     await expect(page.getByTestId('import-form')).toBeVisible();
     await page.getByTestId('import-save').click();
@@ -211,7 +212,7 @@ test.describe('piano-key navigation', () => {
     const card = page.getByTestId(/^song-imp-/);
     const id = (await card.getAttribute('data-testid'))!.replace(/^song-/, '');
 
-    await page.goto(`/#/play/${id}`);
+    await page.goto(`./?debug=1#/play/${id}`);
     await expect(page.getByTestId('play-ready')).toBeVisible();
     // The commands are off for this song, so B0 is just a key: it starts the song (any key does) and goes nowhere.
     await tap(page, B0);
@@ -236,7 +237,7 @@ test.describe('piano-key navigation', () => {
   });
 
   test('the Settings switch turns the commands off, and they come back when it is on', async ({ page }) => {
-    await gotoApp(page, '/#/settings');
+    await gotoApp(page, './?debug=1#/settings');
     await page.getByTestId('pref-pianoNav').click();
     await expect(page.getByTestId('pref-pianoNav')).toHaveAttribute('aria-checked', 'false');
     await tap(page, E1);

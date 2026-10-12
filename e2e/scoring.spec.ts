@@ -1,17 +1,15 @@
-import { expect, test, type Page } from '@playwright/test';
-import { gotoApp, readStore } from './helpers';
+import { expect, type Page } from '@playwright/test';
+import { test } from './fixtures';
+import { gotoApp, maryXml, readStore, ORIGIN } from './helpers';
 import { parseMusicXml } from '../src/songs/musicxml';
 import { planAutoplay, type AccuracyProfile } from '../src/midi/autoplay';
 
-const ORIGIN = 'http://localhost:5173';
 const MARY_ID = 'mary-had-a-little-lamb';
-const MARY = `/#/play/${MARY_ID}`;
+const MARY = `./?debug=1#/play/${MARY_ID}`;
 const NOTES = 26;
-/** Mary as the app parses it, read straight from the dev server so the oracle uses the real arrangement. */
-async function loadMary(page: Page) {
-  const res = await page.request.get('/keyfall/src/songs/mary-had-a-little-lamb.musicxml');
-  expect(res.ok()).toBe(true);
-  return parseMusicXml(await res.text(), { id: MARY_ID, level: 1 });
+/** Mary as the app parses it, read from the repo file so the oracle uses the real arrangement on any server. */
+function loadMary() {
+  return parseMusicXml(maryXml(), { id: MARY_ID, level: 1 });
 }
 // Spec: 100 / 70 / 40 points, multiplier +1 every 10 consecutive hits capped at x4.
 // Mary has 26 notes, so a clean run scores 10 x1, 10 x2, 6 x3.
@@ -105,7 +103,7 @@ test.describe('timed scoring through autoplay', () => {
   test('a seeded profile with wrong keys and skipped notes gives the exact score, accuracy and stars', async ({ page }) => {
     const profile: AccuracyProfile = { offsetMs: 0, wrongKeyRate: 0.35, missRate: 0.25, seed: 42 };
     // Oracle: which notes the virtual player skips and which get a wrong key first.
-    const mary = await loadMary(page);
+    const mary = loadMary();
     const plan = planAutoplay(mary, profile, { timed: true });
     const beatMs = 625;
     const played = new Set(plan.filter((e) => e.kind === 'press' && e.intent === 'correct').map((e) => Math.round(e.atMs / beatMs * 1000) / 1000));
@@ -145,7 +143,7 @@ test.describe('timed scoring through autoplay', () => {
 
   test('wrong keys alone reset the combo but never cost accuracy', async ({ page }) => {
     const profile: AccuracyProfile = { wrongKeyRate: 0.3, seed: 9 };
-    const mary = await loadMary(page);
+    const mary = loadMary();
     const plan = planAutoplay(mary, profile, { timed: true });
     const wrongBefore = new Set(
       plan.filter((e) => e.kind === 'press' && e.intent === 'wrong').map((e) => Math.round((e.atMs + 100) / 625 * 1000) / 1000),
@@ -279,7 +277,7 @@ test.describe('play tools', () => {
 test.describe('latency check', () => {
   test('eight clicks, one tap each, stores the median offset for the device', async ({ page }) => {
     test.setTimeout(60_000);
-    await gotoApp(page, '/#/settings');
+    await gotoApp(page, './?debug=1#/settings');
     await expect(page.getByTestId('latency-saved')).toHaveText('none');
     // Tap a key the moment each click's counter appears (the way a player taps on the beat).
     await page.evaluate(() => {
@@ -315,7 +313,7 @@ test.describe('latency check', () => {
 
   test('too few taps is reported, nothing is saved', async ({ page }) => {
     test.setTimeout(60_000);
-    await gotoApp(page, '/#/settings');
+    await gotoApp(page, './?debug=1#/settings');
     await page.getByTestId('latency-start').click();
     await expect(page.getByRole('alert')).toContainText('Not enough taps', { timeout: 15_000 });
     expect(await readStore(page, 'latency')).toEqual([]);

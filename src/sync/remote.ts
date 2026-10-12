@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { UPLOAD_CONTENT_TYPE } from './rules';
 import type { Remote, RemoteRow, RemoteTable } from './types';
 
 export const BUCKET = 'songs';
@@ -18,8 +19,8 @@ export function supabaseRemote(sb: SupabaseClient): Remote {
       if (error) throw new Error(error.message);
       return (data ?? []) as unknown as RemoteRow[];
     },
-    async upload(path, bytes) {
-      const { error } = await sb.storage.from(BUCKET).upload(path, bytes, { upsert: true, contentType: 'application/octet-stream' });
+    async upload(path, bytes, contentType = UPLOAD_CONTENT_TYPE) {
+      const { error } = await sb.storage.from(BUCKET).upload(path, bytes, { upsert: true, contentType });
       if (error) throw new Error(error.message);
     },
     async download(path) {
