@@ -148,3 +148,18 @@ Needs the piano connected. Use an Advanced profile (Clair de Lune and the Noctur
    - Good: the tune is the one you know; tell me if the bridge notes are wrong.
 7. Für Elise, Minuet in G, Greensleeves and Canon in D on the Advanced profile.
    - Good: each plays through to the end; the tune is recognisable and the tempo is comfortable (Für Elise 72, Minuet 112, Greensleeves 96, Canon 72 quarter notes a minute); tell me which need a different tempo.
+
+## Phase 6: Song import
+
+Needs the piano connected and a MusicXML or MIDI file of a piece you own (for example one bought as MusicXML from a sheet-music shop, or exported from MuseScore). Keep the file out of the repository.
+
+1. Open Play, choose "Import a song", and choose your MusicXML file (try `.musicxml`, `.xml` and `.mxl` if you have them).
+   - Good: title and composer are filled in from the file; hand counts show a sensible right/left split (two staves are split by staff); the difficulty estimate looks fair for the piece, and you can change it. "Add to my songs" puts it in the song list with an "Imported" tag.
+2. Play it in Wait mode on the piano, then in Full mode. Open the Sheet view.
+   - Good: the notes fall in the right lanes with the right hand blue and the left hand purple; the sheet is your file's own score (no "Approximate" label) and the cursor follows the music.
+3. Import a MIDI file (a one-track piano file if you have one). On the import screen move the split point until the left hand takes the bass notes (try the "Middle C" button first, then adjust). Save it, then play it.
+   - Good: the hand counts change as you move the split; after saving, the left-hand notes are purple and the right-hand notes blue; notes you hold or repeat do not stick or double up. Open Sheet: it carries the label "Approximate score, generated from MIDI" and reads like a rough copy of the music.
+4. Choose Edit on the imported song, fix the split point, change the title, save, and play it again.
+   - Good: the new hands apply, the song keeps its earlier scores, and a second profile (switch with the avatar button) sees and can play the same imported song.
+5. Try a bad file (a PDF renamed to `.mid`, or a very large file).
+   - Good: a short, plain message appears and nothing breaks.

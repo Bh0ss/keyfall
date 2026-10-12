@@ -1,5 +1,5 @@
 import { accuracyTrend, mostMissedNotes, points, stars } from '../engine/results';
-import { getSong } from '../songs/catalog';
+import { findSong } from '../songs/library';
 import { profileAttempts } from '../storage/attempts';
 import { getDb } from '../storage/db';
 import { bestPerSong, profileScores } from '../storage/scores';
@@ -86,7 +86,7 @@ export function StatsScreen() {
               {bestRows.map((s) => (
                 <li key={s.id} className="board-row" data-testid="stats-best-row" data-song={s.songId}>
                   <span className="board-who">
-                    <strong>{getSong(s.songId)?.title ?? s.songId}</strong>
+                    <strong>{findSong(s.songId)?.title ?? s.songId}</strong>
                     <small>{stars(s.stars)}</small>
                   </span>
                   <span className="board-score">{points(s.score)}</span>

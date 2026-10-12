@@ -53,3 +53,15 @@ export async function readStore<T = unknown>(page: Page, store: string): Promise
     store,
   ) as Promise<T[]>;
 }
+
+/**
+ * Replace Web MIDI with an empty device list. Chromium on a Mac with the piano paired sees the real
+ * FP-30X, and any note played on it reaches every test page (it answered Learn prompts wrongly and
+ * hung the Learn tests whenever the piano was on). Call before the first navigation.
+ */
+export async function isolateMidi(page: Page) {
+  await page.addInitScript(() => {
+    const empty = { inputs: new Map(), outputs: new Map(), onstatechange: null };
+    Object.defineProperty(Navigator.prototype, 'requestMIDIAccess', { value: () => Promise.resolve(empty), configurable: true });
+  });
+}

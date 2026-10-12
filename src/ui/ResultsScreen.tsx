@@ -12,7 +12,7 @@ import {
   stars,
   timingNote,
 } from '../engine/results';
-import { getSong } from '../songs/catalog';
+import { findSong } from '../songs/library';
 import { getAttempt } from '../storage/attempts';
 import { getDb } from '../storage/db';
 import { songScores } from '../storage/scores';
@@ -86,7 +86,7 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
       </AppLayout>
     );
   }
-  const song = data ? getSong(data.attempt.songId) : undefined;
+  const song = data ? findSong(data.attempt.songId) : undefined;
   if (!data || !song) {
     return (
       <AppLayout active="play">

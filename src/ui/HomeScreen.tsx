@@ -1,6 +1,6 @@
 import { nextUnit, unlockHint } from '../learn/unlocks';
 import { upNext, points, stars } from '../engine/results';
-import { getSongs } from '../songs/catalog';
+import { useLibrary } from '../songs/library';
 import { getDb } from '../storage/db';
 import { profileAttempts } from '../storage/attempts';
 import { bestPerSong, profileScores } from '../storage/scores';
@@ -26,7 +26,7 @@ function greeting(hour: number): string {
 export function HomeScreen() {
   const profile = useActiveProfile();
   const snapshot = useMidi();
-  const songs = getSongs();
+  const songs = useLibrary().songs;
   const data = useAsync(async () => {
     const db = getDb();
     const [scores, attempts] = await Promise.all([profileScores(db, profile.id), profileAttempts(db, profile.id)]);

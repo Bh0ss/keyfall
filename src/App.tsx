@@ -11,8 +11,12 @@ import { initProfiles, useProfiles } from './ui/profileStore';
 import { useRoute } from './ui/useRoute';
 import { SongGate } from './ui/SongGate';
 import { virtualInputEnabled } from './midi/virtual';
+import { loadLibrary, useLibrary } from './songs/library';
+import { getDb } from './storage/db';
 
 const LearnRoutes = lazy(() => import('./ui/learn/LearnRoutes'));
+// The MIDI parser is only needed when a file is imported.
+const ImportScreen = lazy(() => import('./ui/ImportScreen').then((m) => ({ default: m.ImportScreen })));
 
 function Routes() {
   const route = useRoute();
@@ -23,6 +27,12 @@ function Routes() {
       return (
         <Suspense fallback={<div className="shell" data-testid="learn-loading" />}>
           <LearnRoutes unitId={route.unitId} lessonId={route.lessonId} />
+        </Suspense>
+      );
+    case 'import':
+      return (
+        <Suspense fallback={<div className="shell" data-testid="import-loading" />}>
+          <ImportScreen songId={route.songId} />
         </Suspense>
       );
     case 'stats':
@@ -47,11 +57,15 @@ function Routes() {
 /** Nothing renders until a profile is chosen for this session. */
 export function App() {
   const state = useProfiles();
+  const library = useLibrary();
   useEffect(() => {
     void initProfiles();
   }, []);
+  useEffect(() => {
+    if (state.status === 'ready') void loadLibrary(getDb());
+  }, [state.status]);
 
-  if (state.status === 'loading') return <div className="shell" data-testid="app-loading" />;
+  if (state.status === 'loading' || (state.status === 'ready' && state.activeId && !library.ready)) return <div className="shell" data-testid="app-loading" />;
   if (state.status === 'error') {
     return (
       <div className="shell">

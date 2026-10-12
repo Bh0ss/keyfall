@@ -16,7 +16,7 @@ interface Cursor {
  * Scrolling score (OpenSheetMusicDisplay): one long line of music, a cursor that follows
  * the song clock, and notes that turn green when hit and coral when missed.
  */
-export default function SheetView({ song, session, compact }: { song: Song; session: PlaySession; compact?: boolean }) {
+export default function SheetView({ song, session, compact, approximate }: { song: Song; session: PlaySession; compact?: boolean; approximate?: boolean }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -154,6 +154,11 @@ export default function SheetView({ song, session, compact }: { song: Song; sess
 
   return (
     <div className="sheet" data-testid="sheet" data-state={state} data-measures={measures} data-mapped={mapped} data-compact={compact ? 'true' : undefined}>
+      {approximate && (
+        <div className="sheet-approx" data-testid="sheet-approximate">
+          Approximate score, generated from MIDI. Notes are snapped to sixteenths and spelled with sharps.
+        </div>
+      )}
       {state === 'loading' && <div className="sheet-note">Setting the score...</div>}
       {state === 'error' && <div className="sheet-note">The score could not be drawn.</div>}
       <div className="sheet-scroll" ref={scrollRef}>

@@ -10,7 +10,7 @@ import type { PlaySession } from '../engine/session';
 import { TimedSession } from '../engine/timed';
 import { WaitSession } from '../engine/wait';
 import { midi } from '../midi/engine';
-import { getSong } from '../songs/catalog';
+import { findPlayableSong, hasApproximateSheet } from '../songs/library';
 import type { PlayView } from '../storage/types';
 import { saveRun, type SavedRun } from '../storage/attempts';
 import { getDb } from '../storage/db';
@@ -67,7 +67,7 @@ function Stat({ value, label, tone, testId }: { value: string; label: string; to
 }
 
 export function PlayScreen({ songId, preset }: { songId: string; preset: PlayPreset }) {
-  const song = getSong(songId);
+  const song = findPlayableSong(songId);
   const [attempt, setAttempt] = useState(0);
   if (!song) {
     return (
@@ -129,7 +129,7 @@ function PlayInner({
   streaks: ReadonlyMap<number, number>;
   onRetry: () => void;
 }) {
-  const song = getSong(songId)!;
+  const song = findPlayableSong(songId)!;
   const profile = useActiveProfile();
   const lastBar = lastMeasure(song);
   const [setup, setSetup] = useState<Setup>(() => {
@@ -383,7 +383,7 @@ function PlayInner({
         {view !== 'falling' && song.musicXml && (
           <div className="sheet-pane">
             <Suspense fallback={<div className="sheet-note">Loading the score...</div>}>
-              <SheetView song={song} session={session} compact={view === 'split'} />
+              <SheetView song={song} session={session} compact={view === 'split'} approximate={hasApproximateSheet(song.id)} />
             </Suspense>
           </div>
         )}

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { createProfile, gotoApp, readStore } from './helpers';
+import { createProfile, gotoApp, isolateMidi, readStore } from './helpers';
 
 test.use({ permissions: ['midi', 'midi-sysex'] });
 
@@ -29,7 +29,11 @@ async function runPrompts(page: Page, total: number, misses = 0, from = 0) {
 
 test.describe('Learn', () => {
   // Each unit test is 20 prompts with a short pause between them; a few tests pass two or three units.
-  test.beforeEach(() => test.setTimeout(120_000));
+  test.beforeEach(async ({ page }) => {
+    test.setTimeout(120_000);
+    // Without this the real piano (when it is on) answers prompts: the cause of the old full-suite Learn timeouts.
+    await isolateMidi(page);
+  });
 
   test('rail and Home lead into Learn; units 6 to 10 are coming soon; unit 2 is locked at the start', async ({ page }) => {
     await gotoApp(page, '/');

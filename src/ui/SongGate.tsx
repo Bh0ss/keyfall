@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react';
 import { unlockHint } from '../learn/unlocks';
-import { getSong } from '../songs/catalog';
+import { findPlayableSong } from '../songs/library';
 import { AppLayout } from './AppLayout';
 import { hrefFor } from './useRoute';
 import { useUnlocks } from './useUnlocks';
 
 /** Shows the song only if this profile has unlocked it; a locked song's link lands on a short explanation. */
 export function SongGate({ songId, children }: { songId: string; children: ReactNode }) {
-  const song = getSong(songId);
+  const song = findPlayableSong(songId);
   const unlocks = useUnlocks();
   if (!song || song.unlockedBy === undefined) return <>{children}</>;
   if (!unlocks) return <div className="shell" data-testid="song-gate-loading" />;

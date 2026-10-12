@@ -1,5 +1,8 @@
 import type { LabelMode } from '../engine/fade';
 import type { Grade, MissEntry, Mode } from '../engine/judge';
+import type { Song } from '../engine/song';
+import type { ImportFormat } from '../import/limits';
+import type { SplitMode } from '../import/types';
 
 /**
  * Every row has a stable string `id` and an `updatedAt` (epoch ms), so the
@@ -113,4 +116,24 @@ export interface ReviewRecord extends Stamped {
 export interface MetaRecord {
   key: string;
   value: unknown;
+}
+
+/**
+ * An imported song. `id` is the song id (`imp-` + uuid). `source` keeps the original file so the
+ * split can be changed later and Phase 8 can upload it to the private `songs` bucket as is.
+ * Deleted songs stay as rows with `deletedAt` so a later sync can carry the deletion.
+ */
+export interface ImportedSongRecord extends Stamped {
+  song: Song;
+  format: ImportFormat;
+  fileName: string;
+  /** True when the sheet was generated from MIDI. */
+  approximate: boolean;
+  splitMode: SplitMode;
+  splitMidi: number;
+  /** True when the player set the level instead of taking the estimate. */
+  levelOverridden: boolean;
+  source: ArrayBuffer;
+  createdAt: number;
+  deletedAt?: number;
 }

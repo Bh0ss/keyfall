@@ -290,3 +290,63 @@ How songs were unlocked in e2e: an Advanced profile with Units 2, 3 and 4 record
 - Pitch spelling, clefs and ornaments of the converted songs follow the MIDI, not the printed score (see Decisions). Fingers only for levels 1 to 3.
 - Lazy-loading the song data to shrink the main chunk.
 - The Nocturne's CC BY-SA 4.0 status: keep with attribution (as ruled), or re-derive from the scan alone.
+
+## Phase 6: Song import
+
+### Built
+
+- Import pipeline (`src/import/`), all pure and unit-tested on generated fixtures:
+  - `limits.ts` (caps, accepted extensions, `ImportError` for messages fit for the player), `analyse.ts` (file to `ImportAnalysis`: MIDI via `@tonejs/midi`, MusicXML via the existing loader, `.mxl` via `mxl.ts`), `zip.ts` and `mxl.ts` (own small zip reader), `split.ts` (hands), `quantise.ts` (16th grid), `toMusicXml.ts` (generated MusicXML for MIDI), `difficulty.ts` (estimate), `build.ts` (analysis plus the player's choices to a `Song`), `save.ts` (store and update).
+  - Hand split: with exactly two tracks (MIDI, empty and percussion tracks ignored) or two staves/parts (MusicXML), split by track or staff, the higher-pitched track is the right hand whatever the order. Otherwise, or by choice, split at a note: at or above is right hand, below is left; default middle C (60), adjustable 21 to 108.
+  - Difficulty: blend of notes per second (35%), range (35%), chord density (10%) and hand independence (20%), cut into Level 1 to 5 and Expert. The player can override it or go back to the estimate.
+  - Title and composer come from the file (MIDI header name, "Composer:" meta text, MusicXML work-title/creator); a generic MIDI name ("Track 1", "Piano") falls back to the file name. Both are editable on the import and edit screens.
+  - MIDI imports: notes are snapped to the 16th grid (the falling notes and the sheet agree), a same-pitch note is cut when struck again, and a MusicXML is generated (grand staff, C major, sharps, up to four voices per hand, ties over bar lines). The sheet view labels it "Approximate score" (`sheet-approximate`). MusicXML imports keep their own score and note timing.
+- Storage: Dexie version 3 adds `songs` (`ImportedSongRecord`: `id` = `imp-` + uuid, `updatedAt`, the built `Song`, `format`, `fileName`, `approximate`, split settings, `levelOverridden`, `source` = the original file bytes, `createdAt`, optional `deletedAt`). The original bytes are kept so the split can be changed later and Phase 8 can upload the file as is to the private `songs` bucket; no Supabase code was added. `src/songs/library.ts` mirrors the table in memory so screens can look songs up synchronously (`getAllSongs`, `findSong`, `findPlayableSong`, `useLibrary`); `App` loads it before the app renders.
+- UI (`src/ui/ImportScreen.tsx`, routes `#/import` and `#/import/<songId>`): Songs gets an "Import a song" button; the import screen has the file input, the form (title, composer, hands, split point as slider plus number plus note name plus "Middle C" reset, live hand counts, difficulty with estimate, facts, approximate note) and "Add to my songs". Imported songs show "Imported" and an Edit button in the list; the edit screen re-reads the stored file, can change everything, and removes a song (soft delete, scores stay in Stats). Imports appear on Home and Songs for every profile, are open (no unlock), play in every mode and view, and are scored, saved and shown in Results and Stats like any song. The screen is lazy-loaded (own 53 kB chunk), so the main chunk is 1,330 kB, slightly under Phase 5.
+- Untrusted input: 10 MB file cap, 30 MB inflated cap for `.mxl` (declared sizes checked first, then the real output is counted as it streams, so an archive that lies is cut off), 60,000 note cap, 15,000 beat cap, every parse in try/catch with a friendly message, XML with `<!ENTITY` declarations refused, control characters stripped from titles, no network request is made for a file (an e2e test records requests), nothing is evaluated.
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm test` | exit 0, 27 files, 446 tests (404 before, 42 new in `tests/import.test.ts` and `tests/import-sheet.test.ts`) |
+| `npm run build` | exit 0, main JS 1,330.04 kB (132.71 kB gzip), ImportScreen chunk 53.12 kB, SheetView chunk 1,371.38 kB, Learn chunk 1,143.54 kB |
+| `npm run test:e2e` | exit 0, 92 tests passed (75 existing, 17 new in `e2e/import.spec.ts`), 6.3 min, no retries, no flaky tests |
+
+New unit tests: format detection; one-track MIDI (metadata, middle C split, adjustable split point at 65, 21, 108 and 44, snapping to 16ths and bar numbers, ids, generated MusicXML parses back to identical notes); two-track MIDI (bass track first still becomes the left hand, pitch split as an alternative, empty and percussion tracks ignored, three tracks fall back to pitch); MusicXML (two staves by staff and the file's own sheet kept, one staff by pitch, title from the file name, UTF-16); `.mxl` (container.xml rootfile, no container, stored entries, no score, damaged, not a zip, zip bomb that lies about its size and one that admits it); refusals (wrong type, empty, oversize, garbage MIDI and XML, not MusicXML, `score-timewise`, no notes, entity declarations, too many notes, notes outside the keys, control characters); metadata and edits; 3/4 bar numbering; difficulty (every bundled song within one level of its spec level, Mary is Level 1, Clair de Lune is Expert, monotonic in speed, range, chords and independence, override); quantiser rules; generated MusicXML round trips (odd lengths, ties over bars, chords, rests, overlapping notes in voices, 3/4, 6/8, empty); storage and library (save, reload, edit keeps the id, soft delete). The fixtures are generated in `tests/fixtures/generate.ts` (an original four-bar arrangement of the traditional tune "Frere Jacques" as one-track MIDI with human-style timing wobble, two-track MIDI, two-staff MusicXML, one-staff MusicXML, and `.mxl`; also a zip writer and a zip-bomb builder).
+
+New e2e (`e2e/import.spec.ts`, all through the real file input): each of the five fixtures is imported, saved, found in the song list as "Imported", and autoplayed to the end in Full mode at 100% accuracy (hits equal the note count); the sheet view of the MIDI import renders four bars, maps all 16 notes and shows the "Approximate" label, the MusicXML import shows no label; split controls (middle C default, 65 and 21 change the hand counts, Middle C resets, two-track defaults to track split, pitch option); title, composer and level editing with the estimate and "Use estimate", the stored row has `id`, `updatedAt`, `levelOverridden`; another profile sees, plays and scores an import, it survives a reload, Results, Stats and Home name it; edit keeps the song and its scores, remove hides it while Stats still names it; bad files (garbage MIDI, 11 MB file, a 40 MB zip bomb, a PDF, an HTML file named .xml) get friendly messages and the screen keeps working; the input accepts only the five types; no external network request.
+
+### Decisions
+
+- **`.mxl` unzip: own 100-line reader plus the browser's `DecompressionStream('deflate-raw')`, no dependency.** `.mxl` is a plain zip with deflate or stored entries; a zip library would add 50 to 100 kB for that, and its default unzip would inflate the whole archive before any size check. Reading the central directory ourselves lets us cap the declared size, then count real output while streaming. `DecompressionStream` exists in Chrome 80+ and Safari 16.4+ (Web MIDI Browser on iPhone is WebKit-based); without it the error says to export as `.musicxml`. ZIP64 and encrypted archives are not supported (friendly error).
+- **Limits:** file 10 MB, inflated 30 MB, 60,000 notes, 15,000 beats. A large orchestral score above that gets a message, not a hang. The XML reader is the regex reader from Phase 1; the 30 MB cap bounds its worst case.
+- **Hand rules:** two tracks (not counting empty or percussion ones) or two staves/parts select the track/staff split, everything else the pitch split. The higher track by mean pitch is the right hand. A MusicXML with three or more parts follows the Phase 1 loader (part 1 right hand, the rest left hand) and is offered as a staff split; the pitch split is always available.
+- **Split point semantics:** notes at or above the split point are right hand, so the default 60 puts middle C in the right hand.
+- **MIDI timing is quantised in the Song itself, not just in the sheet** (to 0.25 beat). The sheet view pairs drawn notes with song notes by start and pitch, so the two must agree; the cost is that swing or triplet MIDI is straightened. MIDI tempo changes are not followed (the first tempo is used for the whole song; note positions stay right in beats). A MIDI time signature whose bar is not a whole number of sixteenths (such as 7/32) is written as 4/4.
+- **Generated sheet limits ("approximate"):** sharps only, key signature C, no beaming, no tuplets (they become 16ths), at most four voices per hand (a note that cannot fit is left out of the sheet but still played), and a grand staff with the right hand on the treble and the left on the bass clef whatever the pitch.
+- **Difficulty estimate calibration:** weights and cut points were fitted loosely to the 11 bundled songs (each lands within one level of its spec level; Greensleeves, Für Elise, Canon and the Nocturne are off by one). It is an estimate; the player overrides it and the override sticks.
+- **Imported songs are open to everyone** (`unlockedBy` unset), including Beginner profiles, and are shared by all profiles on the device. The song id is `imp-<uuid>`, stable across edits, so scores survive an edit. Removing is a soft delete (`deletedAt`) so Phase 8 sync can carry it; old scores and Stats still show the title.
+- **Original file kept in the record** (up to 10 MB per song in IndexedDB) for re-splitting and for the Phase 8 upload.
+- **Learn e2e flake, root cause and fix (see the next section).**
+
+### Flaky Learn e2e tests: root cause and fix
+
+- **Cause:** not timing, not a lazy chunk, not worker contention. The Learn specs did not stub Web MIDI (unlike the Play, Scoring, Profiles and Songs specs), so Chromium handed every test page the real, paired FP-30X. Notes played on the real piano reached the Learn prompts of whichever tests were running. A page-side log of raw MIDI messages showed the piano sending note-on/note-off every second or so during the run, and the stuck screens (which failed with "That was E2. It's B4." and similar at random prompts, while the test waited for the next prompt in `asking` state) were a stray note answering a prompt wrong, after which the unit waits for Next. It only looked like load: a full run is long enough for the piano to be played at some point, and a single short run often is not. It also explains why the failures reproduce at the Phase 4 commit.
+- **Fix:** `isolateMidi(page)` in `e2e/helpers.ts` (the same empty `requestMIDIAccess` stub the other specs inline), called from a `beforeEach` in `e2e/learn.spec.ts` and `e2e/import.spec.ts`. No assertion changed, nothing skipped. Verified: `learn.spec.ts` with `--repeat-each=3 --workers=8` (24 runs) passed, and the full suite passed with the piano still sending notes.
+- **Earlier failing run for the record:** the first full run in this phase failed the same four Learn tests (2.0 min timeouts each) before the fix and passed 88 of 92.
+
+### Adapted tests (assertions unchanged)
+
+- `e2e/learn.spec.ts`: added the MIDI isolation `beforeEach` described above and the `isolateMidi` import; no expectation changed.
+- `tsconfig.json`: added `node` to `types` (and `@types/node` as a dev dependency) so the e2e files can use `Buffer` and the fixture generator can use `node:zlib`; no source file changed behaviour.
+
+### Deferred
+
+- Phase 8: upload of the stored file and the song row to the private `songs` bucket and the `imported_songs` table (the record already has `id`, `updatedAt`, `deletedAt`, `source`).
+- Following MIDI tempo changes, tuplets and triplets in the quantiser, key signature detection and flat spelling in the generated sheet.
+- Drag-and-drop onto the import screen; importing several files at once.
+- Preview of the split on the keyboard (hand counts are shown, not a picture).
+- Hand picks per measure (pieces where the hands cross a lot need a split point per passage).
