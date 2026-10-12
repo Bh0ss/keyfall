@@ -132,3 +132,59 @@ Unit tests: every grade boundary (inside, exactly at, just outside +/-50/100/150
 - Persisting settings (mode, speed, loop) per profile: Phase 3.
 - Hand picker UI, fade labels, sheet view, phone layout: unchanged from Phase 1.
 - Mid-song loop changes and pickup-bar loop alignment.
+
+## Phase 3: Profiles and results
+
+### Built
+
+- Storage (`src/storage/`, Dexie, database `keyfall`, schema version 1): `profiles`, `scores`, `attempts`, `noteStats`, `latency`, `meta`. Every row has a stable string `id` and `updatedAt` so the Phase 8 sync queue can be added as a new table in a version 2 upgrade without touching these. Repositories are plain functions that take the db (`profiles.ts`, `scores.ts`, `attempts.ts`, `noteStats.ts`, `latency.ts`, `migrate.ts`), so Vitest runs them against `fake-indexeddb`.
+  - Profiles: name (trimmed, 1-24 chars, unique case-insensitively), colour, Beginner/Advanced, per-profile settings (note labels on/fade/off, difficulty, practice speed, metronome, count-in).
+  - Scores: one best per profile, song and mode; `recordScore` keeps the maximum (a lower or equal score never replaces it, in a transaction). Attempts keep the full miss log, grade counts, hit offsets, Wait figures and placeholder XP.
+  - Note stats: per profile and pitch, the current consecutive-hit streak plus totals.
+  - Latency: per device in Dexie. The Phase 2 localStorage key `keyfall.latency.v1` is copied across once at startup (flag in `meta`, Dexie rows win) and then removed.
+- Profile picker on every launch (the choice lives in sessionStorage, so a new tab or window asks again, a reload does not). Create and edit profiles (name, six colours, level). The avatar button on Home returns to the picker.
+- Screens (match the canvas): left navigation rail (Home, Learn, Play, Stats, Settings); Home (greeting, connection chip kept, avatar, Up next card, Learn card, song tiles with the profile's stars); Results (score, accuracy, longest streak, stars, +XP, Timing card with grade bars plus a 25 ms offset histogram and the early/late coaching line, Where it went wrong with most-missed notes, per-bar miss strip and summary line, Practice my mistakes, high-score board for the song across all profiles, Retry, Songs); Stats (songs played, runs, average accuracy, XP, best score per song, accuracy trend, most-missed notes). Routes: `#/` Home, `#/keyboard` the old connection screen, `#/songs`, `#/play/<id>`, `#/results/<attemptId>`, `#/stats`, `#/settings`.
+- Play screen: finishing a song saves the attempt, the high score and the per-pitch stats once, then the end card shows See results, Retry and Songs. Wait mode now has a result too (see Decisions). Mode, speed, metronome, count-in and note-label mode are remembered per profile. Note names cycle On, Fade, Off.
+- Label fade: a label is hidden for a pitch the profile has hit correctly 10 times in a row (any miss resets the streak). Applies to the labels and finger numbers on the falling notes.
+- Practice my mistakes: opens the song in Practice mode, 70% (or the profile's practice speed), A-B loop on the densest window of at most 4 bars that holds your misses.
+- Engine additions: `ScoreSummary` gained `hitNoteIds`, `missedNoteIds`, `hitOffsets`; `PlaySession.summary()` (Wait implements it); `src/engine/fade.ts`, `src/engine/results.ts` (pure aggregations).
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm test` | exit 0, 20 files, 330 tests |
+| `npm run build` | exit 0, JS bundle 336.84 kB |
+| `npm run test:e2e` | exit 0, 41 tests, including the two-profile high-score board persisting after reload |
+
+New unit tests: repositories (profiles, high-score max rule, note stats, latency, migration, saving a run) on fake-indexeddb, fade rule, results aggregations, practice range, Wait summary, highway label fade drawing. New e2e (`e2e/profiles.spec.ts`): two profiles play (autoplay at +0 ms and +75 ms) and both are on the high-score board after a reload, a lower score does not replace the best, Results contents and Practice my mistakes, Wait results, picker/edit/duplicate names, Home, per-profile settings, fade streaks written by a finished run.
+
+### Decisions
+
+- **Phase 3 owns Home and Results; the old connection screen moved to `#/keyboard`.** Home carries the connection chip; "Setup help" there opens the keyboard screen at the setup steps.
+- **Learn is a placeholder.** The canvas has a Learn nav item and a "Continue · Learn" tile; both are present and disabled ("Coming soon") until Phase 4. The canvas "6-day streak" chip is left out (daily streak is Phase 9).
+- **XP is a placeholder:** 4 per note hit plus 25 per star, stored on the attempt. Levels, "XP to next level" and badges are Phase 9; the Results tile says so.
+- **Wait mode scoring:** a note counts when it was played without a wrong key pressed first; 100 points each; accuracy = those notes over all notes (so stars mean something); longest streak = longest run of such notes; each wrong key goes in the miss log as `wrong-key`. Results shows First try / Retried bars instead of timing grades.
+- **High-score key:** profile + song + mode (Practice keeps one best across speeds and records the speed). The board lists every profile's rows, highest first. A tie keeps the earlier achiever. Looped runs never reach the board (they also never finish, because a loop repeats).
+- **Fade rule is per pitch, not per note instance:** the label is the note name, so the streak is "this pitch hit correctly N times running". Notes not judged in a run (other hand, outside a loop) do not count either way. Streaks update when a run finishes, not during the run.
+- **Picker on every launch** is implemented as "once per tab session" (sessionStorage). Deleting a profile is not offered (a delete would have to sync as a tombstone; Phase 8).
+- **Per-profile defaults:** Beginner starts on Wait with labels on; Advanced starts on Full with labels on fade.
+- **Latency stays per device, not per profile** (it describes the keyboard and Bluetooth link, not the player).
+- **Autoplay waits up to 1.5 s for a song screen** that is still loading from storage, instead of rejecting at once; with no song open it still rejects ("no song is open").
+- **Settings writes are fire-and-forget** to IndexedDB (the in-memory profile updates immediately); a reload within a few milliseconds of a click could lose that one change.
+
+### Adapted tests (assertions unchanged unless noted)
+
+- `e2e/play.spec.ts`, `e2e/scoring.spec.ts`, `e2e/connection-screen.spec.ts`: every `page.goto` became `gotoApp(page, ...)` (new `e2e/helpers.ts`), which creates a profile when the picker is in the way; the connection-screen tests open `/#/keyboard` instead of `/`.
+- `e2e/scoring.spec.ts` latency check: the stored-value assertions now read IndexedDB (`readStore`) instead of localStorage (same expectations: the median is stored for `default`, the reset empties the store, a failed check stores nothing). The "calibrated latency" test additionally asserts the old localStorage key was migrated away.
+- `e2e/scoring.spec.ts` metronome test: settings now persist per profile, so before the third segment it asserts count-in is still off from the earlier toggle and switches it back on; the expected 8 clicks are unchanged.
+- `tests/latency.test.ts`: the localStorage get/save/clear tests moved to `tests/storage.test.ts` against Dexie (same behaviours: per device, default 0, clear one device); the file keeps `medianOffset`, `deviceKey` and tests the legacy parser.
+
+### Deferred
+
+- XP levels, badges, daily streak (Phase 9). Learn (Phase 4). Supabase auth and sync of profiles, scores, attempts (Phase 8; tables already carry ids and `updatedAt`).
+- Hand picker UI, sheet view, phone layout (unchanged).
+- A looped session never finishes, so Practice my mistakes runs are not recorded as attempts.
+- Deleting a profile.

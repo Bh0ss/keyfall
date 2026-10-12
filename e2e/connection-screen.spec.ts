@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { gotoApp } from './helpers';
 
 const ORIGIN = 'http://localhost:5173';
 
@@ -16,7 +17,7 @@ test.describe('with MIDI permission', () => {
         configurable: true,
       });
     });
-    await page.goto('/');
+    await gotoApp(page, '/#/keyboard');
     await expect(page.getByTestId('state-no-device')).toBeVisible();
   });
 
@@ -77,14 +78,14 @@ test('shows a connected device name and transport, and updates on disconnect wit
       access.onstatechange?.();
     };
   });
-  await page.goto('/');
+  await gotoApp(page, '/#/keyboard');
   await expect(page.getByTestId('connection-chip')).toHaveText('FP-30X connected · Bluetooth');
   await page.evaluate(() => (window as unknown as { __fakeDisconnect: () => void }).__fakeDisconnect());
   await expect(page.getByTestId('connection-chip')).toHaveText('No keyboard found');
 });
 
 test('shows a recoverable message when MIDI permission is denied', async ({ page }) => {
-  await page.goto('/');
+  await gotoApp(page, '/#/keyboard');
   await expect(page.getByTestId('state-denied')).toBeVisible();
   await expect(page.getByTestId('connection-chip')).toHaveText('No keyboard found');
   await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
@@ -97,6 +98,6 @@ test('shows an unsupported message when Web MIDI is missing (Safari)', async ({ 
   await page.addInitScript(() => {
     Object.defineProperty(Navigator.prototype, 'requestMIDIAccess', { value: undefined, configurable: true });
   });
-  await page.goto('/');
+  await gotoApp(page, '/#/keyboard');
   await expect(page.getByTestId('state-unsupported')).toContainText("can't use MIDI");
 });

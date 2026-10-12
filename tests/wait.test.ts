@@ -175,3 +175,41 @@ describe('WaitSession', () => {
     expect(calls).toBe(c);
   });
 });
+
+describe('WaitSession summary', () => {
+  /** Press every note on its step, optionally preceding some with a wrong key. */
+  function play(wrongBefore: number[]) {
+    const notes = [note(60, 0), note(62, 1), note(64, 2), note(65, 3)];
+    const s = new WaitSession(song(notes), opts);
+    s.start(0);
+    let t = 0;
+    notes.forEach((nt, i) => {
+      t += 3000;
+      s.update(t);
+      if (wrongBefore.includes(i)) s.noteOn(nt.midi + 1, t);
+      s.noteOn(nt.midi, t + 10);
+    });
+    s.update(t + 5000);
+    return { s, notes };
+  }
+
+  it('a clean run is all hits: 100 points each, 3 stars, no misses', () => {
+    const { s, notes } = play([]);
+    expect(s.status).toBe('finished');
+    expect(s.summary()).toMatchObject({ score: 400, hits: 4, total: 4, accuracy: 1, stars: 3, longestStreak: 4, misses: [], missedNoteIds: [] });
+    expect(s.summary().hitNoteIds).toEqual(notes.map((x) => x.id));
+  });
+
+  it('a wrong key before a note makes it a retried note and logs a wrong-key miss', () => {
+    const { s, notes } = play([1]);
+    const sum = s.summary();
+    expect(sum).toMatchObject({ hits: 3, total: 4, accuracy: 0.75, stars: 1, score: 300, longestStreak: 2 });
+    expect(sum.missedNoteIds).toEqual([notes[1]!.id]);
+    expect(sum.misses).toEqual([{ noteId: notes[1]!.id, midi: 62, pressedMidi: 63, measure: 1, kind: 'wrong-key', offsetMs: null }]);
+  });
+
+  it('counts the longest run of notes played without a wrong key', () => {
+    const { s } = play([2]);
+    expect(s.summary().longestStreak).toBe(2);
+  });
+});

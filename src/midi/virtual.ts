@@ -1,3 +1,4 @@
+import { waitForCurrentPlay } from '../engine/current';
 import { runAutoplay, type AccuracyProfile, type AutoplayResult } from './autoplay';
 import type { MidiEngine } from './engine';
 
@@ -57,7 +58,7 @@ export function installVirtualInput(engine: MidiEngine, win: Window = window): (
   win.__keyfall = {
     press: (midi, velocity = 80) => engine.press(midi, velocity),
     release: (midi) => engine.release(midi),
-    autoplay: (profile) => runAutoplay(engine, profile),
+    autoplay: async (profile) => runAutoplay(engine, profile, await waitForCurrentPlay()),
   };
   const held = new Set<number>();
   const onDown = (e: KeyboardEvent) => {

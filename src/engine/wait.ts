@@ -1,4 +1,5 @@
 import { Clock, beatsToMs } from './clock';
+import { starsFor, type MissEntry, type ScoreSummary } from './judge';
 import { loopRange, type MeasureLoop } from './loop';
 import type { PlaySession, PressResult, SessionStatus } from './session';
 import type { Hand, Song, SongNote } from './song';
@@ -26,6 +27,9 @@ export interface WaitStats {
   totalWaitMs: number;
 }
 
+/** Points per note played without a wrong key beforehand. Wait mode has no timing grade. */
+export const WAIT_POINTS = 100;
+
 interface Step {
   startBeat: number;
   notes: SongNote[];
@@ -51,6 +55,11 @@ export class WaitSession implements PlaySession {
   private steps: Step[] = [];
   private cursor = 0;
   private hitIds = new Set<string>();
+  /** Notes that had a wrong key pressed while they were pending. */
+  private retried = new Set<string>();
+  private wrongLog: MissEntry[] = [];
+  private cleanStreak = 0;
+  private longestClean = 0;
   private correct = 0;
   private wrong = 0;
   private pressCount = 0;
@@ -136,6 +145,33 @@ export class WaitSession implements PlaySession {
     };
   }
 
+  /**
+   * Wait-mode result in the shared score shape. A note counts as a hit when it was
+   * played without a wrong key pressed first; accuracy is those notes over all notes.
+   */
+  summary(): ScoreSummary {
+    const total = this.steps.reduce((t, st) => t + st.notes.length, 0);
+    const hitNoteIds = [...this.hitIds].filter((id) => !this.retried.has(id));
+    const missedNoteIds = [...this.hitIds].filter((id) => this.retried.has(id));
+    const hits = hitNoteIds.length;
+    const accuracy = total ? hits / total : 0;
+    return {
+      score: hits * WAIT_POINTS,
+      hits,
+      total,
+      accuracy,
+      stars: starsFor(accuracy),
+      streak: this.cleanStreak,
+      longestStreak: this.longestClean,
+      multiplier: 1,
+      grades: { perfect: 0, great: 0, good: 0 },
+      misses: [...this.wrongLog],
+      hitNoteIds,
+      missedNoteIds,
+      hitOffsets: [],
+    };
+  }
+
   start(nowMs: number): void {
     this.clock.seek(this.playStartBeat - this.leadInBeats, nowMs);
     this.clock.resume(nowMs);
@@ -181,6 +217,7 @@ export class WaitSession implements PlaySession {
     } else if (this.loop && beat >= this.endBeat) {
       for (const st of this.steps) st.hit.clear();
       this.hitIds.clear();
+      this.retried.clear();
       this.correct = 0;
       this.cursor = 0;
       this.clock.seek(this.playStartBeat - this.leadInBeats, nowMs);
@@ -204,12 +241,21 @@ export class WaitSession implements PlaySession {
     const hit = step.notes.find((n) => n.midi === midi && !step.hit.has(n.id));
     if (!hit) {
       this.wrong++;
+      const pending = step.notes.filter((n) => !step.hit.has(n.id));
+      for (const n of pending) this.retried.add(n.id);
+      const target = pending[0];
+      if (target) this.wrongLog.push({ noteId: target.id, midi: target.midi, pressedMidi: midi, measure: target.measure, kind: 'wrong-key', offsetMs: null });
+      this.cleanStreak = 0;
       this.changed();
       return 'wrong';
     }
     step.hit.add(hit.id);
     this.hitIds.add(hit.id);
     this.correct++;
+    if (!this.retried.has(hit.id)) {
+      this.cleanStreak++;
+      this.longestClean = Math.max(this.longestClean, this.cleanStreak);
+    }
     if (step.hit.size === step.notes.length) {
       const waited = waiting ? Math.max(0, nowMs - this.waitStart) : 0;
       this.pressCount++;

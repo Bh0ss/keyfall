@@ -1,3 +1,4 @@
+import type { ScoreSummary } from './judge';
 import type { Song, SongNote } from './song';
 
 export type SessionStatus = 'ready' | 'playing' | 'waiting' | 'paused' | 'finished';
@@ -26,4 +27,6 @@ export interface PlaySession {
   resume(nowMs: number): void;
   update(nowMs: number): void;
   noteOn(midi: number, nowMs: number): PressResult;
+  /** Score, accuracy and the miss log so far; saved as an attempt when the song finishes. */
+  summary(): ScoreSummary;
 }

@@ -42,53 +42,18 @@ export function medianOffset(clickTimes: number[], tapTimes: number[], intervalM
   return { offsetMs: Math.round(median(offsets) * 10) / 10, matched: offsets.length };
 }
 
-const KEY = 'keyfall.latency.v1';
+/** Phase 2 stored offsets in localStorage under this key; storage/migrate.ts moves them to Dexie. */
+export const LEGACY_LATENCY_KEY = 'keyfall.latency.v1';
 
-type Store = Record<string, number>;
-
-function read(storage: Pick<Storage, 'getItem'> | undefined): Store {
+/** Parse the old localStorage store into { device: offsetMs }, ignoring anything malformed. */
+export function readLegacyLatency(storage: Pick<Storage, 'getItem'> | undefined): Record<string, number> {
   try {
-    const raw = storage?.getItem(KEY);
+    const raw = storage?.getItem(LEGACY_LATENCY_KEY);
     const parsed: unknown = raw ? JSON.parse(raw) : {};
-    return parsed && typeof parsed === 'object' ? (parsed as Store) : {};
+    if (!parsed || typeof parsed !== 'object') return {};
+    return Object.fromEntries(Object.entries(parsed).filter((e): e is [string, number] => typeof e[1] === 'number' && Number.isFinite(e[1])));
   } catch {
     return {};
-  }
-}
-
-function defaultStorage(): Storage | undefined {
-  try {
-    return typeof localStorage === 'undefined' ? undefined : localStorage;
-  } catch {
-    return undefined;
-  }
-}
-
-/** Calibrated latency for a device name (0 when never calibrated). */
-export function getLatency(device: string, storage: Pick<Storage, 'getItem'> | undefined = defaultStorage()): number {
-  const v = read(storage)[device];
-  return typeof v === 'number' && Number.isFinite(v) ? v : 0;
-}
-
-export function hasLatency(device: string, storage: Pick<Storage, 'getItem'> | undefined = defaultStorage()): boolean {
-  return typeof read(storage)[device] === 'number';
-}
-
-export function saveLatency(device: string, offsetMs: number, storage: Pick<Storage, 'getItem' | 'setItem'> | undefined = defaultStorage()): void {
-  try {
-    storage?.setItem(KEY, JSON.stringify({ ...read(storage), [device]: offsetMs }));
-  } catch {
-    // Storage blocked: the calibration just does not persist.
-  }
-}
-
-export function clearLatency(device: string, storage: Pick<Storage, 'getItem' | 'setItem'> | undefined = defaultStorage()): void {
-  const all = read(storage);
-  delete all[device];
-  try {
-    storage?.setItem(KEY, JSON.stringify(all));
-  } catch {
-    // ignore
   }
 }
 

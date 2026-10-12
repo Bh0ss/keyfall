@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { hrefFor } from './useRoute';
 import { midi } from '../midi/engine';
 import { KEY_TO_MIDI } from '../midi/virtual';
@@ -76,6 +76,11 @@ export function ConnectionScreen({ virtualInput }: { virtualInput: boolean }) {
     [pressed],
   );
 
+  // Arriving from "Setup help" on Home: the anchor target did not exist yet when the hash changed.
+  useEffect(() => {
+    if (window.location.hash === `#${SETUP_ID}`) document.getElementById(SETUP_ID)?.scrollIntoView();
+  }, []);
+
   const noKeyboard = access === 'ready' && !devices.connected;
 
   return (
@@ -89,6 +94,9 @@ export function ConnectionScreen({ virtualInput }: { virtualInput: boolean }) {
           </div>
           <div className="row">
             <ConnectionChip snapshot={snapshot} helpHref={`#${SETUP_ID}`} />
+            <a className="btn" href={hrefFor.home()}>
+              Home
+            </a>
             <a className="btn" data-primary href={hrefFor.songs()}>
               Play a song
             </a>

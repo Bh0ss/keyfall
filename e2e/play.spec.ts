@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { gotoApp } from './helpers';
 
 const ORIGIN = 'http://localhost:5173';
 const MARY = '/#/play/mary-had-a-little-lamb';
@@ -18,7 +19,7 @@ test.beforeEach(async ({ context, page }) => {
 });
 
 test('song list opens a song and Start begins Wait mode', async ({ page }) => {
-  await page.goto('/#/songs');
+  await gotoApp(page, '/#/songs');
   await expect(page.getByTestId('song-mary-had-a-little-lamb')).toContainText('Mary Had a Little Lamb');
   await expect(page.getByTestId('song-twinkle-twinkle-little-star')).toContainText('Twinkle Twinkle Little Star');
   await page.getByTestId('song-mary-had-a-little-lamb').getByRole('link', { name: 'Play' }).click();
@@ -28,7 +29,7 @@ test('song list opens a song and Start begins Wait mode', async ({ page }) => {
 });
 
 test('the song stops at the first note and only the right key releases it', async ({ page }) => {
-  await page.goto(MARY);
+  await gotoApp(page, MARY);
   await page.getByTestId('play-start').click();
   await expect(status(page)).toHaveAttribute('data-status', 'waiting', { timeout: 10_000 });
   await expect(status(page)).toHaveText('Waiting for E4');
@@ -49,7 +50,7 @@ test('the song stops at the first note and only the right key releases it', asyn
 });
 
 test('the canvas paints the hit line and keeps a steady frame rate', async ({ page }) => {
-  await page.goto(MARY);
+  await gotoApp(page, MARY);
   await page.getByTestId('play-start').click();
   const probe = await page.evaluate(async () => {
     const c = document.querySelector<HTMLCanvasElement>('[data-testid="highway"]')!;
@@ -80,7 +81,7 @@ test('the canvas paints the hit line and keeps a steady frame rate', async ({ pa
 
 test('autoplay completes Mary in Wait mode with every note correct', async ({ page }) => {
   test.setTimeout(120_000);
-  await page.goto(MARY);
+  await gotoApp(page, MARY);
   const result = await page.evaluate(() => window.__keyfall!.autoplay({}));
   expect(result).toEqual({ presses: 26, wrongPresses: 0 });
   await expect(page.getByTestId('play-finished')).toBeVisible();
@@ -97,7 +98,7 @@ test('autoplay completes Mary in Wait mode with every note correct', async ({ pa
 
 test('autoplay with late timing, wrong keys and hesitations still finishes; wrong keys are counted', async ({ page }) => {
   test.setTimeout(120_000);
-  await page.goto(MARY);
+  await gotoApp(page, MARY);
   const result = await page.evaluate(() =>
     window.__keyfall!.autoplay({ offsetMs: 120, jitterMs: 40, wrongKeyRate: 0.4, missRate: 0.2, hesitationMs: 300, seed: 11 }),
   );
@@ -109,7 +110,7 @@ test('autoplay with late timing, wrong keys and hesitations still finishes; wron
 });
 
 test('autoplay without an open song rejects', async ({ page }) => {
-  await page.goto('/#/songs');
+  await gotoApp(page, '/#/songs');
   const msg = await page.evaluate(() => window.__keyfall!.autoplay({}).then(() => 'ok', (e: Error) => e.message));
   expect(msg).toMatch(/no song is open/);
 });

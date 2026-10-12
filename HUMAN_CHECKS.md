@@ -78,3 +78,31 @@ Needs the piano connected. Run `npm run dev` and open http://localhost:5173/keyf
 3. Turn A-B loop on, pick bars 1 to 2, Start (Wait or Practice).
    - Good: only those two bars are playable (the rest is dimmed), the passage repeats after the last note, with a bar of count-in clicks if Count-in is on. The score restarts for the loop each pass.
 4. Wait mode still holds the song at every note, with no timing grade.
+
+## Phase 3: two profiles, Results and Practice my mistakes on the FP-30X
+
+Needs the piano connected. Run `npm run dev` and open http://localhost:5173/keyfall/ in Chrome.
+
+1. The first time, the screen says "Welcome to Keyfall". Create a profile: type a name, pick a colour, choose Beginner, press Create profile.
+   - Good: Home opens with "Ready to play, <name>?", the green piano chip, and an "Up next" card.
+2. Press the round avatar button at the top right, then New profile. Create the second player as Advanced.
+   - Good: the picker shows both players; choosing one returns to Home with that name.
+3. As the first player, open Mary Had a Little Lamb, choose Full, press Start and play it on the piano, making a few deliberate mistakes (a wrong key, a note left out, a couple played late).
+   - Good: when it ends, "See results" appears. Press it.
+4. On Results look for:
+   - Score, accuracy ("N of 26 notes"), longest streak, stars and "+N XP".
+   - Timing: Perfect / Great / Good / Miss bars, a small early-to-late histogram, and a line saying whether you tend to play early or late (it should match how you felt).
+   - Where it went wrong: the notes you missed most, the bar strip with red bars where the mistakes were, and the sentence under it.
+   - High scores: your score listed (marked as a new personal best).
+5. Press Practice my mistakes.
+   - Good: Practice mode, 70%, "A-B loop" on, and the bars shown are where you made mistakes (at most 4 bars). Start it and the passage repeats.
+6. Switch to the second player (avatar button), play the same song in Full, then open their Results.
+   - Good: the high-score board shows both players, highest score first, each with their mode and stars.
+7. Close the browser tab, open the page again.
+   - Good: the picker appears (it asks every launch), and after choosing a player the Results/Stats/Home still show the earlier scores (they are saved on this computer).
+8. Open Stats from the left rail.
+   - Good: songs played, runs finished, average accuracy, best score per song and the accuracy trend match what you played.
+9. Note labels: on the Play screen press "Note names" until it reads "Fade". Play Mary in Wait mode cleanly a few times (about 10 clean hits of each note in a row).
+   - Good: labels on notes you have mastered disappear first; a mistake on a note brings its label back.
+10. Run the latency check once (Settings in the left rail), then reload the page.
+   - Good: the saved offset is still there (it is now stored in the browser database rather than the old setting).

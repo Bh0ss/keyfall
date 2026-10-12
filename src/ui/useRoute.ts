@@ -1,21 +1,71 @@
 import { useSyncExternalStore } from 'react';
+import type { Mode } from '../engine/judge';
 
-export type Route = { name: 'connect' } | { name: 'songs' } | { name: 'settings' } | { name: 'play'; songId: string };
+/** Setup carried by a link, e.g. "Practice my mistakes" (Practice, bars 12-15, 70%). */
+export interface PlayPreset {
+  mode?: Mode;
+  from?: number;
+  to?: number;
+  speedPct?: number;
+}
+
+export type Route =
+  | { name: 'home' }
+  | { name: 'keyboard' }
+  | { name: 'songs' }
+  | { name: 'stats' }
+  | { name: 'settings' }
+  | { name: 'results'; attemptId: string }
+  | { name: 'play'; songId: string; preset: PlayPreset };
+
+const MODES: Mode[] = ['wait', 'practice', 'full', 'expert'];
+
+function int(v: string | null): number | undefined {
+  const n = v === null ? NaN : Number(v);
+  return Number.isInteger(n) && n > 0 ? n : undefined;
+}
 
 export function parseRoute(hash: string): Route {
-  const path = hash.replace(/^#\/?/, '');
+  const [pathPart = '', query = ''] = hash.replace(/^#\/?/, '').split('?');
+  const path = pathPart;
   if (path === 'songs') return { name: 'songs' };
+  if (path === 'stats') return { name: 'stats' };
   if (path === 'settings') return { name: 'settings' };
-  const m = /^play\/(.+)$/.exec(path);
-  if (m) return { name: 'play', songId: decodeURIComponent(m[1]!) };
-  return { name: 'connect' };
+  // "#setup" is the in-page anchor to the setup steps on the keyboard screen.
+  if (path === 'keyboard' || path === 'setup') return { name: 'keyboard' };
+  const results = /^results\/(.+)$/.exec(path);
+  if (results) return { name: 'results', attemptId: decodeURIComponent(results[1]!) };
+  const play = /^play\/(.+)$/.exec(path);
+  if (play) {
+    const q = new URLSearchParams(query);
+    const mode = q.get('mode');
+    const preset: PlayPreset = {
+      mode: MODES.find((m) => m === mode),
+      from: int(q.get('from')),
+      to: int(q.get('to')),
+      speedPct: int(q.get('speed')),
+    };
+    return { name: 'play', songId: decodeURIComponent(play[1]!), preset };
+  }
+  return { name: 'home' };
 }
 
 export const hrefFor = {
-  connect: () => '#/',
+  home: () => '#/',
+  keyboard: () => '#/keyboard',
   songs: () => '#/songs',
+  stats: () => '#/stats',
   settings: () => '#/settings',
-  play: (songId: string) => `#/play/${encodeURIComponent(songId)}`,
+  results: (attemptId: string) => `#/results/${encodeURIComponent(attemptId)}`,
+  play: (songId: string, preset?: PlayPreset) => {
+    const q = new URLSearchParams();
+    if (preset?.mode) q.set('mode', preset.mode);
+    if (preset?.from) q.set('from', String(preset.from));
+    if (preset?.to) q.set('to', String(preset.to));
+    if (preset?.speedPct) q.set('speed', String(preset.speedPct));
+    const qs = q.toString();
+    return `#/play/${encodeURIComponent(songId)}${qs ? `?${qs}` : ''}`;
+  },
 };
 
 const subscribe = (cb: () => void) => {

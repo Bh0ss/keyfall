@@ -69,6 +69,12 @@ export interface ScoreSummary {
   multiplier: number;
   grades: Record<Grade, number>;
   misses: MissEntry[];
+  /** Notes whose latest result is a hit. */
+  hitNoteIds: string[];
+  /** Notes whose latest result is a miss (consumed early/late, or in Wait a note that needed a retry). */
+  missedNoteIds: string[];
+  /** Press time minus note time (ms, negative = early) for every hit. */
+  hitOffsets: number[];
 }
 
 /**
@@ -76,7 +82,8 @@ export interface ScoreSummary {
  * score and accuracy always come from the latest result of each note.
  */
 export class ScoreBoard {
-  private ledger = new Map<string, { grade: Grade; points: number }>();
+  private ledger = new Map<string, { grade: Grade; points: number; offsetMs?: number }>();
+  private missedIds = new Set<string>();
   private misses: MissEntry[] = [];
   private streak = 0;
   private longest = 0;
@@ -87,9 +94,10 @@ export class ScoreBoard {
     return multiplierFor(this.streak);
   }
 
-  hit(noteId: string, grade: Grade): number {
+  hit(noteId: string, grade: Grade, offsetMs?: number): number {
     const points = GRADE_POINTS[grade] * multiplierFor(this.streak);
-    this.ledger.set(noteId, { grade, points });
+    this.ledger.set(noteId, { grade, points, offsetMs });
+    this.missedIds.delete(noteId);
     this.streak++;
     this.longest = Math.max(this.longest, this.streak);
     return points;
@@ -97,6 +105,7 @@ export class ScoreBoard {
 
   miss(entry: MissEntry): void {
     this.ledger.delete(entry.noteId);
+    this.missedIds.add(entry.noteId);
     this.misses.push(entry);
     this.streak = 0;
   }
@@ -112,15 +121,20 @@ export class ScoreBoard {
   }
 
   forget(noteIds: Iterable<string>): void {
-    for (const id of noteIds) this.ledger.delete(id);
+    for (const id of noteIds) {
+      this.ledger.delete(id);
+      this.missedIds.delete(id);
+    }
   }
 
   summary(): ScoreSummary {
     const grades: Record<Grade, number> = { perfect: 0, great: 0, good: 0 };
     let score = 0;
+    const hitOffsets: number[] = [];
     for (const r of this.ledger.values()) {
       grades[r.grade]++;
       score += r.points;
+      if (r.offsetMs !== undefined) hitOffsets.push(r.offsetMs);
     }
     const hits = this.ledger.size;
     const accuracy = this.total ? hits / this.total : 0;
@@ -135,6 +149,9 @@ export class ScoreBoard {
       multiplier: multiplierFor(this.streak),
       grades,
       misses: [...this.misses],
+      hitNoteIds: [...this.ledger.keys()],
+      missedNoteIds: [...this.missedIds],
+      hitOffsets,
     };
   }
 }

@@ -223,7 +223,7 @@ export class TimedSession implements PlaySession {
     const grade = gradeFor(bestOff, this.mode);
     if (grade) {
       this.hit.add(best.id);
-      this.board.hit(best.id, grade);
+      this.board.hit(best.id, grade, bestOff);
       this.judged(grade, bestOff);
       this.changed();
       return 'correct';

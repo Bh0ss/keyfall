@@ -1,16 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import {
-  LATENCY_CLICKS,
-  LATENCY_INTERVAL_MS,
-  clearLatency,
-  deviceKey,
-  getLatency,
-  hasLatency,
-  medianOffset,
-  saveLatency,
-} from '../engine/latency';
+import { LATENCY_CLICKS, LATENCY_INTERVAL_MS, deviceKey, medianOffset } from '../engine/latency';
 import { midi } from '../midi/engine';
+import { getDb } from '../storage/db';
+import { clearLatency, saveLatency, savedLatency } from '../storage/latency';
+import { AppLayout } from './AppLayout';
 import { audioContext, outputLatencyMs, scheduleClick } from './audio';
 import { useMidi } from './useMidi';
 import { hrefFor } from './useRoute';
@@ -29,7 +23,7 @@ function fmt(ms: number): string {
 }
 
 /** Play the clicks, collect taps, save the median offset. Returns a cancel function. */
-function startLatencyCheck(device: string, onPhase: Dispatch<SetStateAction<Phase>>, onSaved: () => void): () => void {
+function startLatencyCheck(device: string, onPhase: Dispatch<SetStateAction<Phase>>, onSaved: (offsetMs: number) => void): () => void {
   const ctx = audioContext();
   if (!ctx) {
     onPhase({ name: 'failed', reason: 'This browser has no Web Audio, so the clicks cannot play.' });
@@ -65,9 +59,10 @@ function startLatencyCheck(device: string, onPhase: Dispatch<SetStateAction<Phas
           onPhase({ name: 'failed', reason: 'Not enough taps matched the clicks. Tap one key on every click and try again.' });
           return;
         }
-        saveLatency(device, result.offsetMs);
-        onSaved();
-        onPhase({ name: 'done', offsetMs: result.offsetMs, matched: result.matched });
+        void saveLatency(getDb(), device, result.offsetMs).then(() => {
+          onSaved(result.offsetMs);
+          onPhase({ name: 'done', offsetMs: result.offsetMs, matched: result.matched });
+        });
       },
       LEAD_MS + LATENCY_CLICKS * LATENCY_INTERVAL_MS + 400,
     ),
@@ -80,25 +75,33 @@ export function SettingsScreen() {
   const snapshot = useMidi();
   const device = deviceKey(snapshot.devices.name);
   const [phase, setPhase] = useState<Phase>({ name: 'idle' });
-  const [, bump] = useState(0);
-  const saved = hasLatency(device) ? getLatency(device) : null;
+  const [saved, setSaved] = useState<number | null>(null);
   const cleanup = useRef<() => void>(() => undefined);
 
   useEffect(() => () => cleanup.current(), []);
 
+  useEffect(() => {
+    let live = true;
+    void savedLatency(getDb(), device).then((v) => live && setSaved(v));
+    return () => {
+      live = false;
+    };
+  }, [device]);
+
   const run = () => {
     cleanup.current();
-    cleanup.current = startLatencyCheck(device, setPhase, () => bump((n) => n + 1));
+    cleanup.current = startLatencyCheck(device, setPhase, setSaved);
   };
 
   const reset = () => {
-    clearLatency(device);
-    bump((n) => n + 1);
-    setPhase({ name: 'idle' });
+    void clearLatency(getDb(), device).then(() => {
+      setSaved(null);
+      setPhase({ name: 'idle' });
+    });
   };
 
   return (
-    <div className="shell">
+    <AppLayout active="settings">
       <main className="main">
         <header className="header">
           <div>
@@ -106,8 +109,8 @@ export function SettingsScreen() {
             <div className="eyebrow">Settings</div>
             <h1 className="title">Latency check</h1>
           </div>
-          <a className="btn" href={hrefFor.songs()}>
-            Songs
+          <a className="btn" href={hrefFor.home()}>
+            Home
           </a>
         </header>
         <section className="card" data-testid="latency-card">
@@ -147,6 +150,6 @@ export function SettingsScreen() {
           </div>
         </section>
       </main>
-    </div>
+    </AppLayout>
   );
 }

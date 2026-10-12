@@ -24,6 +24,8 @@ export interface HighwayState {
   beat: number;
   pressed: PressedKeys;
   labels: boolean;
+  /** Per-pitch label switch for label fade; the keyboard strip keeps its key names. */
+  noteLabel?: (midi: number) => boolean;
   /** Milliseconds, for the waiting pulse. */
   now: number;
 }
@@ -113,7 +115,7 @@ function drawNote(
   ctx.stroke();
   ctx.restore();
 
-  if (!s.labels || w < 12) return;
+  if (!s.labels || w < 12 || s.noteLabel?.(n.midi) === false) return;
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

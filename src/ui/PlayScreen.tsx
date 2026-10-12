@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { beatsToMs, msToBeats } from '../engine/clock';
 import { setCurrentPlay } from '../engine/current';
+import { labelVisible, type LabelMode } from '../engine/fade';
 import type { Mode } from '../engine/judge';
-import { getLatency, deviceKey } from '../engine/latency';
+import { deviceKey } from '../engine/latency';
 import { barBeats, lastMeasure } from '../engine/loop';
 import { clicksDue, isAccent, wantsClick } from '../engine/metronome';
 import type { PlaySession } from '../engine/session';
@@ -10,12 +11,17 @@ import { TimedSession } from '../engine/timed';
 import { WaitSession } from '../engine/wait';
 import { midi } from '../midi/engine';
 import { getSong } from '../songs/catalog';
+import { saveRun, type SavedRun } from '../storage/attempts';
+import { getDb } from '../storage/db';
+import { getLatency } from '../storage/latency';
+import { noteStreaks } from '../storage/noteStats';
 import { scheduleClick } from './audio';
 import { drawFrame, LOOKAHEAD_BEATS } from './highwayDraw';
 import { buildLayout, keyRangeFor } from './highwayLayout';
 import { noteName } from './keyboardLayout';
+import { profiles, useActiveProfile } from './profileStore';
 import { useMidi } from './useMidi';
-import { hrefFor } from './useRoute';
+import { hrefFor, type PlayPreset } from './useRoute';
 
 const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: 'wait', label: 'Wait', hint: 'The song waits for you' },
@@ -50,7 +56,7 @@ function Stat({ value, label, tone, testId }: { value: string; label: string; to
   );
 }
 
-export function PlayScreen({ songId }: { songId: string }) {
+export function PlayScreen({ songId, preset }: { songId: string; preset: PlayPreset }) {
   const song = getSong(songId);
   const [attempt, setAttempt] = useState(0);
   if (!song) {
@@ -70,16 +76,67 @@ export function PlayScreen({ songId }: { songId: string }) {
       </div>
     );
   }
-  return <PlayInner key={`${song.id}:${attempt}`} songId={song.id} onRetry={() => setAttempt((a) => a + 1)} />;
+  return <PlayLoader key={`${song.id}:${attempt}`} songId={song.id} preset={preset} onRetry={() => setAttempt((a) => a + 1)} />;
 }
 
-function PlayInner({ songId, onRetry }: { songId: string; onRetry: () => void }) {
+/** Loads what the song needs from storage (latency offset, label-fade streaks) before it opens. */
+function PlayLoader({ songId, preset, onRetry }: { songId: string; preset: PlayPreset; onRetry: () => void }) {
+  const profile = useActiveProfile();
+  const device = deviceKey(useMidi().devices.name);
+  const [latencyMs, setLatencyMs] = useState<number | null>(null);
+  const [streaks, setStreaks] = useState<Map<number, number> | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void getLatency(getDb(), device).then((v) => live && setLatencyMs(v));
+    return () => {
+      live = false;
+    };
+  }, [device]);
+
+  useEffect(() => {
+    let live = true;
+    void noteStreaks(getDb(), profile.id).then((v) => live && setStreaks(v));
+    return () => {
+      live = false;
+    };
+  }, [profile.id]);
+
+  if (latencyMs === null || streaks === null) return <div className="play" data-testid="play-loading" />;
+  return <PlayInner songId={songId} preset={preset} latencyMs={latencyMs} streaks={streaks} onRetry={onRetry} />;
+}
+
+function PlayInner({
+  songId,
+  preset,
+  latencyMs,
+  streaks,
+  onRetry,
+}: {
+  songId: string;
+  preset: PlayPreset;
+  latencyMs: number;
+  streaks: ReadonlyMap<number, number>;
+  onRetry: () => void;
+}) {
   const song = getSong(songId)!;
-  const snapshot = useMidi();
-  const device = deviceKey(snapshot.devices.name);
-  const latencyMs = useMemo(() => getLatency(device), [device]);
+  const profile = useActiveProfile();
   const lastBar = lastMeasure(song);
-  const [setup, setSetup] = useState<Setup>({ mode: 'wait', speedPct: 70, metronome: false, countIn: true, loop: false, from: 1, to: Math.min(2, lastBar) });
+  const [setup, setSetup] = useState<Setup>(() => {
+    const clamp = (n: number) => Math.min(Math.max(1, n), lastBar);
+    const from = clamp(preset.from ?? 1);
+    const mode = preset.mode ?? profile.settings.mode;
+    const speed = preset.speedPct ?? profile.settings.speedPct;
+    return {
+      mode,
+      speedPct: SPEEDS.includes(speed) ? speed : 70,
+      metronome: profile.settings.metronome,
+      countIn: profile.settings.countIn,
+      loop: preset.from !== undefined,
+      from,
+      to: Math.max(from, clamp(preset.to ?? Math.min(from + 1, lastBar))),
+    };
+  });
   const bar = barBeats(song);
   const session: PlaySession = useMemo(() => {
     const common = {
@@ -91,8 +148,10 @@ function PlayInner({ songId, onRetry }: { songId: string; onRetry: () => void })
     return new TimedSession(song, { ...common, mode: setup.mode, speed: setup.speedPct / 100, latencyMs });
   }, [song, setup, bar, latencyMs]);
   const layout = useMemo(() => buildLayout(keyRangeFor(song.notes.map((n) => n.midi))), [song]);
-  const [labels, setLabels] = useState(true);
-  const labelsRef = useRef(labels);
+  const [labelMode, setLabelMode] = useState<LabelMode>(setup.mode === 'expert' ? 'off' : profile.settings.labels);
+  const labelsRef = useRef({ mode: labelMode, streaks });
+  const saveRef = useRef<Promise<SavedRun> | null>(null);
+  const [saved, setSaved] = useState<SavedRun | null>(null);
   const rulesRef = useRef({ metronome: false, countIn: true, barBeats: bar, playStartBeat: 0 });
   const lastClickRef = useRef(-Infinity);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -112,12 +171,42 @@ function PlayInner({ songId, onRetry }: { songId: string; onRetry: () => void })
       next.to = Math.min(Math.max(next.from, next.to), lastBar);
       return next;
     });
-    if (patch.mode) setLabels(patch.mode !== 'expert');
+    if (patch.mode) setLabelMode(patch.mode === 'expert' ? 'off' : profile.settings.labels);
+    const { mode, speedPct, metronome, countIn } = patch;
+    const remember = { mode, speedPct, metronome, countIn };
+    if (Object.values(remember).some((v) => v !== undefined)) {
+      void profiles.saveSettings(profile.id, Object.fromEntries(Object.entries(remember).filter(([, v]) => v !== undefined)));
+    }
+  };
+
+  const cycleLabels = () => {
+    const next: LabelMode = labelMode === 'on' ? 'fade' : labelMode === 'fade' ? 'off' : 'on';
+    setLabelMode(next);
+    void profiles.saveSettings(profile.id, { labels: next });
   };
 
   useEffect(() => {
-    labelsRef.current = labels;
-  }, [labels]);
+    labelsRef.current = { mode: labelMode, streaks };
+  }, [labelMode, streaks]);
+
+  // Save the finished run (attempt, high score, per-note stats) exactly once.
+  useEffect(() => {
+    if (session.status !== 'finished' || saveRef.current) return;
+    saveRef.current = saveRun(getDb(), {
+      profileId: profile.id,
+      song,
+      mode: setup.mode,
+      speedPct: setup.speedPct,
+      loop: setup.loop ? { from: setup.from, to: setup.to } : null,
+      summary: session.summary(),
+      wait: session instanceof WaitSession ? { wrong: session.stats().wrong, avgTimeToPressMs: session.stats().avgTimeToPressMs } : null,
+    });
+    void saveRef.current.then(setSaved, () => undefined);
+  }, [status, session, profile.id, song, setup]);
+
+  const retry = () => {
+    void (saveRef.current ?? Promise.resolve()).then(onRetry, onRetry);
+  };
 
   useEffect(() => {
     rulesRef.current = { metronome: setup.metronome, countIn: setup.countIn, barBeats: bar, playStartBeat: session.playStartBeat };
@@ -175,7 +264,16 @@ function PlayInner({ songId, onRetry }: { songId: string; onRetry: () => void })
         // Skip the beat the playhead is sitting on so a pause does not replay it.
         lastClickRef.current = session.status === 'ready' ? Math.ceil(beat - 1e-9) - 1 : Math.floor(beat + 1e-9);
       }
-      drawFrame(ctx, w, h, { layout, session, beat, pressed: midi.getSnapshot().pressed, labels: labelsRef.current, now });
+      const { mode: labelsMode, streaks: hits } = labelsRef.current;
+      drawFrame(ctx, w, h, {
+        layout,
+        session,
+        beat,
+        pressed: midi.getSnapshot().pressed,
+        labels: labelsMode !== 'off',
+        noteLabel: (m) => labelVisible(labelsMode, hits.get(m) ?? 0),
+        now,
+      });
       if (progressRef.current) {
         const frac = Math.min(1, Math.max(0, beat / session.endBeat));
         progressRef.current.style.width = `${(frac * 100).toFixed(1)}%`;
@@ -233,8 +331,8 @@ function PlayInner({ songId, onRetry }: { songId: string; onRetry: () => void })
           )}
         </div>
         <div className="play-head-right">
-          <button className="btn small" type="button" aria-pressed={labels} onClick={() => setLabels((l) => !l)}>
-            Note names: {labels ? 'On' : 'Off'}
+          <button className="btn small" type="button" aria-pressed={labelMode !== 'off'} data-testid="toggle-labels" onClick={cycleLabels}>
+            Note names: {labelMode === 'on' ? 'On' : labelMode === 'fade' ? 'Fade' : 'Off'}
           </button>
           <button
             className="icon-btn"
@@ -325,7 +423,16 @@ function PlayInner({ songId, onRetry }: { songId: string; onRetry: () => void })
               </div>
             )}
             <div className="row">
-              <button className="btn" data-primary type="button" onClick={onRetry}>
+              {saved ? (
+                <a className="btn" data-primary href={hrefFor.results(saved.attempt.id)} data-testid="see-results">
+                  See results
+                </a>
+              ) : (
+                <span className="btn" aria-disabled="true" data-testid="saving-results">
+                  Saving...
+                </span>
+              )}
+              <button className="btn" type="button" onClick={retry}>
                 Retry
               </button>
               <a className="btn" href={hrefFor.songs()}>

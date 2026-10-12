@@ -136,3 +136,21 @@ describe('stars and accuracy', () => {
     expect(b.summary()).toMatchObject({ score: 0, hits: 0 });
   });
 });
+
+describe('summary detail for results', () => {
+  it('lists hit and missed notes and the offset of every hit', () => {
+    const b = new ScoreBoard(4);
+    b.hit('a', 'perfect', -12);
+    b.hit('b', 'great', 70);
+    b.miss({ noteId: 'c', midi: 60, pressedMidi: 60, measure: 1, kind: 'late', offsetMs: 180 });
+    expect(b.summary()).toMatchObject({ hitNoteIds: ['a', 'b'], missedNoteIds: ['c'], hitOffsets: [-12, 70] });
+  });
+  it('the latest result of a note wins (a looped pass), and forget clears it', () => {
+    const b = new ScoreBoard(1);
+    b.miss({ noteId: 'a', midi: 60, pressedMidi: null, measure: 1, kind: 'late', offsetMs: null });
+    b.hit('a', 'good', 140);
+    expect(b.summary()).toMatchObject({ hitNoteIds: ['a'], missedNoteIds: [], hitOffsets: [140] });
+    b.forget(['a']);
+    expect(b.summary()).toMatchObject({ hitNoteIds: [], missedNoteIds: [], hitOffsets: [] });
+  });
+});

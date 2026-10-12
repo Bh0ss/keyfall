@@ -1,4 +1,5 @@
 import { getSongs } from '../songs/catalog';
+import { AppLayout } from './AppLayout';
 import { hrefFor } from './useRoute';
 
 const HANDS = { right: 'Right hand', left: 'Left hand', both: 'Both hands' } as const;
@@ -6,7 +7,7 @@ const HANDS = { right: 'Right hand', left: 'Left hand', both: 'Both hands' } as 
 export function SongPicker() {
   const songs = getSongs();
   return (
-    <div className="shell">
+    <AppLayout active="play">
       <main className="main">
         <header className="header">
           <div>
@@ -15,10 +16,7 @@ export function SongPicker() {
             <h1 className="title">Pick a song</h1>
           </div>
           <div className="row">
-            <a className="btn" href={hrefFor.settings()}>
-              Settings
-            </a>
-            <a className="btn" href={hrefFor.connect()}>
+            <a className="btn" href={hrefFor.keyboard()}>
               Keyboard check
             </a>
           </div>
@@ -40,6 +38,6 @@ export function SongPicker() {
           ))}
         </ul>
       </main>
-    </div>
+    </AppLayout>
   );
 }

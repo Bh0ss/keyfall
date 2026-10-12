@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clearLatency, deviceKey, getLatency, hasLatency, medianOffset, saveLatency } from '../src/engine/latency';
+import { deviceKey, medianOffset, readLegacyLatency } from '../src/engine/latency';
 
 const clicks = Array.from({ length: 8 }, (_, i) => 1000 + i * 750);
 
@@ -25,25 +25,21 @@ describe('medianOffset', () => {
   });
 });
 
-describe('per-device storage', () => {
-  const mem = () => {
-    const m = new Map<string, string>();
-    return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) };
-  };
-  it('stores one offset per device and defaults to 0', () => {
-    const s = mem();
-    expect(getLatency('FP-30X', s)).toBe(0);
-    expect(hasLatency('FP-30X', s)).toBe(false);
-    saveLatency('FP-30X', 42.5, s);
-    saveLatency('Other', -7, s);
-    expect(getLatency('FP-30X', s)).toBe(42.5);
-    expect(getLatency('Other', s)).toBe(-7);
-    clearLatency('FP-30X', s);
-    expect(hasLatency('FP-30X', s)).toBe(false);
-    expect(getLatency('Other', s)).toBe(-7);
+// Phase 3 moved the per-device store from localStorage to Dexie (tests/storage.test.ts covers
+// get / save / clear / default and the one-time migration). What stays here is parsing the old store.
+describe('legacy localStorage store', () => {
+  const mem = (raw: string | null) => ({ getItem: () => raw });
+  it('reads one offset per device', () => {
+    expect(readLegacyLatency(mem(JSON.stringify({ 'FP-30X': 42.5, Other: -7 })))).toEqual({ 'FP-30X': 42.5, Other: -7 });
   });
-  it('survives corrupt storage', () => {
-    expect(getLatency('x', { getItem: () => '{nope' })).toBe(0);
+  it('is empty when nothing was stored', () => {
+    expect(readLegacyLatency(mem(null))).toEqual({});
+    expect(readLegacyLatency(undefined)).toEqual({});
+  });
+  it('survives corrupt storage and drops non-numeric entries', () => {
+    expect(readLegacyLatency(mem('{nope'))).toEqual({});
+    expect(readLegacyLatency(mem(JSON.stringify({ a: 'x', b: 5, c: null })))).toEqual({ b: 5 });
+    expect(readLegacyLatency(mem('42'))).toEqual({});
   });
   it('names the default device', () => {
     expect(deviceKey(null)).toBe('default');

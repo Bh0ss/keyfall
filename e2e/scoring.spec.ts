@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { gotoApp, readStore } from './helpers';
 import { parseMusicXml } from '../src/songs/musicxml';
 import { planAutoplay, type AccuracyProfile } from '../src/midi/autoplay';
 
@@ -26,7 +27,7 @@ test.beforeEach(async ({ context, page }) => {
 });
 
 async function openMary(page: Page, mode: 'wait' | 'practice' | 'full' | 'expert', speedPct?: number) {
-  await page.goto(MARY);
+  await gotoApp(page, MARY);
   await page.getByTestId(`mode-${mode}`).click();
   if (speedPct) await page.getByTestId(`speed-${speedPct}`).click();
 }
@@ -169,6 +170,8 @@ test.describe('timed scoring through autoplay', () => {
     await page.addInitScript(() => localStorage.setItem('keyfall.latency.v1', JSON.stringify({ default: 80 })));
     await openMary(page, 'full');
     await expect(page.getByTestId('setup-latency')).toContainText('+80 ms');
+    // The Phase 2 localStorage value was migrated into Dexie and the old key removed.
+    expect(await page.evaluate(() => localStorage.getItem('keyfall.latency.v1'))).toBeNull();
     // The player's keyboard is 80 ms late; with the offset removed that is Perfect, without it Great.
     await autoplayToEnd(page, { offsetMs: 80 });
     expect(await text(page, 'summary-grades')).toBe('Perfect 26 · Great 0 · Good 0 · Missed 0');
@@ -178,7 +181,7 @@ test.describe('timed scoring through autoplay', () => {
 
 test.describe('play tools', () => {
   test('mode picker: speed only for Practice, Full and Expert have none', async ({ page }) => {
-    await page.goto(MARY);
+    await gotoApp(page, MARY);
     await expect(page.getByTestId('mode-wait')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByTestId('speed-70')).toHaveCount(0);
     await page.getByTestId('mode-practice').click();
@@ -200,7 +203,7 @@ test.describe('play tools', () => {
   });
 
   test('A-B loop in Wait mode: finishing the loop bar starts it again', async ({ page }) => {
-    await page.goto(MARY);
+    await gotoApp(page, MARY);
     await page.getByTestId('toggle-loop').click();
     await page.getByTestId('loop-to').selectOption('1');
     await page.getByTestId('play-start').click();
@@ -249,7 +252,7 @@ test.describe('play tools', () => {
 
     // Count-in off, metronome off: silent.
     await page.goto('about:blank');
-    await page.goto(MARY);
+    await gotoApp(page, MARY);
     await page.getByTestId('mode-full').click();
     await page.getByTestId('toggle-countin').click();
     const before = await clicks();
@@ -259,8 +262,11 @@ test.describe('play tools', () => {
 
     // Metronome on, count-in on: 4 count-in clicks, then one per beat.
     await page.goto('about:blank');
-    await page.goto(MARY);
+    await gotoApp(page, MARY);
     await page.getByTestId('mode-full').click();
+    // Phase 3: play settings persist per profile, so count-in is still off from above. Turn it back on.
+    await expect(page.getByTestId('toggle-countin')).toHaveAttribute('aria-pressed', 'false');
+    await page.getByTestId('toggle-countin').click();
     await page.getByTestId('toggle-metronome').click();
     const base = await clicks();
     await page.getByTestId('play-start').click();
@@ -273,7 +279,7 @@ test.describe('play tools', () => {
 test.describe('latency check', () => {
   test('eight clicks, one tap each, stores the median offset for the device', async ({ page }) => {
     test.setTimeout(60_000);
-    await page.goto('/#/settings');
+    await gotoApp(page, '/#/settings');
     await expect(page.getByTestId('latency-saved')).toHaveText('none');
     // Tap a key the moment each click's counter appears (the way a player taps on the beat).
     await page.evaluate(() => {
@@ -297,19 +303,22 @@ test.describe('latency check', () => {
     const offset = Number(await result.getAttribute('data-offset'));
     // Taps land within a frame or two of the clicks; far from the ~375 ms half-interval.
     expect(Math.abs(offset)).toBeLessThan(150);
-    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('keyfall.latency.v1')!));
-    expect(stored).toEqual({ default: offset });
+    // Phase 3: offsets live in IndexedDB (Dexie), not localStorage.
+    const stored = await readStore<{ id: string; offsetMs: number }>(page, 'latency');
+    expect(stored.map((r) => [r.id, r.offsetMs])).toEqual([['default', offset]]);
+    expect(await page.evaluate(() => localStorage.getItem('keyfall.latency.v1'))).toBeNull();
     await expect(page.getByTestId('latency-saved')).toContainText('ms');
     await page.getByTestId('latency-reset').click();
     await expect(page.getByTestId('latency-saved')).toHaveText('none');
-    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('keyfall.latency.v1')!))).toEqual({});
+    expect(await readStore(page, 'latency')).toEqual([]);
   });
 
   test('too few taps is reported, nothing is saved', async ({ page }) => {
     test.setTimeout(60_000);
-    await page.goto('/#/settings');
+    await gotoApp(page, '/#/settings');
     await page.getByTestId('latency-start').click();
     await expect(page.getByRole('alert')).toContainText('Not enough taps', { timeout: 15_000 });
+    expect(await readStore(page, 'latency')).toEqual([]);
     expect(await page.evaluate(() => localStorage.getItem('keyfall.latency.v1'))).toBeNull();
   });
 });
