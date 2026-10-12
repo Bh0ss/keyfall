@@ -142,7 +142,7 @@ Needs the piano connected. Use an Advanced profile (Clair de Lune and the Noctur
    - Good: the score is on top and the falling notes and keyboard below; both stay in time. Reload the page: Split is remembered for your profile.
 4. Choose Expert, then Start, with Sheet or Split.
    - Good: note names are off by default, the timing windows feel tighter than Full (about half), and the score is still readable.
-5. Clair de Lune and the Nocturne, as the sheet-view test for the Captain's wife. Open each on her Advanced profile, Full or Expert, in Sheet view.
+5. Clair de Lune and the Nocturne, as the sheet-view test for an advanced player. Open each on an Advanced profile, Full or Expert, in Sheet view.
    - Good: she can read the score from the screen at the piano and play along without the falling notes; the cursor moves at a musical pace (Clair de Lune is set at a dotted quarter of 60, the Nocturne at a quarter of 66); the dense passages (the arpeggios in Clair de Lune, the runs and tuplets in the Nocturne) are legible. Note anything that looks wrong against her printed copy: accidental spelling can differ in Clair de Lune, Für Elise, Minuet and Greensleeves, which were converted from MIDI.
 6. Saints (Unit 4, Beginner profile): play the bridge ("Oh Lord I want to be in that number") and the ending.
    - Good: the tune is the one you know; tell me if the bridge notes are wrong.
