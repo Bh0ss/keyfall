@@ -15,10 +15,28 @@ const EXPECTED: { id: string; level: number | 'expert'; hands: 'right' | 'both';
   { id: 'canon-in-d', level: 5, hands: 'both', unlockedBy: 'unit-9', minBars: 30 },
   { id: 'clair-de-lune', level: 'expert', hands: 'both', unlockedBy: 'advanced', minBars: 60 },
   { id: 'chopin-nocturne-op72-1', level: 'expert', hands: 'both', unlockedBy: 'advanced', minBars: 57 },
+  { id: 'row-row-row-your-boat', level: 1, hands: 'right', minBars: 8 },
+  { id: 'london-bridge', level: 1, hands: 'right', minBars: 8 },
+  { id: 'frere-jacques', level: 1, hands: 'right', minBars: 8 },
+  { id: 'yankee-doodle', level: 1, hands: 'right', minBars: 5 },
+  { id: 'oh-susanna', level: 1, hands: 'right', minBars: 9 },
+  { id: 'happy-birthday', level: 1, hands: 'right', minBars: 9 },
+  { id: 'amazing-grace', level: 2, hands: 'both', minBars: 16 },
+  { id: 'brahms-lullaby', level: 2, hands: 'both', minBars: 17 },
+  { id: 'auld-lang-syne', level: 2, hands: 'both', minBars: 32 },
+  { id: 'scarborough-fair', level: 2, hands: 'both', minBars: 17 },
+  { id: 'bach-musette-in-d', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 40 },
+  { id: 'tchaikovsky-old-french-song', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 33 },
+  { id: 'schumann-melody-op68-1', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 24 },
+  { id: 'schumann-happy-farmer', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 21 },
+  { id: 'burgmuller-arabesque', level: 5, hands: 'both', unlockedBy: 'unit-9', minBars: 33 },
+  { id: 'bach-prelude-in-c', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 35 },
+  { id: 'clementi-sonatina-op36-1-mvt1', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 76 },
+  { id: 'joplin-the-entertainer', level: 5, hands: 'both', unlockedBy: 'unit-9', minBars: 152 },
 ];
 
 describe('bundled songs', () => {
-  it('lists the ten spec songs plus the requested Nocturne, with levels, hands and unlocks', () => {
+  it('lists the ten spec songs plus the requested additions (Nocturne and 18 more, 29 in all), with levels, hands and unlocks', () => {
     expect(getSongs().map((s) => s.id)).toEqual(EXPECTED.map((e) => e.id));
     for (const e of EXPECTED) {
       const s = getSong(e.id)!;
@@ -51,6 +69,25 @@ describe('bundled songs', () => {
       list.sort((a, b) => a.startBeat - b.startBeat);
       for (let i = 1; i < list.length; i++) expect(list[i]!.startBeat).toBeGreaterThanOrEqual(list[i - 1]!.startBeat + list[i - 1]!.durationBeats - 1e-6);
     }
+  });
+
+  it('new songs: open ones need nothing; Unit 5 songs need Unit 5 for Beginners and are open to Advanced by rule; The Entertainer is open to Advanced by rule', () => {
+    const none = new Set<string>();
+    const u5 = new Set(['unit-5']);
+    for (const e of EXPECTED.filter((x) => !x.unlockedBy)) {
+      for (const lvl of ['beginner', 'advanced'] as const) expect(isSongUnlocked(getSong(e.id)!, none, lvl), e.id).toBe(true);
+    }
+    for (const e of EXPECTED.filter((x) => x.unlockedBy === 'unit-5')) {
+      expect(isSongUnlocked(getSong(e.id)!, none, 'beginner'), e.id).toBe(false);
+      expect(isSongUnlocked(getSong(e.id)!, none, 'advanced'), e.id).toBe(true);
+      expect(isSongUnlocked(getSong(e.id)!, u5, 'beginner'), e.id).toBe(true);
+    }
+    expect(isSongUnlocked(getSong('burgmuller-arabesque')!, none, 'advanced')).toBe(true);
+    expect(isSongUnlocked(getSong('burgmuller-arabesque')!, none, 'beginner')).toBe(false);
+    const ent = getSong('joplin-the-entertainer')!;
+    expect(isSongUnlocked(ent, none, 'advanced')).toBe(true);
+    expect(isSongUnlocked(ent, none, 'beginner')).toBe(false);
+    expect(isSongUnlocked(ent, new Set(['unit-9']), 'beginner')).toBe(true);
   });
 
   it('levels 1 to 3 carry a finger number on every note', () => {

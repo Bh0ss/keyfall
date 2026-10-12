@@ -2,7 +2,7 @@ import type { PlayerLevel } from '../storage/types';
 import { UNITS, getUnit, unitNumber, type Unit } from './units';
 
 /** Songs behind these units are open for Advanced profiles. */
-const ADVANCED_OPEN_UNITS = new Set([6, 7, 8, 9]);
+const ADVANCED_OPEN_UNITS = new Set([5, 6, 7, 8, 9]);
 
 /** `unlockedBy` is a unit id, `'advanced'` (open on Advanced profiles only), or absent (open from the start). */
 export function isSongUnlocked(song: { unlockedBy?: string }, passed: ReadonlySet<string>, level: PlayerLevel): boolean {

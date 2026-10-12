@@ -97,7 +97,7 @@ describe('bundled songs', () => {
   const pitches = (id: string) => getSong(id)!.notes.map((n) => n.midi);
 
   it('lists Mary and Twinkle, open from the start, level 1, right hand', () => {
-    const songs = getSongs().filter((s) => !s.unlockedBy);
+    const songs = getSongs().filter((s) => !s.unlockedBy && ['mary-had-a-little-lamb', 'twinkle-twinkle-little-star'].includes(s.id));
     expect(songs.map((s) => s.id)).toEqual(['mary-had-a-little-lamb', 'twinkle-twinkle-little-star']);
     for (const s of songs) {
       expect(s.level).toBe(1);

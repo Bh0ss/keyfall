@@ -178,3 +178,19 @@ Needs the iPhone with the Web MIDI Browser app and the FP-30X. The Pages URL is 
    - Good: only about one octave of keys is shown and they line up with the piano; the header is slim; the notes and your key presses light up with no visible lag; the Start, Pause and result buttons are easy to hit with a thumb; nothing is hidden under the notch or the home bar.
 5. Finish a song and open Results, then go back and open Learn and Stats in landscape.
    - Good: every screen scrolls and nothing is cut off. If notes feel late, run Settings, Latency check once on the phone (offsets are stored per device).
+
+## Extra songs: try the 18 added songs
+
+Needs the piano and the dev server or the Pages site. Units 1 to 5 must be passed (or use the Learn test) to unlock the Unit 5 songs; The Entertainer needs Unit 9 (open on Advanced profiles).
+
+1. Open Songs and play each one in Wait mode, then once in Full mode. Look for wrong-sounding notes, odd note lengths, and hand or finger numbers that make no sense.
+   - Level 1 (open): Row, Row, Row Your Boat; London Bridge Is Falling Down; Frere Jacques; Yankee Doodle; Oh! Susanna; Happy Birthday to You.
+   - Level 2 (open): Amazing Grace; Brahms' Lullaby; Auld Lang Syne; Scarborough Fair.
+   - Level 4 (Unit 5): Musette in D (Bach); Old French Song (Tchaikovsky); Melody and The Happy Farmer (Schumann); Arabesque (Burgmueller); Prelude in C (Bach); Sonatina in C, Op. 36 No. 1 (Clementi).
+   - Level 5 (Unit 9): The Entertainer (Joplin).
+2. Folk tunes that were arranged from memory or a rough reference. Play along and compare with a recording, and note anything that sounds off:
+   - London Bridge, bars 7 and 8: the rhythm (D G half notes, then E C half notes) is a reading of "My fair lady".
+   - Amazing Grace, bar 2: A eighth, G sixteenth, F sixteenth on "grace". The usual hymn may have a single note.
+   - Auld Lang Syne, bar 2: a B3 neighbour note that the common 4/4 version does not have.
+   - Scarborough Fair: the rhythm (the reference was rubato), and whether A natural minor (F natural) is acceptable or the tune should be Dorian (F sharp).
+3. The classical pieces have no finger numbers. Check that the Schumann pieces' left hand and the Arabesque and Sonatina runs are playable at the set tempos, and that the sheet view looks right (the Sonatina is in cut time; it may show 4/4).

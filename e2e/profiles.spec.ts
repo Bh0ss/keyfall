@@ -215,7 +215,7 @@ test.describe('profile picker, Home and settings per profile', () => {
     await expect(page.getByTestId('up-next-title')).toHaveText('Mary Had a Little Lamb');
     await expect(page.getByTestId('up-next-best')).toHaveText('Not played yet');
     await expect(page.getByTestId('learn-tile')).toContainText('Unit 1');
-    await expect(page.getByTestId('songs-summary')).toContainText('2 of 11 unlocked');
+    await expect(page.getByTestId('songs-summary')).toContainText('12 of 29 unlocked');
     await expect(page.getByTestId('play-next')).toHaveText(/Play · Wait/);
     await page.getByTestId('play-next').click();
     await expect(page.getByTestId('play-ready')).toBeVisible();

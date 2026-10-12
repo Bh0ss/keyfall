@@ -23,6 +23,24 @@ const SONGS: Bundled[] = [
   { id: 'canon-in-d', title: 'Canon in D', file: 'canon-in-d', units: [] },
   { id: 'clair-de-lune', title: 'Clair de Lune', file: 'clair-de-lune', units: [] },
   { id: 'chopin-nocturne-op72-1', title: 'Nocturne in E minor, Op. 72 No. 1', file: 'chopin-nocturne-op72-1', units: [] },
+  { id: 'row-row-row-your-boat', title: "Row, Row, Row Your Boat", file: 'row-row-row-your-boat', units: [] },
+  { id: 'london-bridge', title: "London Bridge Is Falling Down", file: 'london-bridge', units: [] },
+  { id: 'frere-jacques', title: "Frère Jacques", file: 'frere-jacques', units: [] },
+  { id: 'yankee-doodle', title: "Yankee Doodle", file: 'yankee-doodle', units: [] },
+  { id: 'oh-susanna', title: "Oh! Susanna", file: 'oh-susanna', units: [] },
+  { id: 'happy-birthday', title: "Happy Birthday to You", file: 'happy-birthday', units: [] },
+  { id: 'amazing-grace', title: "Amazing Grace", file: 'amazing-grace', units: [] },
+  { id: 'brahms-lullaby', title: "Brahms' Lullaby (Wiegenlied)", file: 'brahms-lullaby', units: [] },
+  { id: 'auld-lang-syne', title: "Auld Lang Syne", file: 'auld-lang-syne', units: [] },
+  { id: 'scarborough-fair', title: "Scarborough Fair", file: 'scarborough-fair', units: [] },
+  { id: 'bach-musette-in-d', title: "Musette in D, BWV Anh. 126", file: 'bach-musette-in-d', units: [] },
+  { id: 'tchaikovsky-old-french-song', title: "Old French Song (Op. 39 No. 16)", file: 'tchaikovsky-old-french-song', units: [] },
+  { id: 'schumann-melody-op68-1', title: "Melody (Album for the Young, Op. 68 No. 1)", file: 'schumann-melody-op68-1', units: [] },
+  { id: 'schumann-happy-farmer', title: "The Happy Farmer (Op. 68 No. 10)", file: 'schumann-happy-farmer', units: [] },
+  { id: 'burgmuller-arabesque', title: "Arabesque, Op. 100 No. 2", file: 'burgmuller-arabesque', units: [] },
+  { id: 'bach-prelude-in-c', title: "Prelude in C, BWV 846 (WTC I)", file: 'bach-prelude-in-c', units: [] },
+  { id: 'clementi-sonatina-op36-1-mvt1', title: "Sonatina in C, Op. 36 No. 1, 1st mvt", file: 'clementi-sonatina-op36-1-mvt1', units: [] },
+  { id: 'joplin-the-entertainer', title: "The Entertainer", file: 'joplin-the-entertainer', units: [] },
 ];
 
 /** Bars in the bundled MusicXML, counted from the file the dev server serves. */
@@ -32,8 +50,8 @@ async function barsIn(page: Page, file: string): Promise<number> {
   return ((await res.text()).match(/<measure[ >]/g) ?? []).length;
 }
 
-/** An Advanced profile with Units 2 to 4 recorded as passed (Units 6 to 9 and Clair de Lune/the Nocturne are open to Advanced by rule). */
-async function advancedPlayer(page: Page, units: string[] = ['unit-2', 'unit-3', 'unit-4']) {
+/** An Advanced profile with Units 2 to 5 recorded as passed (Units 5 to 9 and Clair de Lune/the Nocturne are open to Advanced by rule). */
+async function advancedPlayer(page: Page, units: string[] = ['unit-2', 'unit-3', 'unit-4', 'unit-5']) {
   await page.addInitScript(() => {
     const empty = { inputs: new Map(), outputs: new Map(), onstatechange: null };
     Object.defineProperty(Navigator.prototype, 'requestMIDIAccess', { value: () => Promise.resolve(empty), configurable: true });
@@ -163,7 +181,7 @@ test.describe('unlocks for the new songs', () => {
   test('a Beginner profile finds the later songs locked; an Advanced one has Units 6 to 9, Clair de Lune and the Nocturne open', async ({ page }) => {
     await advancedPlayer(page, []);
     await page.goto('/#/songs');
-    for (const id of ['minuet-in-g', 'greensleeves', 'fur-elise-opening', 'canon-in-d', 'clair-de-lune', 'chopin-nocturne-op72-1']) {
+    for (const id of ['minuet-in-g', 'greensleeves', 'fur-elise-opening', 'canon-in-d', 'clair-de-lune', 'chopin-nocturne-op72-1', 'bach-prelude-in-c', 'burgmuller-arabesque', 'joplin-the-entertainer']) {
       await expect(page.getByTestId(`song-${id}`)).not.toHaveAttribute('data-locked', 'true');
     }
     await expect(page.getByTestId('song-locked-when-the-saints-go-marching-in')).toBeVisible();
@@ -171,7 +189,7 @@ test.describe('unlocks for the new songs', () => {
     await page.getByTestId('switch-profile').click();
     await createProfile(page, 'Newbie', 'beginner');
     await page.goto('/#/songs');
-    for (const id of ['when-the-saints-go-marching-in', 'minuet-in-g', 'greensleeves', 'fur-elise-opening', 'canon-in-d', 'clair-de-lune', 'chopin-nocturne-op72-1']) {
+    for (const id of ['when-the-saints-go-marching-in', 'minuet-in-g', 'greensleeves', 'fur-elise-opening', 'canon-in-d', 'clair-de-lune', 'chopin-nocturne-op72-1', 'bach-prelude-in-c', 'burgmuller-arabesque', 'joplin-the-entertainer']) {
       await expect(page.getByTestId(`song-locked-${id}`)).toBeVisible();
     }
     await expect(page.getByTestId('song-locked-clair-de-lune')).toHaveText('Open on Advanced profiles');

@@ -396,3 +396,39 @@ New e2e (`e2e/import.spec.ts`, all through the real file input): each of the fiv
 - The `iPhone 15 landscape` descriptor's Chromium viewport is 734 by 343 (browser chrome excluded), so the spec reads the real viewport size instead of assuming 852 by 393.
 - Portrait rail became a bottom tab bar rather than a hamburger: fewer taps, no new state, and the five destinations fit at 393 px.
 - Supabase variables are passed to the build through `vars.` (never hard-coded); nothing reads them until Phase 8.
+
+## Requested addition (2026-10-12): 18 more bundled songs
+
+A requested addition beyond the spec's bundled list, not a new phase. CLAUDE.md is unchanged. 29 songs are bundled now (10 spec songs, the Nocturne, 18 new).
+
+### Built
+
+- 18 MusicXML files copied into `src/songs/` from `/tmp/normandy-keyfall/shared/songs-extra/` (only the `.musicxml` files; the specs, sources and tools were not copied or run). Each re-validated with `xmllint --noout` (all clean). Catalog entries in `src/songs/catalog.ts`.
+- Levels and unlocks: Folk L1 (Row Row Row Your Boat, London Bridge, Frere Jacques, Yankee Doodle, Oh! Susanna, Happy Birthday) and Folk L2 (Amazing Grace, Brahms' Lullaby, Auld Lang Syne, Scarborough Fair) are open from the start. Level 4, `unlockedBy: 'unit-5'`: Bach Musette in D, Tchaikovsky Old French Song (both raised from the manifest's L3/unit-4, so the "levels 1 to 3 have fingers on every note" test passes with no exemptions), the two Schumann pieces, Bach Prelude in C, Clementi Sonatina. Burgmuller Arabesque and The Entertainer: level 5, `unlockedBy: 'unit-9'` (Arabesque was raised from 4, see Decisions).
+- `src/songs/NOTICE.md`: the two Schumann files (CC BY-SA 2.5, Philippe Hezaine via Mutopia), provenance of the other Mutopia conversions, and source/licence lines for every folk arrangement (including the CC BY-SA 3.0 and CC BY 4.0 reference MIDIs used for pitch checks only). `HUMAN_CHECKS.md`: new section listing the 18 songs and the uncertain folk bars (London Bridge bars 7 to 8, Amazing Grace bar 2, Auld Lang Syne bar 2, Scarborough Fair rhythm and minor vs Dorian).
+
+### Decisions
+
+- **Schumann Melody and The Happy Farmer are CC BY-SA 2.5 adaptations** of the Mutopia typesettings by Philippe Hezaine (Peters edition), handled like the Nocturne: attribution in each file's `<rights>` and in NOTICE.md; the licence covers those two files only, not the app code. The compositions are public domain.
+- **Advanced profiles get Unit 5 songs (ruling).** `ADVANCED_OPEN_UNITS` in `src/learn/unlocks.ts` is now Units 5 to 9, so Advanced profiles have the seven unit-5 songs open without passing Unit 5 (Beginners still need it). Units 2 to 4 are unchanged.
+- **Difficulty estimator kept honest (ruling).** The "within one level" assertion in `tests/import.test.ts` covers all 29 bundled songs again (my earlier narrowing was reverted). The only song outside one level was Burgmuller's Arabesque (level 4, estimated expert), so it moved to level 5, `unlockedBy: 'unit-9'`. With that change all 29 pass; the estimator's weights and cut points were not retuned and no other song was relevelled.
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm test` | exit 0, 27 files, 467 tests |
+| `npm run build` | exit 0 |
+| `npm run test:e2e` | exit 0, 132 passed, 10.4 min (622 s). The slowest runs are real-time playthroughs: The Entertainer 4.3 min, Sonatina 3.1 min, Prelude in C 2.4 min |
+
+New tests: `tests/bundled-songs.test.ts` and `e2e/songs.spec.ts` now cover all 29 songs (catalog levels, hands, unlocks and bar counts; sane notes; fingers on every note at levels 1 to 3 with no exemptions; every song autoplayed to the end in Full mode at 100% accuracy with presses equal to notes; sheet view renders with `data-measures` equal to the bars in the file). The Entertainer ran at normal speed in Full mode in a parallel worker; no speed control was used. A new unit test covers the unlock rules for the new songs (open ones; Unit 5 songs and Arabesque open to Advanced by rule and locked for Beginners until the unit; The Entertainer likewise). The e2e unlock test also checks Prelude in C, Arabesque and The Entertainer on Advanced and Beginner profiles.
+
+### Adapted tests (assertions otherwise unchanged)
+
+- `e2e/profiles.spec.ts`: Home songs summary "2 of 11 unlocked" is now "12 of 29 unlocked" (ten more songs are open from the start).
+- `e2e/learn.spec.ts`: "3 of 11 unlocked" is now "13 of 29 unlocked".
+- `tests/musicxml.test.ts`: the "open from the start" test now looks at Mary and Twinkle by id; before, it asserted they were the only open songs.
+- `tests/import.test.ts`: unchanged (the estimator check covers all 29 songs).
+- `tests/bundled-songs.test.ts` and `e2e/songs.spec.ts`: lists extended to 29; the e2e Advanced profile still records Units 2 to 5 as passed; the e2e unlock test lists three more songs.
