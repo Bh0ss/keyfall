@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { useNavScope } from '../nav/store';
 import { hrefFor } from './useRoute';
 import { midi } from '../midi/engine';
 import { KEY_TO_MIDI } from '../midi/virtual';
@@ -81,6 +82,9 @@ export function ConnectionScreen({ virtualInput }: { virtualInput: boolean }) {
     if (window.location.hash === `#${SETUP_ID}`) document.getElementById(SETUP_ID)?.scrollIntoView();
   }, []);
 
+  // Here every key, including the five lowest, must light up as a plain key: the piano commands need a held key.
+  useNavScope({ kind: 'keycheck' });
+
   const noKeyboard = access === 'ready' && !devices.connected;
 
   return (
@@ -128,6 +132,9 @@ export function ConnectionScreen({ virtualInput }: { virtualInput: boolean }) {
             play C4 to C5.
           </p>
         )}
+        <p className="hint" data-testid="keycheck-hint">
+          On this screen the lowest five keys (A0 to E1) just light up. To use one as a piano command here, hold it for a moment.
+        </p>
         <SetupSteps />
       </main>
 

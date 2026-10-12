@@ -240,3 +240,26 @@ Needs the piano connected. Use a Beginner profile that has passed Units 1 to 5 (
    - Good: Unit 10 passes with no song unlocked.
 8. Switch to an Advanced profile.
    - Good: the songs behind Units 6 to 9 are open; Unit 10 has no song. The Learn path still starts at Unit 1 and Units 6 to 10 still open in order.
+
+## Phase 9: piano navigation, iPad, sounds, streak and badges
+
+1. Piano navigation at the keyboard (Mac, Chrome, FP-30X connected). Open Keyfall. The first-run card "Steer Keyfall from the piano" lists A0 Back, B0 Previous, C1 Select, D1 Next, E1 Home (the five lowest white keys).
+   - Good: press D1; an amber ring appears on the first control. Keep pressing D1 and B0: the ring moves one control at a time through the page. C1 presses it. A0 goes back one level (Songs to Home, a lesson to its unit to the Learn path to Home), E1 goes Home from anywhere.
+   - Good: reach Stats, Settings, Songs, Learn and a lesson using only the five keys, and play a Learn prompt on the piano while the five low keys never count as answers.
+   - Good: on Songs pick Mary with D1 and C1; on the setup card D1 and C1 pick a mode and press Start. While the song plays, C1 pauses and C1 resumes. A0, B0, D1 and E1 do nothing then, and are not counted as wrong keys. Play the song to the end.
+   - Good: on Results C1 is Retry, D1 is Practice my mistakes (only when there were misses) and A0 is Songs.
+   - Bad: the ring is invisible, a low key starts a song, or a low key counts as a wrong key in a song.
+   - Hold test: on the keyboard check screen (Settings > Home > Keyboard check) A0 to E1 only light up when tapped; holding one for about a second acts as its command.
+   - Also check Settings > Preferences > Piano navigation switch: with it off the low keys do nothing anywhere and count as normal keys.
+2. iPad, both orientations, in the Web MIDI Browser app with the piano paired.
+   - Landscape (about 1180 wide): the full layout as on the Mac, rail on the left, all HUD controls on one row.
+   - Portrait (about 820 wide): Play does not show "turn your phone sideways". The header is two rows (title and view buttons, then three stats), falling notes fill the screen with the keyboard at the bottom, and Split view puts the score above the falling notes. Home, Learn, Stats and Settings stack in one column.
+   - Good: keys line up with the piano in both orientations, everything is reachable by touch (every control is at least 44 px), and rotating mid-song keeps playing. Tell me if the portrait header feels cramped.
+3. Sounds and animation feel.
+   - Settings > Sounds: on, then menu moves (D1/B0) tick softly, C1 chimes, finishing a song plays a cadence, a chime per star and a sparkle for a level or badge. Learn answers chime (right) or sink gently (wrong). Nothing plays while a song runs. Off silences everything; the metronome stays separate.
+   - Good: the sounds are quiet next to the real piano and never harsh. Tell me if any is too loud, long or annoying.
+   - Animations: stars pop in one at a time on the end card, the level-up and badge cards slide in, the XP bar fills. Settings > Reduce animation (or the iPad's Reduce Motion setting) stops all of it.
+4. Streak, XP and badges.
+   - Home shows Level, title, XP bar, the daily streak and "n of 17 badges". Finish a song: the end card and Results show "+XP", a level up when earned and any new badge (Opening Night, Full Marks, Flawless, ...). Passing a Learn unit adds 150 XP.
+   - Good: play on two days in a row and the streak reads 2-day; skip a day and it resets after the day is missed (it says "play today to keep it" while it is still alive). Stats lists all 17 badges, earned ones lit.
+   - Sign in on a second device: level, streak and badges match (they are worked out from the synced runs and Learn progress).

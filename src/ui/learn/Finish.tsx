@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { playSound } from '../sounds';
 import { hrefFor } from '../useRoute';
 
 /** The end card of a lesson: pass or fail for the unit test, "done" for practice. */
@@ -17,6 +18,15 @@ export function Finish({
   actions: ReactNode;
   passed?: boolean;
 }) {
+  useEffect(() => {
+    playSound(tone === 'pass' ? 'pass' : tone === 'fail' ? 'fail' : 'complete');
+  }, [tone]);
+  const earnedSparkle = lines.some((l) => typeof l === 'string' && (l.startsWith('Level up') || l.startsWith('New badge')));
+  useEffect(() => {
+    if (!earnedSparkle) return;
+    const t = setTimeout(() => playSound('badge'), 900);
+    return () => clearTimeout(t);
+  }, [earnedSparkle]);
   return (
     <main className="main learn-main learn-finish" data-testid="learn-result" data-tone={tone} data-passed={passed === undefined ? undefined : String(passed)}>
       <section className="card finish-card" data-tone={tone === 'fail' ? 'warn' : undefined}>

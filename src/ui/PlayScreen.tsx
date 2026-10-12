@@ -9,14 +9,19 @@ import { clicksDue, isAccent, wantsClick } from '../engine/metronome';
 import type { PlaySession } from '../engine/session';
 import { TimedSession } from '../engine/timed';
 import { WaitSession } from '../engine/wait';
+import type { Song } from '../engine/song';
 import { midi } from '../midi/engine';
-import { findPlayableSong, hasApproximateSheet } from '../songs/library';
+import { songUsesCommandNotes } from '../nav/commands';
+import { isNavSwallowed, useNavScope, usePauseHandler } from '../nav/store';
+import { findPlayableSong, hasApproximateSheet, loadPlayableSong, songLookups } from '../songs/library';
 import type { PlayView } from '../storage/types';
 import { saveRun, type SavedRun } from '../storage/attempts';
 import { getDb } from '../storage/db';
 import { getLatency } from '../storage/latency';
 import { noteStreaks } from '../storage/noteStats';
 import { scheduleClick } from './audio';
+import { EarnedCard } from './ProgressWidgets';
+import { playSound, playStarSequence } from './sounds';
 import { drawFrame, LOOKAHEAD_BEATS } from './highwayDraw';
 import { buildLayout, keyRangeFor, PHONE_MIN_WHITES } from './highwayLayout';
 import { noteName } from './keyboardLayout';
@@ -99,7 +104,7 @@ export function PlayScreen({ songId, preset }: { songId: string; preset: PlayPre
 /** Portrait on a phone: the highway needs the width, so ask for the phone to be turned. */
 function RotatePrompt() {
   return (
-    <div className="rotate-prompt" data-testid="rotate-prompt" role="alert">
+    <div className="rotate-prompt" data-testid="rotate-prompt" role="alert" data-nav-modal>
       <svg aria-hidden="true" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
         <rect x="7" y="2" width="10" height="16" rx="2" />
         <path d="M4 14a8 8 0 0 0 8 8M12 22l-3-2M12 22l-1.5-3" />
@@ -119,6 +124,19 @@ function PlayLoader({ songId, preset, onRetry }: { songId: string; preset: PlayP
   const device = deviceKey(useMidi().devices.name);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [streaks, setStreaks] = useState<Map<number, number> | null>(null);
+  const [song, setSong] = useState<Song | null | undefined>(undefined);
+
+  // A bundled song's MusicXML is a separate chunk, fetched here when the song opens.
+  useEffect(() => {
+    let live = true;
+    loadPlayableSong(songId).then(
+      (v) => live && setSong(v ?? null),
+      () => live && setSong(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, [songId]);
 
   useEffect(() => {
     let live = true;
@@ -136,25 +154,46 @@ function PlayLoader({ songId, preset, onRetry }: { songId: string; preset: PlayP
     };
   }, [profile.id]);
 
-  if (latencyMs === null || streaks === null) return <div className="play" data-testid="play-loading" />;
-  return <PlayInner songId={songId} preset={preset} latencyMs={latencyMs} streaks={streaks} onRetry={onRetry} />;
+  if (song === null) {
+    return (
+      <div className="shell">
+        <main className="main">
+          <section className="card" data-tone="warn" role="alert" data-testid="song-load-error">
+            <h2>This song did not load</h2>
+            <p>Keyfall could not fetch the music for this song. Check your connection and try again.</p>
+            <div className="row">
+              {/* A browser remembers a failed module download until the page reloads, so retrying means reloading. */}
+              <button className="btn" data-primary type="button" onClick={() => window.location.reload()}>
+                Try again
+              </button>
+              <a className="btn" href={hrefFor.songs()}>
+                Back to songs
+              </a>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
+  if (song === undefined || latencyMs === null || streaks === null) return <div className="play" data-testid="play-loading" />;
+  return <PlayInner song={song} preset={preset} latencyMs={latencyMs} streaks={streaks} onRetry={onRetry} />;
 }
 
 function PlayInner({
-  songId,
+  song,
   preset,
   latencyMs,
   streaks,
   onRetry,
 }: {
-  songId: string;
+  song: Song;
   preset: PlayPreset;
   latencyMs: number;
   streaks: ReadonlyMap<number, number>;
   onRetry: () => void;
 }) {
-  const song = findPlayableSong(songId)!;
   const profile = useActiveProfile();
+  const keyboard = useMidi().devices;
   const lastBar = lastMeasure(song);
   const [setup, setSetup] = useState<Setup>(() => {
     const clamp = (n: number) => Math.min(Math.max(1, n), lastBar);
@@ -182,7 +221,8 @@ function PlayInner({
     return new TimedSession(song, { ...common, mode: setup.mode, speed: setup.speedPct / 100, latencyMs });
   }, [song, setup, bar, latencyMs]);
   const viewport = useViewportMode();
-  const phone = viewport !== 'wide';
+  const phone = viewport === 'phone-landscape' || viewport === 'phone-portrait';
+  const tablet = viewport === 'tablet-portrait';
   const layout = useMemo(() => buildLayout(keyRangeFor(song.notes.map((n) => n.midi), phone ? PHONE_MIN_WHITES : undefined)), [song, phone]);
   const [chosenView, setView] = useState<PlayView>(profile.settings.view ?? 'falling');
   // The phone screen is too short for a score beside the notes: it always shows the falling view.
@@ -243,9 +283,23 @@ function PlayInner({
       loop: setup.loop ? { from: setup.from, to: setup.to } : null,
       summary: session.summary(),
       wait: session instanceof WaitSession ? { wrong: session.stats().wrong, avgTimeToPressMs: session.stats().avgTimeToPressMs } : null,
-    });
+    }, songLookups);
     void saveRef.current.then(setSaved, () => undefined);
   }, [status, session, profile.id, song, setup]);
+
+  // The end card's sounds: a cadence, a chime per star, then a sparkle if the run earned a level or a badge.
+  const doneStars = session.status === 'finished' ? session.summary().stars : -1;
+  useEffect(() => {
+    if (doneStars < 0) return;
+    playSound('complete');
+    const t = setTimeout(() => playStarSequence(doneStars), 700);
+    return () => clearTimeout(t);
+  }, [doneStars]);
+  useEffect(() => {
+    if (!saved || (saved.levelTo <= saved.levelFrom && saved.newBadges.length === 0)) return;
+    const t = setTimeout(() => playSound(saved.levelTo > saved.levelFrom ? 'levelup' : 'badge'), 1500);
+    return () => clearTimeout(t);
+  }, [saved]);
 
   const retry = () => {
     void (saveRef.current ?? Promise.resolve()).then(onRetry, onRetry);
@@ -271,7 +325,7 @@ function PlayInner({
   useEffect(
     () =>
       midi.subscribeNotes((e) => {
-        if (e.type !== 'noteOn') return;
+        if (e.type !== 'noteOn' || isNavSwallowed(e.midi)) return;
         const now = performance.now();
         if (session.status === 'ready') session.start(now);
         else session.noteOn(e.midi, now);
@@ -337,13 +391,17 @@ function PlayInner({
     if (session.status === 'paused') session.resume(now);
     else session.pause(now);
   };
+  // Piano keys: while the song runs C1 pauses and resumes and the other command keys do nothing. A song that
+  // itself uses a command note turns them off, so that note is played like any other.
+  useNavScope({ kind: 'play', blocked: songUsesCommandNotes(song.notes), status });
+  usePauseHandler(togglePause);
 
   const needed = (wait?.waitingFor() ?? []).map(noteName).join(' ');
   const statusText =
     status === 'waiting' ? `Waiting for ${needed}` : status === 'paused' ? 'Paused' : status === 'finished' ? 'Complete' : status === 'ready' ? 'Ready' : 'Playing';
 
   return (
-    <div className="play" data-testid="play-screen" data-phone={phone}>
+    <div className="play" data-testid="play-screen" data-phone={phone} data-tablet={tablet}>
       <header className="play-head">
         <div className="play-head-left">
           <a className="icon-btn" href={hrefFor.songs()} aria-label="Back to songs">
@@ -427,23 +485,28 @@ function PlayInner({
           </div>
         )}
         {status === 'ready' && (
-          <div className="play-overlay" data-testid="play-ready">
+          <div className="play-overlay" data-testid="play-ready" data-nav-modal>
             <SetupPanel setup={setup} lastBar={lastBar} latencyMs={latencyMs} onChange={update} />
             <button className="btn" data-primary type="button" data-testid="play-start" onClick={() => session.start(performance.now())}>
               Start
             </button>
             <p>{setup.mode === 'wait' ? 'Or press any key. The song waits for you at every note.' : 'Or press any key to begin. Notes are judged on timing.'}</p>
+            {!keyboard.connected && (
+              <p className="play-nokb" data-testid="play-no-keyboard" role="status">
+                No keyboard found yet. Connect your piano over Bluetooth to play. <a href={hrefFor.keyboard()}>Setup help</a>
+              </p>
+            )}
           </div>
         )}
         {status === 'paused' && (
-          <div className="play-overlay">
+          <div className="play-overlay" data-nav-modal>
             <button className="btn" data-primary type="button" onClick={togglePause}>
               Resume
             </button>
           </div>
         )}
         {status === 'finished' && (
-          <div className="play-overlay" data-testid="play-finished" role="status">
+          <div className="play-overlay" data-testid="play-finished" role="status" data-nav-modal>
             <h2>Song complete</h2>
             {stats && (
               <p>
@@ -484,6 +547,7 @@ function PlayInner({
                 </p>
               </div>
             )}
+            {saved && <EarnedCard levelFrom={saved.levelFrom} levelTo={saved.levelTo} newBadges={saved.newBadges} />}
             <div className="row">
               {saved ? (
                 <a className="btn" data-primary href={hrefFor.results(saved.attempt.id)} data-testid="see-results">

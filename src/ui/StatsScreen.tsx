@@ -1,9 +1,11 @@
+import { BADGES } from '../progress/badges';
 import { accuracyTrend, mostMissedNotes, points, stars } from '../engine/results';
 import { findSong } from '../songs/library';
 import { profileAttempts } from '../storage/attempts';
 import { getDb } from '../storage/db';
 import { bestPerSong, profileScores } from '../storage/scores';
 import { AppLayout } from './AppLayout';
+import { BadgeShelf, LevelBar, StreakChip, useProgress } from './ProgressWidgets';
 import { noteName } from './keyboardLayout';
 import { useActiveProfile } from './profileStore';
 import { useAsync } from './useAsync';
@@ -35,9 +37,10 @@ export function StatsScreen() {
     return { attempts, best: bestPerSong(scores) };
   }, profile.id);
 
+  const progress = useProgress();
   const attempts = data?.attempts ?? [];
   const songsPlayed = new Set(attempts.map((a) => a.songId)).size;
-  const xp = attempts.reduce((n, a) => n + a.xp, 0);
+  const xp = progress?.totalXp ?? attempts.reduce((n, a) => n + a.xp, 0);
   const avgAccuracy = attempts.length ? attempts.reduce((n, a) => n + a.accuracy, 0) / attempts.length : 0;
   const trend = accuracyTrend(attempts);
   const missed = mostMissedNotes(attempts.flatMap((a) => a.misses), 6);
@@ -52,6 +55,31 @@ export function StatsScreen() {
             <h1 className="title">Stats</h1>
           </div>
         </header>
+        {data && attempts.length === 0 && (
+          <section className="card empty-state" data-testid="stats-empty">
+            <h2>No songs finished yet</h2>
+            <p>Finish a song and your scores, accuracy trend and most-missed notes show up here. Learn lessons add XP too.</p>
+            <div className="row">
+              <a className="btn" data-primary href={hrefFor.songs()}>
+                Pick a song
+              </a>
+              <a className="btn" href={hrefFor.learn()}>
+                Start Learn
+              </a>
+            </div>
+          </section>
+        )}
+        {progress && (
+          <section className="progress-strip" aria-label="Your progress" data-testid="stats-progress">
+            <LevelBar progress={progress} testId="stats-level" />
+            <div className="progress-side">
+              <StreakChip streak={progress.streak} />
+              <span className="pill" data-testid="stats-longest-streak">
+                Longest streak: {progress.streak.longest} {progress.streak.longest === 1 ? 'day' : 'days'}
+              </span>
+            </div>
+          </section>
+        )}
         <section className="stat-tiles">
           <div className="stat-tile">
             <div className="stat-big" data-testid="stats-songs">
@@ -75,7 +103,7 @@ export function StatsScreen() {
             <div className="stat-big" data-testid="stats-xp">
               {xp} XP
             </div>
-            <div className="stat-cap">Total earned</div>
+            <div className="stat-cap">Total earned (songs and Learn)</div>
           </div>
         </section>
         <section className="result-cols two">
@@ -111,6 +139,13 @@ export function StatsScreen() {
               Pick a song
             </a>
           </div>
+        </section>
+        <section className="panel" aria-labelledby="badges-title">
+          <h2 id="badges-title">Badges</h2>
+          <p className="muted small-text" data-testid="badges-count">
+            {progress ? `${progress.badges.length} of ${BADGES.length} earned` : 'Loading'}
+          </p>
+          <BadgeShelf earned={progress?.badges ?? []} />
         </section>
       </main>
     </AppLayout>

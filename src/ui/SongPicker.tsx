@@ -39,7 +39,7 @@ export function SongPicker() {
                 </div>
                 <h2>{s.title}</h2>
                 <p>
-                  {s.composer} · {HANDS[s.hands]} · {s.notes.length} notes
+                  {s.composer} · {HANDS[s.hands]} · {s.noteCount} notes
                 </p>
               </div>
               {locked ? (

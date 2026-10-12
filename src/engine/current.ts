@@ -20,7 +20,7 @@ export function getCurrentPlay(): PlayHandle | null {
 }
 
 /** The open song, waiting briefly for a screen that is still loading its data from storage. */
-export async function waitForCurrentPlay(timeoutMs = 1500, pollMs = 25): Promise<PlayHandle | null> {
+export async function waitForCurrentPlay(timeoutMs = 5000, pollMs = 25): Promise<PlayHandle | null> {
   const until = Date.now() + timeoutMs;
   while (!current && Date.now() < until) await new Promise((r) => setTimeout(r, pollMs));
   return current;

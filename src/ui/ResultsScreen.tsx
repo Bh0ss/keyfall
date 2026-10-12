@@ -1,4 +1,3 @@
-import { lastMeasure } from '../engine/loop';
 import {
   averageOffset,
   measureMisses,
@@ -12,12 +11,14 @@ import {
   stars,
   timingNote,
 } from '../engine/results';
+import { useNavScope } from '../nav/store';
 import { findSong } from '../songs/library';
 import { getAttempt } from '../storage/attempts';
 import { getDb } from '../storage/db';
 import { songScores } from '../storage/scores';
 import type { AttemptRecord } from '../storage/types';
 import { AppLayout } from './AppLayout';
+import { EarnedCard, useProgress } from './ProgressWidgets';
 import { noteName } from './keyboardLayout';
 import { useProfiles } from './profileStore';
 import { useAsync } from './useAsync';
@@ -70,6 +71,23 @@ function Histogram({ offsets }: { offsets: number[] }) {
   );
 }
 
+/** The XP tile's caption: where the profile stands on the level ladder. */
+function LevelCaption() {
+  const progress = useProgress();
+  if (!progress) return <>Experience</>;
+  return (
+    <span data-testid="results-level">
+      Level {progress.level.level} · {progress.level.xpToNext} XP to level {progress.level.level + 1}
+    </span>
+  );
+}
+
+/** Piano keys on this screen: C1 retry, D1 practise my mistakes, A0 back to Songs. */
+function ResultsNav({ retryHref, practiseHref }: { retryHref: string; practiseHref?: string }) {
+  useNavScope({ kind: 'results', retryHref, practiseHref });
+  return null;
+}
+
 export function ResultsScreen({ attemptId }: { attemptId: string }) {
   const { profiles } = useProfiles();
   const data = useAsync(async () => {
@@ -107,7 +125,7 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
 
   const { attempt: a, board } = data;
   const owner = profiles.find((p) => p.id === a.profileId);
-  const lastBar = lastMeasure(song);
+  const lastBar = song.measureCount;
   const isWait = a.mode === 'wait';
   const offsets = pressOffsets(a.hitOffsets, a.misses);
   const avg = averageOffset(offsets);
@@ -119,9 +137,12 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
   const nameOf = (id: string) => profiles.find((p) => p.id === id)?.name ?? 'Player';
   const practiceSpeed = owner?.settings.speedPct ?? 70;
   const hot = Math.max(1, ...perBar);
+  const retryHref = hrefFor.play(song.id, { mode: a.mode, speedPct: a.mode === 'practice' ? a.speedPct : undefined, from: a.loop?.from, to: a.loop?.to });
+  const practiseHref = range ? hrefFor.play(song.id, { mode: 'practice', from: range.from, to: range.to, speedPct: practiceSpeed }) : undefined;
 
   return (
     <AppLayout active="play">
+      <ResultsNav retryHref={retryHref} practiseHref={practiseHref} />
       <main className="main results" data-testid="results">
         <header className="header">
           <div className="stack-tight">
@@ -163,9 +184,12 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
             <div className="stat-big" data-testid="results-xp">
               +{a.xp} XP
             </div>
-            <div className="stat-cap">Levels come in a later update</div>
+            <div className="stat-cap">
+              <LevelCaption />
+            </div>
           </div>
         </section>
+        <EarnedCard levelFrom={a.levelFrom} levelTo={a.levelTo} newBadges={a.newBadges} />
 
         <section className="result-cols">
           <div className="panel" data-testid="timing-card">
@@ -234,7 +258,7 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
                 data-testid="practice-mistakes"
                 data-from={range.from}
                 data-to={range.to}
-                href={hrefFor.play(song.id, { mode: 'practice', from: range.from, to: range.to, speedPct: practiceSpeed })}
+                href={practiseHref}
               >
                 Practice my mistakes
               </a>
@@ -266,7 +290,7 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
               <a
                 className="btn big grow"
                 data-testid="results-retry"
-                href={hrefFor.play(song.id, { mode: a.mode, speedPct: a.mode === 'practice' ? a.speedPct : undefined, from: a.loop?.from, to: a.loop?.to })}
+                href={retryHref}
               >
                 Retry
               </a>

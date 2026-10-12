@@ -1,4 +1,5 @@
 import { nextUnit, unlockHint } from '../learn/unlocks';
+import { BADGES } from '../progress/badges';
 import { upNext, points, stars } from '../engine/results';
 import { useLibrary } from '../songs/library';
 import { getDb } from '../storage/db';
@@ -7,7 +8,9 @@ import { bestPerSong, profileScores } from '../storage/scores';
 import { AccountChip } from './AccountPanel';
 import { AppLayout } from './AppLayout';
 import { ConnectionChip } from './ConnectionChip';
+import { FirstRunLegend } from './PianoLegend';
 import { Avatar } from './ProfilePicker';
+import { LevelBar, StreakChip, useProgress } from './ProgressWidgets';
 import { profiles, useActiveProfile } from './profileStore';
 import { useAsync } from './useAsync';
 import { useMidi } from './useMidi';
@@ -34,6 +37,7 @@ export function HomeScreen() {
     return { best: bestPerSong(scores), lastSongId: attempts[attempts.length - 1]?.songId };
   }, profile.id);
 
+  const progress = useProgress();
   const unlocks = useUnlocks();
   const open = unlocks ? songs.filter((s) => unlocks.isUnlocked(s)) : songs.filter((s) => !s.unlockedBy);
   const learnNext = unlocks ? nextUnit(unlocks.passed) : null;
@@ -64,6 +68,20 @@ export function HomeScreen() {
             </button>
           </div>
         </header>
+
+        <FirstRunLegend />
+
+        {progress && (
+          <section className="progress-strip" aria-label="Your progress" data-testid="progress-strip">
+            <LevelBar progress={progress} />
+            <div className="progress-side">
+              <StreakChip streak={progress.streak} />
+              <a className="pill pill-link" href={hrefFor.stats()} data-testid="badge-count">
+                {progress.badges.length} of {BADGES.length} badges
+              </a>
+            </div>
+          </section>
+        )}
 
         <section className="home-grid">
           <div className="tile">

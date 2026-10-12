@@ -1,6 +1,6 @@
 import { isSongUnlocked, unitLockText, type UnitStatus } from '../../learn/unlocks';
 import type { Unit } from '../../learn/units';
-import { getSongs } from '../../songs/catalog';
+import { bundledSummaries } from '../../songs/bundled';
 import type { LearnProgressRecord, PlayerLevel } from '../../storage/types';
 import { hrefFor } from '../useRoute';
 
@@ -17,7 +17,7 @@ const KIND = {
 export function UnitDetail({ unit, status, progress, level }: { unit: Unit; status: UnitStatus; progress?: LearnProgressRecord; level: PlayerLevel }) {
   const playable = status === 'open' || status === 'passed';
   const passed = new Set(progress?.passed ? [unit.id] : []);
-  const songs = getSongs().filter((s) => s.unlockedBy === unit.id);
+  const songs = bundledSummaries().filter((s) => s.unlockedBy === unit.id);
   return (
     <main className="main learn-main" data-testid="unit-detail" data-unit={unit.id}>
       <header className="header">

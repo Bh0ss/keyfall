@@ -6,7 +6,7 @@ import { LearnRun, type AnswerResult } from '../../learn/run';
 import { blackKeyHint, clefFor, isBlackKey, otherSpell, spellName, staffPlace, whiteOf } from '../../learn/staff';
 import { getUnit, UNITS } from '../../learn/units';
 import { virtualInputEnabled } from '../../midi/virtual';
-import { getSongs } from '../../songs/catalog';
+import { bundledSummaries } from '../../songs/bundled';
 import { getDb } from '../../storage/db';
 import { markLessonDone, recordUnitTest, saveReviewEntries } from '../../storage/learn';
 import { noteName } from '../keyboardLayout';
@@ -16,6 +16,8 @@ import type { RunnerProps } from './LessonRunner';
 import { MiniKeyboard, type KeyMark } from './MiniKeyboard';
 import { reviewLabel } from './labels';
 import { GrandStaff, NoteStaff, RhythmStaff, SignatureStaff } from './Staff';
+import { playSound } from '../sounds';
+import { earnedLines, trackLearn, type Earned } from './earned';
 import { useNoteKeys } from './useNotes';
 
 const ADVANCE_MS = 400;
@@ -73,6 +75,7 @@ interface Finished {
   total: number;
   passed: boolean;
   missed: number[];
+  earned?: Earned;
 }
 
 function PromptSession({ unit, lesson, profileId, queue, onRetry }: RunnerProps & { onRetry: () => void }) {
@@ -102,11 +105,13 @@ function PromptSession({ unit, lesson, profileId, queue, onRetry }: RunnerProps 
       const r = run.result();
       const db = getDb();
       void saves.current
-        .then(async () => {
-          if (lesson.test) await recordUnitTest(db, profileId, unit.id, { correct: r.correct, total: r.total, passed: r.passed });
-          else await markLessonDone(db, profileId, unit.id, lesson.id);
-        })
-        .then(() => setFinished({ correct: r.correct, total: r.total, passed: r.passed, missed: r.missed }));
+        .then(() =>
+          trackLearn(profileId, async () => {
+            if (lesson.test) await recordUnitTest(db, profileId, unit.id, { correct: r.correct, total: r.total, passed: r.passed });
+            else await markLessonDone(db, profileId, unit.id, lesson.id);
+          }),
+        )
+        .then((earned) => setFinished({ correct: r.correct, total: r.total, passed: r.passed, missed: r.missed, earned }));
     }
     bump();
   }, [run, lesson, unit.id, profileId]);
@@ -120,6 +125,7 @@ function PromptSession({ unit, lesson, profileId, queue, onRetry }: RunnerProps 
       }
       persist();
       bump();
+      playSound(result === 'correct' ? 'correct' : 'wrong');
       if (result === 'correct') timer.current = setTimeout(advance, ADVANCE_MS);
     },
     [persist, advance],
@@ -283,10 +289,10 @@ function PromptFinish({ unitId, lessonTitle, isTest, finished, onRetry }: { unit
   );
   const missLine = missed.length ? `Missed: ${missed.join(', ')}. They will come up more often.` : 'No misses.';
   if (!isTest) {
-    return <Finish tone="done" unitId={unitId} title={`${lessonTitle} done`} lines={[score, missLine]} actions={retry('Again')} />;
+    return <Finish tone="done" unitId={unitId} title={`${lessonTitle} done`} lines={[score, ...earnedLines(finished.earned), missLine]} actions={retry('Again')} />;
   }
   if (finished.passed) {
-    const unlocked = getSongs().filter((s) => s.unlockedBy === unit.id);
+    const unlocked = bundledSummaries().filter((s) => s.unlockedBy === unit.id);
     const next = UNITS.find((u) => u.number === unit.number + 1);
     const unlockLine = unlocked.length ? [`Unlocked: ${unlocked.map((s) => s.title).join(', ')}.`] : unit.unlocks ? [`${unit.unlocks} unlocks in a later update.`] : [];
     return (
@@ -295,7 +301,7 @@ function PromptFinish({ unitId, lessonTitle, isTest, finished, onRetry }: { unit
         passed
         unitId={unitId}
         title={`Unit ${unit.number} passed`}
-        lines={[score, ...unlockLine, missLine]}
+        lines={[score, ...unlockLine, ...earnedLines(finished.earned), missLine]}
         actions={
           next && !next.comingSoon ? (
             <a className="btn" data-primary href={hrefFor.learn(next.id)} data-testid="learn-next-unit">
@@ -308,7 +314,7 @@ function PromptFinish({ unitId, lessonTitle, isTest, finished, onRetry }: { unit
       />
     );
   }
-  return <Finish tone="fail" passed={false} unitId={unitId} title="Not quite yet" lines={[score, `You need ${Math.ceil(finished.total * 0.9)} of ${finished.total} to pass.`, missLine]} actions={retry('Try again')} />;
+  return <Finish tone="fail" passed={false} unitId={unitId} title="Not quite yet" lines={[score, `You need ${Math.ceil(finished.total * 0.9)} of ${finished.total} to pass.`, ...earnedLines(finished.earned), missLine]} actions={retry('Try again')} />;
 }
 
 interface BodyProps {

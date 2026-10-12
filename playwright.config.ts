@@ -16,7 +16,7 @@ for (const file of ['.env.local', '.env.test.local']) {
  * Three ways to run:
  *  - default: the dev server on :5173 (everything).
  *  - KEYFALL_PREVIEW=1: `vite preview` of the production build on :4173 (no dev-only behaviour; pages need ?debug=1).
- *  - KEYFALL_BASE_URL=<url>: a live deployment, no local server. Only the phone project runs against it
+ *  - KEYFALL_BASE_URL=<url>: a live deployment, no local server. Only the phone and iPad projects run against it
  *    (the older specs address the dev server by absolute path).
  */
 const live = process.env.KEYFALL_BASE_URL?.trim();
@@ -27,13 +27,21 @@ const baseURL = live ? withSlash(live) : preview ? 'http://localhost:4173/keyfal
 // A recent iPhone turned sideways. Web MIDI only exists in Chromium, so run the iPhone shape on Chromium.
 const iphone = { ...devices['iPhone 15 landscape'], defaultBrowserType: 'chromium' as const };
 
+// iPad Air size. The Pro 11 descriptor supplies the touch, pixel ratio and user agent; the viewport is the Air's
+// 820 x 1180 upright and 1180 x 820 sideways (the widths the layout is specified for), on Chromium for Web MIDI.
+const ipad = { ...devices['iPad Pro 11'], defaultBrowserType: 'chromium' as const };
+const ipadPortrait = { ...ipad, viewport: { width: 820, height: 1180 }, screen: { width: 820, height: 1180 } };
+const ipadLandscape = { ...ipad, viewport: { width: 1180, height: 820 }, screen: { width: 1180, height: 820 } };
+
 export default defineConfig({
   testDir: 'e2e',
   // Traces, videos and screenshots can capture typed passwords: keep them off.
   use: { baseURL, trace: 'off', video: 'off', screenshot: 'off' },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /phone\.spec\.ts/ },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /(phone|ipad)\.spec\.ts/ },
     { name: 'iphone-landscape', use: iphone, testMatch: /phone\.spec\.ts/ },
+    { name: 'ipad-landscape', use: ipadLandscape, testMatch: /ipad\.spec\.ts/ },
+    { name: 'ipad-portrait', use: ipadPortrait, testMatch: /ipad\.spec\.ts/ },
   ],
   webServer: live
     ? undefined

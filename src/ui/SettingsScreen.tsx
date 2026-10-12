@@ -2,10 +2,14 @@ import type { Dispatch, SetStateAction } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { LATENCY_CLICKS, LATENCY_INTERVAL_MS, deviceKey, medianOffset } from '../engine/latency';
 import { midi } from '../midi/engine';
+import { useNavScope } from '../nav/store';
 import { getDb } from '../storage/db';
 import { clearLatency, saveLatency, savedLatency } from '../storage/latency';
 import { AccountPanel } from './AccountPanel';
 import { AppLayout } from './AppLayout';
+import { KeyLegend } from './PianoLegend';
+import { profiles, useActiveProfile } from './profileStore';
+import { playSound } from './sounds';
 import { audioContext, outputLatencyMs, scheduleClick } from './audio';
 import { useMidi } from './useMidi';
 import { hrefFor } from './useRoute';
@@ -72,12 +76,75 @@ function startLatencyCheck(device: string, onPhase: Dispatch<SetStateAction<Phas
   return stop;
 }
 
+function Preference({ id, title, text, on, onChange }: { id: string; title: string; text: string; on: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <div className="pref">
+      <div className="pref-text">
+        <strong id={`${id}-label`}>{title}</strong>
+        <span id={`${id}-hint`}>{text}</span>
+      </div>
+      <button
+        className="switch"
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-labelledby={`${id}-label`}
+        aria-describedby={`${id}-hint`}
+        data-testid={`pref-${id}`}
+        onClick={() => onChange(!on)}
+      >
+        <span className="switch-knob" aria-hidden="true" />
+        <span className="switch-text">{on ? 'On' : 'Off'}</span>
+      </button>
+    </div>
+  );
+}
+
+/** Per-profile preferences: piano navigation, sounds and motion. */
+function PreferencesCard() {
+  const profile = useActiveProfile();
+  const s = profile.settings;
+  const save = (patch: Parameters<typeof profiles.saveSettings>[1]) => void profiles.saveSettings(profile.id, patch);
+  return (
+    <section className="card" data-testid="prefs-card">
+      <h2>Preferences for {profile.name}</h2>
+      <Preference
+        id="pianoNav"
+        title="Piano navigation"
+        text="The five lowest white keys work the menus. They only pause and resume during a song, and switch off for a song that uses them."
+        on={s.pianoNav !== false}
+        onChange={(on) => save({ pianoNav: on })}
+      />
+      <KeyLegend />
+      <Preference
+        id="sound"
+        title="Sounds"
+        text="Soft chimes for menus, Learn answers and finishing a song. The metronome is separate."
+        on={s.sound !== false}
+        onChange={(on) => {
+          save({ sound: on });
+          if (on) setTimeout(() => playSound('select'), 50);
+        }}
+      />
+      <Preference
+        id="reduceMotion"
+        title="Reduce animation"
+        text="Stops the celebrations and slides. Keyfall also follows your device's reduce-motion setting."
+        on={s.reduceMotion === true}
+        onChange={(on) => save({ reduceMotion: on })}
+      />
+    </section>
+  );
+}
+
 export function SettingsScreen() {
   const snapshot = useMidi();
   const device = deviceKey(snapshot.devices.name);
   const [phase, setPhase] = useState<Phase>({ name: 'idle' });
   const [saved, setSaved] = useState<number | null>(null);
   const cleanup = useRef<() => void>(() => undefined);
+  // While the clicks play, any key is a tap: the piano navigation keys step aside.
+  useNavScope(phase.name === 'running' ? { kind: 'suspended' } : { kind: 'menu' });
 
   useEffect(() => () => cleanup.current(), []);
 
@@ -114,6 +181,7 @@ export function SettingsScreen() {
             Home
           </a>
         </header>
+        <PreferencesCard />
         <AccountPanel />
         <section className="card" data-testid="latency-card">
           <h2>Latency check</h2>

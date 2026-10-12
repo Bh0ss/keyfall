@@ -1,5 +1,5 @@
-import type { Hand, Song, SongNote } from '../engine/song';
-import { child, childText, descendants, parseXml, type XmlElement } from './xml';
+import type { Hand, Song, SongNote } from '../engine/song.ts';
+import { child, childText, descendants, parseXml, type XmlElement } from './xml.ts';
 
 export interface SongMeta {
   id: string;

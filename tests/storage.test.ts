@@ -161,6 +161,14 @@ describe('migrating latency from localStorage', () => {
   });
 });
 
+describe('settings written back to back', () => {
+  it('two changes made at once both land (no lost update)', async () => {
+    const p = await createProfile(db, input, 1);
+    await Promise.all([saveSettings(db, p.id, { sound: false }, 2), saveSettings(db, p.id, { reduceMotion: true }, 3), saveSettings(db, p.id, { pianoNav: false }, 4)]);
+    expect((await db.profiles.get(p.id))!.settings).toMatchObject({ sound: false, reduceMotion: true, pianoNav: false, mode: 'wait' });
+  });
+});
+
 describe('saving a finished run', () => {
   const mary = getSong('mary-had-a-little-lamb') as Song;
 

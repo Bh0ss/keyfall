@@ -26,6 +26,14 @@ export interface ProfileSettings {
   countIn: boolean;
   /** Play view: falling notes (default), sheet music, or both. */
   view?: PlayView;
+  /** Piano-key navigation (A0 to E1 drive the menus). On unless false. */
+  pianoNav?: boolean;
+  /** The first-run key legend has been shown and dismissed. */
+  navLegendSeen?: boolean;
+  /** Interface sounds. On unless false. */
+  sound?: boolean;
+  /** Turn animations off even when the system does not ask for reduced motion. */
+  reduceMotion?: boolean;
 }
 
 export interface Profile extends Stamped {
@@ -34,6 +42,8 @@ export interface Profile extends Stamped {
   level: PlayerLevel;
   settings: ProfileSettings;
   createdAt: number;
+  /** Badges earned, id to the time first seen. The badge rules are in `src/progress`; this only remembers when. */
+  badges?: Record<string, number>;
 }
 
 /** Best score of a profile on a song in one mode. Only ever replaced by a higher score. */
@@ -73,6 +83,10 @@ export interface AttemptRecord extends Stamped {
   wait: WaitFigures | null;
   xp: number;
   finishedAt: number;
+  /** Badges this run earned, and the level before and after (set when the run was saved; absent on older runs). */
+  newBadges?: string[];
+  levelFrom?: number;
+  levelTo?: number;
 }
 
 /** Hit-streak stats for one pitch of one profile; drives label fade. */

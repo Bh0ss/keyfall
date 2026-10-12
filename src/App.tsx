@@ -1,4 +1,6 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useSyncExternalStore } from 'react';
+import { ErrorBoundary } from './ui/ErrorBoundary';
+import { PianoNav } from './ui/PianoNav';
 import { ConnectionScreen } from './ui/ConnectionScreen';
 import { HomeScreen } from './ui/HomeScreen';
 import { PlayScreen } from './ui/PlayScreen';
@@ -8,7 +10,7 @@ import { SettingsScreen } from './ui/SettingsScreen';
 import { SongPicker } from './ui/SongPicker';
 import { StatsScreen } from './ui/StatsScreen';
 import { initProfiles, useProfiles } from './ui/profileStore';
-import { useRoute } from './ui/useRoute';
+import { useRoute, type Route } from './ui/useRoute';
 import { SongGate } from './ui/SongGate';
 import { virtualInputEnabled } from './midi/virtual';
 import { loadLibrary, useLibrary } from './songs/library';
@@ -19,20 +21,48 @@ const LearnRoutes = lazy(() => import('./ui/learn/LearnRoutes'));
 // The MIDI parser is only needed when a file is imported.
 const ImportScreen = lazy(() => import('./ui/ImportScreen').then((m) => ({ default: m.ImportScreen })));
 
+/** Keyboard users jump past the navigation rail to the screen's own content. */
+function skipToContent() {
+  const main = document.querySelector('main');
+  if (!main) return;
+  main.setAttribute('tabindex', '-1');
+  main.focus();
+}
+
+/** Shown while a lazily loaded screen downloads, so the page is never blank. */
+function LoadingShell({ testId, what }: { testId: string; what: string }) {
+  return (
+    <div className="shell" data-testid={testId}>
+      <main className="main" role="status">
+        <p className="muted">Loading {what}...</p>
+      </main>
+    </div>
+  );
+}
+
 function Routes() {
-  const route = useRoute();
+  const hash = useSyncExternalStore(subscribeHash, () => window.location.hash);
+  return <ErrorBoundary resetKey={hash}>{renderRoute(useRoute())}</ErrorBoundary>;
+}
+
+function subscribeHash(cb: () => void) {
+  window.addEventListener('hashchange', cb);
+  return () => window.removeEventListener('hashchange', cb);
+}
+
+function renderRoute(route: Route) {
   switch (route.name) {
     case 'songs':
       return <SongPicker />;
     case 'learn':
       return (
-        <Suspense fallback={<div className="shell" data-testid="learn-loading" />}>
+        <Suspense fallback={<LoadingShell testId="learn-loading" what="Learn" />}>
           <LearnRoutes unitId={route.unitId} lessonId={route.lessonId} />
         </Suspense>
       );
     case 'import':
       return (
-        <Suspense fallback={<div className="shell" data-testid="import-loading" />}>
+        <Suspense fallback={<LoadingShell testId="import-loading" what="the importer" />}>
           <ImportScreen songId={route.songId} />
         </Suspense>
       );
@@ -57,6 +87,15 @@ function Routes() {
 
 /** Nothing renders until a profile is chosen for this session. */
 export function App() {
+  return (
+    <>
+      <PianoNav />
+      <Screens />
+    </>
+  );
+}
+
+function Screens() {
   const state = useProfiles();
   const library = useLibrary();
   useEffect(() => {
@@ -85,6 +124,9 @@ export function App() {
   if (!state.activeId) return <ProfilePicker />;
   return (
     <div className="app-root" data-testid="app-ready">
+      <button className="skip-link" type="button" onClick={skipToContent}>
+        Skip to content
+      </button>
       <Routes />
     </div>
   );

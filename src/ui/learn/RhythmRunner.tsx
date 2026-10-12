@@ -5,6 +5,7 @@ import { getDb } from '../../storage/db';
 import { markLessonDone } from '../../storage/learn';
 import { noteName } from '../keyboardLayout';
 import { outputLatencyMs, scheduleClick } from '../audio';
+import { earnedLines, trackLearn, type Earned } from './earned';
 import { Finish } from './Finish';
 import type { RunnerProps } from './LessonRunner';
 import { RhythmStaff } from './Staff';
@@ -12,7 +13,7 @@ import { useNoteOn } from './useNotes';
 
 const COUNT_IN = 4;
 
-type Phase = { name: 'idle' } | { name: 'running'; expected: number[]; start: number } | { name: 'done'; hits: number; total: number; extra: number; saved: boolean };
+type Phase = { name: 'idle' } | { name: 'running'; expected: number[]; start: number } | { name: 'done'; hits: number; total: number; extra: number; saved: boolean; earned?: Earned };
 
 export function RhythmRunner({ unit, lesson, profileId }: RunnerProps) {
   const pattern = lesson.pattern!;
@@ -60,7 +61,7 @@ export function RhythmRunner({ unit, lesson, profileId }: RunnerProps) {
         const ok = tapsPass(j);
         setBeat(-1);
         setPhase({ name: 'done', ...j, saved: !ok });
-        if (ok) void markLessonDone(getDb(), profileId, unit.id, lesson.id).then(() => setPhase((p) => (p.name === 'done' ? { ...p, saved: true } : p)));
+        if (ok) void trackLearn(profileId, () => markLessonDone(getDb(), profileId, unit.id, lesson.id)).then((earned) => setPhase((p) => (p.name === 'done' ? { ...p, saved: true, earned } : p)));
       }, Math.max(0, end - performance.now())),
     );
   };
@@ -72,7 +73,7 @@ export function RhythmRunner({ unit, lesson, profileId }: RunnerProps) {
         tone={ok ? 'done' : 'fail'}
         unitId={unit.id}
         title={ok ? 'Nice and steady' : 'Close, try again'}
-        lines={[`${phase.hits} of ${phase.total} taps on the beat.`, phase.extra ? `${phase.extra} extra ${phase.extra === 1 ? 'tap' : 'taps'}.` : 'No extra taps.']}
+        lines={[`${phase.hits} of ${phase.total} taps on the beat.`, phase.extra ? `${phase.extra} extra ${phase.extra === 1 ? 'tap' : 'taps'}.` : 'No extra taps.', ...earnedLines(phase.earned)]}
         actions={
           <button className="btn" data-primary type="button" onClick={() => setPhase({ name: 'idle' })} data-testid="learn-retry">
             Again

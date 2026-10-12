@@ -1,6 +1,8 @@
 import { noteOutcomes } from '../engine/fade';
 import type { Mode, ScoreSummary } from '../engine/judge';
 import { xpFor } from '../engine/results';
+import type { SongLookups } from '../progress/compute';
+import { trackProgress } from '../progress/store';
 import type { Song } from '../engine/song';
 import type { KeyfallDb } from './db';
 import { newId } from './db';
@@ -22,14 +24,30 @@ export interface FinishedRun {
 export interface SavedRun {
   attempt: AttemptRecord;
   isNewBest: boolean;
+  /** Badges this run earned, and the level before and after. */
+  newBadges: string[];
+  levelFrom: number;
+  levelTo: number;
 }
 
 /**
  * Save a finished run: the attempt with its miss log, the profile's high score
  * (full runs only, max rule) and the per-pitch hit stats behind label fade.
  */
-export async function saveRun(db: KeyfallDb, run: FinishedRun): Promise<SavedRun> {
+export async function saveRun(db: KeyfallDb, run: FinishedRun, lookups?: SongLookups): Promise<SavedRun> {
   const at = run.at ?? Date.now();
+  const known: SongLookups = lookups ?? {
+    songLevel: (id) => (id === run.song.id ? run.song.level : undefined),
+    imported: (id) => id.startsWith('imp-'),
+  };
+  const tracked = await trackProgress(db, run.profileId, known, () => writeRun(db, run, at), at);
+  const { attempt, isNewBest } = tracked.result;
+  const earned = { newBadges: tracked.newBadges, levelFrom: tracked.levelFrom, levelTo: tracked.levelTo };
+  await db.attempts.update(attempt.id, earned);
+  return { attempt: { ...attempt, ...earned }, isNewBest, ...earned };
+}
+
+async function writeRun(db: KeyfallDb, run: FinishedRun, at: number): Promise<{ attempt: AttemptRecord; isNewBest: boolean }> {
   const s = run.summary;
   const attempt: AttemptRecord = {
     id: newId(),

@@ -380,12 +380,12 @@ describe('storage and library', () => {
     const bytes = oneTrackMidi();
     const a = await analyseFile('frere.mid', bytes);
     const rec = await saveNewImport(db, a, 'frere.mid', bytes.slice().buffer, saved);
-    const rightAt60 = findSong(rec.id)!.notes.filter((x) => x.hand === 'right').length;
+    const rightAt60 = importedRecord(rec.id)!.song.notes.filter((x) => x.hand === 'right').length;
     const next = await updateImport(db, rec, { ...saved, title: 'Renamed', splitMidi: 66, level: 3, levelOverridden: true });
     expect(next.id).toBe(rec.id);
     expect(next.updatedAt).toBeGreaterThanOrEqual(rec.updatedAt);
-    const song = findSong(rec.id)!;
-    expect(song).toMatchObject({ title: 'Renamed', level: 3 });
+    expect(findSong(rec.id)).toMatchObject({ title: 'Renamed', level: 3 });
+    const song = importedRecord(rec.id)!.song;
     expect(song.notes.filter((x) => x.hand === 'right').length).toBeLessThan(rightAt60);
     expect(importedRecord(rec.id)).toMatchObject({ splitMidi: 66, levelOverridden: true });
   });

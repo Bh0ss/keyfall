@@ -8,6 +8,7 @@ import { Finish } from './Finish';
 import type { RunnerProps } from './LessonRunner';
 import { MiniKeyboard, type KeyMark } from './MiniKeyboard';
 import { SongStaff } from './Staff';
+import { earnedLines, trackLearn, type Earned } from './earned';
 import { useNoteKeys } from './useNotes';
 
 export function MiniSongRunner(props: RunnerProps) {
@@ -19,7 +20,7 @@ function MiniSession({ unit, lesson, profileId, onRetry }: RunnerProps & { onRet
   const song = lesson.song!;
   const [run] = useState(() => new MiniSongRun(song));
   const [, bump] = useReducer((x: number) => x + 1, 0);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState<Earned | null>(null);
   const closing = useRef(false);
 
   useNoteKeys(
@@ -28,7 +29,7 @@ function MiniSession({ unit, lesson, profileId, onRetry }: RunnerProps & { onRet
       if (r === 'ignored') return;
       if (run.done && !closing.current) {
         closing.current = true;
-        void markLessonDone(getDb(), profileId, unit.id, lesson.id).then(() => setSaved(true));
+        void trackLearn(profileId, () => markLessonDone(getDb(), profileId, unit.id, lesson.id)).then(setSaved);
       }
       bump();
     },
@@ -41,7 +42,7 @@ function MiniSession({ unit, lesson, profileId, onRetry }: RunnerProps & { onRet
         tone="done"
         unitId={unit.id}
         title={`${song.title} done`}
-        lines={[run.wrong === 0 ? 'No wrong keys.' : `${run.wrong} wrong ${run.wrong === 1 ? 'key' : 'keys'} along the way.`]}
+        lines={[run.wrong === 0 ? 'No wrong keys.' : `${run.wrong} wrong ${run.wrong === 1 ? 'key' : 'keys'} along the way.`, ...earnedLines(saved)]}
         actions={
           <button className="btn" data-primary type="button" onClick={onRetry} data-testid="learn-retry">
             Play again

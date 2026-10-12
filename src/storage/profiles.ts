@@ -65,9 +65,12 @@ export async function updateProfile(db: KeyfallDb, id: string, patch: Partial<Pr
 }
 
 export async function saveSettings(db: KeyfallDb, id: string, patch: Partial<ProfileSettings>, now = Date.now()): Promise<Profile> {
-  const cur = await db.profiles.get(id);
-  if (!cur) throw new ProfileError('That profile no longer exists.');
-  const next: Profile = { ...cur, settings: { ...cur.settings, ...patch }, updatedAt: now };
-  await db.profiles.put(next);
-  return next;
+  // One transaction, so two changes made a few milliseconds apart (two switches in a row) both land.
+  return db.transaction('rw', db.profiles, async () => {
+    const cur = await db.profiles.get(id);
+    if (!cur) throw new ProfileError('That profile no longer exists.');
+    const next: Profile = { ...cur, settings: { ...cur.settings, ...patch }, updatedAt: now };
+    await db.profiles.put(next);
+    return next;
+  });
 }
