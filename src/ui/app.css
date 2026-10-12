@@ -235,3 +235,177 @@
     height: 150px;
   }
 }
+
+.song-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.song-card {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn.small {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  background: var(--surface);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.play {
+  height: 100vh;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-play);
+  color: var(--text);
+}
+
+.play-head {
+  height: 88px;
+  flex-shrink: 0;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid #1e232d;
+}
+
+.play-head-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 360px;
+}
+
+.play-head-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 360px;
+}
+
+.play-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.play-sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.play-stats {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.stat-value[data-tone='accent'] {
+  color: var(--accent);
+}
+
+.stat-value[data-tone='correct'] {
+  color: var(--correct);
+}
+
+.stat-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.play-progress {
+  height: 4px;
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.play-progress-bar {
+  width: 0;
+  height: 4px;
+  background: var(--accent);
+}
+
+.play-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.play-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.play-overlay {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  background: rgba(26, 31, 43, 0.94);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.play-overlay h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.play-overlay p {
+  margin: 0;
+  color: #c9cfda;
+}

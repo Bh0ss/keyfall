@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { hrefFor } from './useRoute';
 import { midi } from '../midi/engine';
 import { KEY_TO_MIDI } from '../midi/virtual';
 import { ConnectionChip } from './ConnectionChip';
@@ -86,7 +87,12 @@ export function ConnectionScreen({ virtualInput }: { virtualInput: boolean }) {
             <div className="eyebrow">Keyfall</div>
             <h1 className="title">Let&apos;s find your keyboard</h1>
           </div>
-          <ConnectionChip snapshot={snapshot} helpHref={`#${SETUP_ID}`} />
+          <div className="row">
+            <ConnectionChip snapshot={snapshot} helpHref={`#${SETUP_ID}`} />
+            <a className="btn" data-primary href={hrefFor.songs()}>
+              Play a song
+            </a>
+          </div>
         </header>
 
         <StateCard access={access} />

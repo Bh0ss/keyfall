@@ -1,3 +1,4 @@
+import { runAutoplay, type AccuracyProfile, type AutoplayResult } from './autoplay';
 import type { MidiEngine } from './engine';
 
 /** A W S E D F T G Y H U J K = C4 to C5 */
@@ -32,6 +33,8 @@ export function midiForKeyEvent(e: KeyLike): number | null {
 export interface KeyfallDebug {
   press(midi: number, velocity?: number): void;
   release(midi: number): void;
+  /** Play the open song with the given timing offsets and mistakes. Resolves when done. */
+  autoplay(profile?: AccuracyProfile): Promise<AutoplayResult>;
 }
 
 declare global {
@@ -54,6 +57,7 @@ export function installVirtualInput(engine: MidiEngine, win: Window = window): (
   win.__keyfall = {
     press: (midi, velocity = 80) => engine.press(midi, velocity),
     release: (midi) => engine.release(midi),
+    autoplay: (profile) => runAutoplay(engine, profile),
   };
   const held = new Set<number>();
   const onDown = (e: KeyboardEvent) => {
