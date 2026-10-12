@@ -129,3 +129,22 @@ Needs the piano connected (Phase 0 check passing). Use a Beginner profile you ha
    - Good: bass staff notes match the keys; the mini song plays with the left hand.
 9. Switch to an Advanced profile (avatar button on Home).
    - Good: Learn still starts at Unit 1; songs behind Units 2 to 4 stay locked until those units are passed (only songs behind Units 6 to 9 open for Advanced profiles, and none of those are bundled yet).
+
+## Phase 5: Sheet music, split view, Expert and the new songs
+
+Needs the piano connected. Use an Advanced profile (Clair de Lune and the Nocturne are open to Advanced profiles; Units 6 to 9 songs too).
+
+1. Open a song you know (Ode to Joy or Minuet in G), choose Start, and click Sheet in the top bar.
+   - Good: the score fills the screen, an amber cursor bar moves along with the song and the staff scrolls so the cursor stays about a quarter of the way in from the left. The notes under the cursor are readable from the music rest (about a metre away) and the bar numbers are visible.
+2. Play the song on the piano from the sheet. Hit most notes, miss a few on purpose.
+   - Good: notes you hit turn green as you play them; notes you miss or skip turn coral just after the cursor passes. The cursor does not drift from the notes you hear over a whole song.
+3. Click Split.
+   - Good: the score is on top and the falling notes and keyboard below; both stay in time. Reload the page: Split is remembered for your profile.
+4. Choose Expert, then Start, with Sheet or Split.
+   - Good: note names are off by default, the timing windows feel tighter than Full (about half), and the score is still readable.
+5. Clair de Lune and the Nocturne, as the sheet-view test for the Captain's wife. Open each on her Advanced profile, Full or Expert, in Sheet view.
+   - Good: she can read the score from the screen at the piano and play along without the falling notes; the cursor moves at a musical pace (Clair de Lune is set at a dotted quarter of 60, the Nocturne at a quarter of 66); the dense passages (the arpeggios in Clair de Lune, the runs and tuplets in the Nocturne) are legible. Note anything that looks wrong against her printed copy: accidental spelling can differ in Clair de Lune, Für Elise, Minuet and Greensleeves, which were converted from MIDI.
+6. Saints (Unit 4, Beginner profile): play the bridge ("Oh Lord I want to be in that number") and the ending.
+   - Good: the tune is the one you know; tell me if the bridge notes are wrong.
+7. Für Elise, Minuet in G, Greensleeves and Canon in D on the Advanced profile.
+   - Good: each plays through to the end; the tune is recognisable and the tempo is comfortable (Für Elise 72, Minuet 112, Greensleeves 96, Canon 72 quarter notes a minute); tell me which need a different tempo.

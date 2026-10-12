@@ -127,7 +127,7 @@ test.describe('Learn', () => {
     // Jingle Bells needs Unit 3 and stays locked.
     await expect(page.getByTestId('song-jingle-bells')).toHaveAttribute('data-locked', 'true');
     await page.goto('/');
-    await expect(page.getByTestId('songs-summary')).toContainText('3 of 4 unlocked');
+    await expect(page.getByTestId('songs-summary')).toContainText('3 of 11 unlocked');
 
     // And the unlocked song plays to the end.
     await page.goto('/#/play/ode-to-joy');

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { beatsToMs, msToBeats } from '../engine/clock';
 import { setCurrentPlay } from '../engine/current';
 import { labelVisible, type LabelMode } from '../engine/fade';
@@ -11,6 +11,7 @@ import { TimedSession } from '../engine/timed';
 import { WaitSession } from '../engine/wait';
 import { midi } from '../midi/engine';
 import { getSong } from '../songs/catalog';
+import type { PlayView } from '../storage/types';
 import { saveRun, type SavedRun } from '../storage/attempts';
 import { getDb } from '../storage/db';
 import { getLatency } from '../storage/latency';
@@ -22,6 +23,15 @@ import { noteName } from './keyboardLayout';
 import { profiles, useActiveProfile } from './profileStore';
 import { useMidi } from './useMidi';
 import { hrefFor, type PlayPreset } from './useRoute';
+
+// OpenSheetMusicDisplay is large: load it only when a sheet view is opened.
+const SheetView = lazy(() => import('./SheetView'));
+
+const VIEWS: { id: PlayView; label: string }[] = [
+  { id: 'falling', label: 'Falling' },
+  { id: 'sheet', label: 'Sheet' },
+  { id: 'split', label: 'Split' },
+];
 
 const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: 'wait', label: 'Wait', hint: 'The song waits for you' },
@@ -148,6 +158,11 @@ function PlayInner({
     return new TimedSession(song, { ...common, mode: setup.mode, speed: setup.speedPct / 100, latencyMs });
   }, [song, setup, bar, latencyMs]);
   const layout = useMemo(() => buildLayout(keyRangeFor(song.notes.map((n) => n.midi))), [song]);
+  const [view, setView] = useState<PlayView>(profile.settings.view ?? 'falling');
+  const chooseView = (v: PlayView) => {
+    setView(v);
+    void profiles.saveSettings(profile.id, { view: v });
+  };
   const [labelMode, setLabelMode] = useState<LabelMode>(setup.mode === 'expert' ? 'off' : profile.settings.labels);
   const labelsRef = useRef({ mode: labelMode, streaks });
   const saveRef = useRef<Promise<SavedRun> | null>(null);
@@ -331,6 +346,13 @@ function PlayInner({
           )}
         </div>
         <div className="play-head-right">
+          <div className="seg" role="group" aria-label="View">
+            {VIEWS.map((v) => (
+              <button key={v.id} type="button" data-testid={`view-${v.id}`} aria-pressed={view === v.id} onClick={() => chooseView(v.id)}>
+                {v.label}
+              </button>
+            ))}
+          </div>
           <button className="btn small" type="button" aria-pressed={labelMode !== 'off'} data-testid="toggle-labels" onClick={cycleLabels}>
             Note names: {labelMode === 'on' ? 'On' : labelMode === 'fade' ? 'Fade' : 'Off'}
           </button>
@@ -357,7 +379,14 @@ function PlayInner({
       <div className="play-progress">
         <div ref={progressRef} className="play-progress-bar" />
       </div>
-      <div className="play-stage">
+      <div className="play-stage" data-view={view}>
+        {view !== 'falling' && song.musicXml && (
+          <div className="sheet-pane">
+            <Suspense fallback={<div className="sheet-note">Loading the score...</div>}>
+              <SheetView song={song} session={session} compact={view === 'split'} />
+            </Suspense>
+          </div>
+        )}
         <canvas ref={canvasRef} className="play-canvas" data-testid="highway" aria-label="Falling notes and keyboard" />
         {timed && status === 'playing' && timed.last.seq > 0 && (
           <div key={timed.last.seq} className="grade-pop" data-testid="play-grade" data-grade={timed.last.label}>

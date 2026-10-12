@@ -1634,3 +1634,65 @@ a.unit-row:hover {
     width: auto;
   }
 }
+
+/* Sheet music view */
+.sheet {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.sheet-scroll {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.play-head-right .seg button {
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.sheet-host {
+  display: inline-block;
+  min-width: 100%;
+  padding: 12px 0;
+}
+
+.sheet-note {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.view-sheet .play-canvas {
+  visibility: hidden;
+}
+
+.play-stage[data-view='split'] .sheet-pane {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 42%;
+  border-bottom: 1px solid var(--border);
+}
+
+.play-stage[data-view='split'] .play-canvas {
+  top: 42%;
+  height: 58%;
+}
+
+.play-stage[data-view='sheet'] .sheet-pane {
+  position: absolute;
+  inset: 0;
+}
+
+.play-stage[data-view='sheet'] .play-canvas {
+  visibility: hidden;
+}

@@ -240,3 +240,53 @@ New e2e: Learn entry points and unit states; Unit 1 passed with `__keyfall.press
 - Mid-run quitting keeps review-queue changes but loses the half-finished run (no resume).
 - Black keys, accidentals and rests are not drawn by the staff helpers (not needed until Unit 7).
 - `?debug=1` is needed to drive Learn from tests in a production build, as for Play.
+
+## Phase 5: Sheet music and songs
+
+### Built
+
+- Sheet view (`src/ui/SheetView.tsx`, `src/ui/sheetSync.ts`): OpenSheetMusicDisplay renders the song's MusicXML as one long line of music on the dark surface (light ink). A cursor (amber bar) steps through the score with the song clock, the line scrolls so the cursor sits a quarter of the way in (eased between cursor stops), and each note turns green (#6FE3A8) when hit and coral (#FF6B5A) when missed (set on the note's SVG group, `data-tone="hit|miss"`). Drawn notes are paired with song notes by start time and pitch; a loop wrap or retry clears the colours. Measure numbers are drawn. OSMD is lazy-loaded (`React.lazy`, own chunk) like VexFlow.
+- Views on Play: a Falling / Sheet / Split control in the header (`view-falling`, `view-sheet`, `view-split`). Split puts the score above the highway and keyboard. The choice is remembered per profile (`settings.view`, optional field, no schema change). Expert is unchanged from Phase 2 (tight windows, labels off by default) and has the sheet view like every mode.
+- Songs: the other seven bundled songs plus the Captain's Nocturne (11 files in `src/songs/`, catalog entries with levels and unlocks as in the spec table: Saints Unit 4, Minuet Unit 6, Greensleeves Unit 7, Für Elise Unit 8, Canon Unit 9, Clair de Lune and the Nocturne `advanced`). Units 6 to 9 songs open for Advanced profiles through the existing rule. Saints has finger numbers on every note. Repeats are written out. `src/songs/NOTICE.md` records provenance and the one non-PD-licensed file.
+- Home song count now reads "of 11".
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm test` | exit 0, 25 files, 404 tests |
+| `npm run build` | exit 0, main JS 1,335.39 kB (133.86 kB gzip), lazy SheetView chunk 1,371.17 kB (355.35 kB gzip), lazy Learn chunk 1,143.49 kB |
+| `npm run test:e2e` | exit 0, 75 tests (49 existing, 26 new in `e2e/songs.spec.ts`), 6.1 min |
+
+New unit tests (`tests/bundled-songs.test.ts`, 19 tests): the catalog lists 11 songs with the right levels, hands and unlocks; every file has sane notes (21-108, positive lengths, no same-hand same-pitch overlap, finite end); levels 1 to 3 have fingers on every note; the Minuet repeats are written out (bars 1 and 17, 33 and 49 match, 64 bars); Nocturne bar 57 hands and its 1080 scored notes; Advanced and Beginner unlock rules for the new songs; loader fixtures for triplets, two voices on one staff, and a tied chord across a bar line.
+
+New e2e (`e2e/songs.spec.ts`): all 11 songs autoplayed to the end in Full mode at 100% accuracy (hits equal total notes, accuracy "100.0%", presses equal notes; the Clair de Lune and Nocturne runs take about 3.5 minutes each, in parallel workers); sheet view for each of the 11 (OSMD SVG present, `data-measures` equals the bars in the MusicXML, mapped notes above 20, cursor visible); hit and miss colouring (green count equals hits, coral count equals misses, fill colours are the token values) with the cursor moving; split view layout and per-profile memory across a reload; Expert (labels off, sheet view); unlock rules for the new songs (Advanced vs Beginner).
+
+How songs were unlocked in e2e: an Advanced profile with Units 2, 3 and 4 recorded as passed (learnProgress rows written into IndexedDB, since Units 2 to 4 are not covered by the Advanced override); Units 6 to 9 songs, Clair de Lune and the Nocturne open by rule.
+
+### Decisions
+
+- **Sources: converted from public-domain Mutopia Project files, not written from memory.** Subagent arrangements written from memory proved unreliable (Clair de Lune came back as an invention, Minuet and Für Elise had guessed sections), so Clair de Lune (Keith OHara typesetting of E. Fromont 1905), Minuet in G (Mutopia anna-magdalena-04, Bach-Gesellschaft edition), Für Elise (Mutopia fur_Elise_WoO59, Breitkopf 1888) and Greensleeves (Mutopia GreensleevesAcc, the 3/4 accordion arrangement; its bass is oom-pah chords) were converted from the MIDI exports of those PD typesettings with a scratch script (positions on a 32nd grid, bars from the MIDI time signature, hand = track, up to two voices per hand, ties across bars, pitch spelled from the key signature). Scratch only, not in the repo. Consequences: note names and rhythms are the real piece; accidental spelling can differ from the printed score (for example Gb vs F#), tuplets are written as dotted values, ornaments and clef changes are not shown, and the left-hand staff always uses the bass clef (Clair de Lune bar 1 sits high on it).
+- **Clair de Lune:** all 72 bars, 9/8, key D-flat then C-sharp minor then D-flat as in the source, tempo set to quarter = 90 (dotted quarter 60; the MIDI said 60 quarters). About 3.6 minutes.
+- **Für Elise (opening):** bars 1 to 61 of the unfolded MIDI (A theme with its repeats and the first return, the F major / C major episode, the retransition and the A theme again), plus a closing bar (A4 over A2+A3). 62 bars, 3/8, tempo 72 (quarter notes, source marking), bar 1 holds the pickup after a rest. Bars 25 and 29 carry small ornaments that snapped to the 32nd grid.
+- **Minuet in G:** A, A, B, B written out, 64 bars, 3/4, tempo 112.
+- **Saints and Canon in D are my own arrangements** (traditional tune; the Canon is a piano reduction of the ground with eight RH variations, 33 bars, tempo 72), as the spec says. Saints: 14 bars, fingers on every note, left hand C3 to G3. The bridge melody ("Oh Lord I want to be in that number") is from memory and worth a check at the piano; the Canon variations 2 to 8 are idiomatic patterns over the real ground, not Pachelbel's exact violin lines.
+- **11th song, a requested addition beyond the spec's list of ten (CLAUDE.md unchanged): Chopin, Nocturne in E minor, Op. 72 No. 1 (posth.), full, 57 bars, 4/4, tempo 66, Expert, both hands, `unlockedBy: 'advanced'` (same rule as Clair de Lune), id `chopin-nocturne-op72-1`.** Encoded by another agent from the PD Joseffy / G. Schirmer 1915 edition scan (IMSLP / Wikimedia Commons, PD) with pitches, rhythms and ornaments verified against and in places taken from the Mutopia Project typesetting by Benjamin Esham, **licensed CC BY-SA 4.0** (https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=509). This one file is therefore a CC BY-SA 4.0 adaptation (attribution in the file's `<rights>` and `src/songs/NOTICE.md`; the licence applies to that file, separate from the app code). Full source notes are in `/tmp/normandy-keyfall/shared/nocturne/SOURCE.md` (scratch). Bar 57 had the final E2 on the right-hand staff as engraved; the staves were swapped so E2 is left hand and the E3-G#3-E4 chord is right hand (checked with the loader in a unit test and validated against the MusicXML DTD). The 19 grace notes are displayed in the sheet view but not scored (the loader skips them); 1080 notes are scored. Bar 17 has one engraved unison between the hands (F#4 held in the right hand, re-struck in the left).
+- **Loader unchanged.** Grace notes, ties, chords and multiple voices were already handled; new unit tests cover triplets, voices and ties across bars. Bars are still assumed to start at beat 0 with no pickup, so pickups are written as rests plus the pickup notes in bar 1.
+- **Sheet geometry:** single horizontal line (`renderSingleHorizontalStaffline`), zoom 1.3 in sheet view and 0.8 in split. Light ink on the dark surface so the specified green and coral read clearly.
+- **Wait-mode and loop** drive the sheet through the same session (`beatAt`, `isHit`, `isMissed`).
+- **Song data is bundled in the main chunk** (about 1 MB of MusicXML as text), so the main JS grew from 382 kB to 1.3 MB (134 kB gzip).
+
+### Adapted tests (assertions unchanged unless noted)
+
+- `e2e/profiles.spec.ts` Home test and `e2e/learn.spec.ts` "Ode to Joy unlocks only after Unit 2": the song count text changed from "2 of 4 unlocked" / "3 of 4 unlocked" to "of 11" because the catalog has 11 songs now; same expectations otherwise.
+- Note: when the whole e2e suite ran under load, up to four Learn tests (which answer 20 prompts in a row) timed out; the same tests also fail on the Phase 4 commit in that situation (checked with the work stashed), and each passes when run alone. The final full run passed all 75.
+
+### Deferred
+
+- Sheet view colours only the first note of a tied chain (continuations have no partner) and does not light wrong-key presses.
+- Pitch spelling, clefs and ornaments of the converted songs follow the MIDI, not the printed score (see Decisions). Fingers only for levels 1 to 3.
+- Lazy-loading the song data to shrink the main chunk.
+- The Nocturne's CC BY-SA 4.0 status: keep with attribution (as ruled), or re-derive from the scan alone.

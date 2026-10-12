@@ -11,6 +11,8 @@ export interface Stamped {
   updatedAt: number;
 }
 
+export type PlayView = 'falling' | 'sheet' | 'split';
+
 export type PlayerLevel = 'beginner' | 'advanced';
 
 export interface ProfileSettings {
@@ -19,6 +21,8 @@ export interface ProfileSettings {
   speedPct: number;
   metronome: boolean;
   countIn: boolean;
+  /** Play view: falling notes (default), sheet music, or both. */
+  view?: PlayView;
 }
 
 export interface Profile extends Stamped {
