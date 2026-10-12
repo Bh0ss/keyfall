@@ -1,3 +1,4 @@
+import { nextUnit, unlockHint } from '../learn/unlocks';
 import { upNext, points, stars } from '../engine/results';
 import { getSongs } from '../songs/catalog';
 import { getDb } from '../storage/db';
@@ -9,6 +10,7 @@ import { Avatar } from './ProfilePicker';
 import { profiles, useActiveProfile } from './profileStore';
 import { useAsync } from './useAsync';
 import { useMidi } from './useMidi';
+import { useUnlocks } from './useUnlocks';
 import { hrefFor } from './useRoute';
 
 const HANDS = { right: 'Right hand', left: 'Left hand', both: 'Both hands' } as const;
@@ -31,10 +33,13 @@ export function HomeScreen() {
     return { best: bestPerSong(scores), lastSongId: attempts[attempts.length - 1]?.songId };
   }, profile.id);
 
+  const unlocks = useUnlocks();
+  const open = unlocks ? songs.filter((s) => unlocks.isUnlocked(s)) : songs.filter((s) => !s.unlockedBy);
+  const learnNext = unlocks ? nextUnit(unlocks.passed) : null;
   const best = data?.best;
   const bestStars = new Map([...(best ?? [])].map(([id, s]) => [id, s.stars]));
-  const nextId = upNext(songs.map((s) => s.id), bestStars, data?.lastSongId);
-  const next = songs.find((s) => s.id === nextId) ?? songs[0]!;
+  const nextId = upNext(open.map((s) => s.id), bestStars, data?.lastSongId);
+  const next = open.find((s) => s.id === nextId) ?? open[0]!;
   const nextBest = best?.get(next.id);
   const totalStars = [...bestStars.values()].reduce((a, b) => a + b, 0);
   const { mode, speedPct } = profile.settings;
@@ -87,11 +92,27 @@ export function HomeScreen() {
           </div>
           <div className="tile" data-tone="learn" data-testid="learn-tile">
             <div className="label label-learn">Continue · Learn</div>
-            <div className="tile-title">Learn is on its way</div>
-            <p className="tile-text">Lessons that teach you to read music arrive in a coming update. Songs and scoring work today.</p>
-            <span className="btn big btn-learn" aria-disabled="true">
-              Coming soon
-            </span>
+            {learnNext ? (
+              <>
+                <div className="tile-title" data-testid="learn-tile-title">
+                  Unit {learnNext.number} · {learnNext.name}
+                </div>
+                <p className="tile-text">{learnNext.blurb}</p>
+                <a className="btn big btn-learn" href={hrefFor.learn(learnNext.id)} data-testid="learn-continue">
+                  Continue
+                </a>
+              </>
+            ) : (
+              <>
+                <div className="tile-title" data-testid="learn-tile-title">
+                  {unlocks ? 'Units 1 to 5 done' : 'Learn'}
+                </div>
+                <p className="tile-text">{unlocks ? 'More units are on the way. Replay any unit from the Learn path.' : 'Loading your progress.'}</p>
+                <a className="btn big btn-learn" href={hrefFor.learn()}>
+                  Learn path
+                </a>
+              </>
+            )}
           </div>
         </section>
 
@@ -99,12 +120,28 @@ export function HomeScreen() {
           <div className="section-head">
             <h2>Songs</h2>
             <div className="muted small-text" data-testid="songs-summary">
-              {songs.length} of {songs.length} unlocked · {totalStars} {totalStars === 1 ? 'star' : 'stars'} earned
+              {open.length} of {songs.length} unlocked · {totalStars} {totalStars === 1 ? 'star' : 'stars'} earned
             </div>
           </div>
           <ul className="song-tiles" aria-label="Songs">
             {songs.map((s) => {
               const b = best?.get(s.id);
+              const locked = !!unlocks && !unlocks.isUnlocked(s);
+              if (locked) {
+                return (
+                  <li key={s.id}>
+                    <div className="song-tile" aria-disabled="true" data-locked="true" data-testid={`home-song-${s.id}`}>
+                      <span>
+                        <strong>{s.title}</strong>
+                        <small>{unlockHint(s)}</small>
+                      </span>
+                      <span className="song-stars" aria-label="Locked">
+                        Locked
+                      </span>
+                    </div>
+                  </li>
+                );
+              }
               return (
                 <li key={s.id}>
                   <a className="song-tile" href={hrefFor.play(s.id)} data-testid={`home-song-${s.id}`}>

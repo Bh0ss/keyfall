@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { ConnectionScreen } from './ui/ConnectionScreen';
 import { HomeScreen } from './ui/HomeScreen';
 import { PlayScreen } from './ui/PlayScreen';
@@ -9,13 +9,22 @@ import { SongPicker } from './ui/SongPicker';
 import { StatsScreen } from './ui/StatsScreen';
 import { initProfiles, useProfiles } from './ui/profileStore';
 import { useRoute } from './ui/useRoute';
+import { SongGate } from './ui/SongGate';
 import { virtualInputEnabled } from './midi/virtual';
+
+const LearnRoutes = lazy(() => import('./ui/learn/LearnRoutes'));
 
 function Routes() {
   const route = useRoute();
   switch (route.name) {
     case 'songs':
       return <SongPicker />;
+    case 'learn':
+      return (
+        <Suspense fallback={<div className="shell" data-testid="learn-loading" />}>
+          <LearnRoutes unitId={route.unitId} lessonId={route.lessonId} />
+        </Suspense>
+      );
     case 'stats':
       return <StatsScreen />;
     case 'settings':
@@ -23,7 +32,11 @@ function Routes() {
     case 'results':
       return <ResultsScreen attemptId={route.attemptId} />;
     case 'play':
-      return <PlayScreen songId={route.songId} preset={route.preset} />;
+      return (
+        <SongGate songId={route.songId}>
+          <PlayScreen songId={route.songId} preset={route.preset} />
+        </SongGate>
+      );
     case 'keyboard':
       return <ConnectionScreen virtualInput={virtualInputEnabled(import.meta.env.DEV, window.location.search)} />;
     default:

@@ -106,3 +106,26 @@ Needs the piano connected. Run `npm run dev` and open http://localhost:5173/keyf
    - Good: labels on notes you have mastered disappear first; a mistake on a note brings its label back.
 10. Run the latency check once (Settings in the left rail), then reload the page.
    - Good: the saved offset is still there (it is now stored in the browser database rather than the old setting).
+
+## Phase 4: Learn on the FP-30X
+
+Needs the piano connected (Phase 0 check passing). Use a Beginner profile you have not used for Learn yet (a new profile starts at Unit 1).
+
+1. Open http://localhost:5173/keyfall/ and pick the profile. On Home, the Learn tile reads "Unit 1 · Keyboard map". Click Continue.
+   - Good: the Learn path lists ten units; 1 is open, 2 to 5 say Locked, 6 to 10 say Coming soon.
+2. Unit 1: click Start on "Find the key". A key name (like E4) appears with a hint about the black keys. Press that white key on the piano.
+   - Good: the key on screen turns green, "Correct" shows, and the next key name appears after a moment. A wrong key turns red, shows the right one, and waits for Next.
+3. Click "Take the test" and answer 20 prompts. Keyboard labels are hidden here.
+   - Good: 18 or more right shows "Unit 1 passed"; 17 or fewer shows "Not quite yet" and the unit stays open. Missed notes appear under "Needs review" and come up more often.
+4. Unit 2: put your right thumb on middle C (finger 1) and fingers 2 to 5 on D to G. Do "Find the key" (the finger number is shown) and "Note flash" (a note on the staff).
+   - Good: the staff note matches the key you press; the on-screen keyboard marks it.
+5. Unit 2 optional lessons: "Rhythm tap" (4 clicks count you in, then tap middle C on each dot) and "Mini song: Hot Cross Buns" (press the notes in order, finger numbers under each note).
+   - Good: rhythm tap says how many taps landed on the beat (it allows 200 ms); the mini song only advances on the right key and counts wrong keys.
+6. Take the Unit 2 test and pass it.
+   - Good: the result says "Unlocked: Ode to Joy". Open Play, Pick a song: Ode to Joy is playable. Jingle Bells still says "Pass Unit 3 · Treble staff to unlock".
+7. Unit 3 (treble staff) and Unit 5 (bass staff): do the note flash, read the Memory trick card, then the unit test.
+   - Good: treble notes sit on the right line or space; after Unit 3 Jingle Bells unlocks.
+8. Unit 4 (bass clef position): put your left little finger on the C below middle C (finger 5 on C, thumb on G). Do Find the key, Note flash and the mini song "Au Clair de la Lune".
+   - Good: bass staff notes match the keys; the mini song plays with the left hand.
+9. Switch to an Advanced profile (avatar button on Home).
+   - Good: Learn still starts at Unit 1; songs behind Units 2 to 4 stay locked until those units are passed (only songs behind Units 6 to 9 open for Advanced profiles, and none of those are bundled yet).

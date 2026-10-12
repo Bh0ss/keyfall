@@ -188,3 +188,55 @@ New unit tests: repositories (profiles, high-score max rule, note stats, latency
 - Hand picker UI, sheet view, phone layout (unchanged).
 - A looped session never finishes, so Practice my mistakes runs are not recorded as attempts.
 - Deleting a profile.
+
+## Phase 4: Learn
+
+### Built
+
+- Learn logic (`src/learn/`, pure, no React or storage imports except one type): `units.ts` (ten units as data: 1 to 5 playable, 6 to 10 `comingSoon`; taught notes, finger numbers, mnemonics, lessons, mini songs, rhythm pattern), `pass.ts` (90% over 20 prompts, integer maths so 18 of 20 passes), `review.ts` (queue entry rules, 3 right in a row to leave, weights), `generate.ts` (weighted prompt picker), `run.ts` (`LearnRun` for key finder and note flash, `MiniSongRun`), `rhythm.ts` (tap judge), `staff.ts` (VexFlow key names, clef, "2nd line" wording), `unlocks.ts` (song unlock rule incl. Advanced override, unit status, next unit).
+- Storage: Dexie schema version 2 adds `learnProgress` (per profile and unit: passed, passedAt, best result, attempts, finished practice lessons) and `reviewQueue` (per profile and pitch: streak, misses, active). Rows have stable string ids (`profileId:unitId`, `profileId:midi`) and `updatedAt`; cleared review notes stay as `active: false` rows so Phase 8 sync sees the change. Version 1 tables are untouched. Repository: `src/storage/learn.ts`.
+- Screens (`src/ui/learn/`, code-split with `React.lazy` because VexFlow is large): Learn path column from the canvas (all ten units with state), unit detail (blurb, what it unlocks, Memory trick card, lessons, best result), lesson runner for key finder and note flash (prompt count, accuracy, streak, progress bar, cream prompt card with a VexFlow staff or a big key name, short on-screen keyboard that turns green, red or amber, "Needs review" card, Show the answer), mini song runner (whole song on a staff with finger numbers, next note highlighted), rhythm tap runner (4-click count-in, dots, tapped with the key), pass, fail and done screens. The rail Learn item and the Home Learn tile are live (tile shows the next unit).
+- Units: 1 Keyboard map (key finder), 2 Middle C position (key finder, note flash, rhythm tap, mini song "Hot Cross Buns"), 3 Treble staff (note flash, mnemonics), 4 Bass clef position (key finder, note flash, mini song "Au Clair de la Lune", left hand), 5 Bass staff (note flash, mnemonics). Each has a 20-prompt unit test; passing it passes the unit. Units open in order.
+- Unlocks: songs carry `unlockedBy` (a unit id). Home, the song list and a direct `#/play/<id>` link all honour it (`SongGate`); locked songs show "Pass Unit N · name to unlock".
+- Catalog: Ode to Joy (Unit 2) and Jingle Bells (Unit 3) added now (see Decisions); each 16 bars, right hand, C position, finger numbers on every note.
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm test` | exit 0, 24 files, 385 tests |
+| `npm run build` | exit 0, main JS 381.96 kB, lazy Learn chunk 1,143.49 kB (696.97 kB gzip) |
+| `npm run test:e2e` | exit 0, 49 tests (41 existing, 8 new in `e2e/learn.spec.ts`) |
+
+New unit tests (`tests/learn-rules.test.ts`, `learn-run.test.ts`, `learn-storage.test.ts`, `learn-staff.test.ts`, plus Ode and Jingle in `musicxml.test.ts`): pass threshold (20 of 20, 18 of 20 pass; 17 of 20 and runs shorter than 20 fail), review queue (miss enters, 3 right in a row leaves, a miss mid-way resets, re-entry, weights fall as the streak builds), prompt weighting (a queued note appears more than 1.8x as often as before, a cleared one back to normal), unlock rules (open songs, unit-gated, Advanced override only for Units 6 to 9, `advanced` sentinel), unit order and next unit, generators only use taught notes (every prompt lesson of Units 1 to 5, 300 prompts each, every taught note shows up, never the same note twice in a row, earlier-unit review notes allowed, untaught ones never), `LearnRun` and `MiniSongRun` behaviour, mini songs use only taught notes and run 4 to 8 bars, rhythm judge, staff positions, Dexie repositories on fake-indexeddb.
+
+New e2e: Learn entry points and unit states; Unit 1 passed with `__keyfall.press` answering from the target on screen (20 of 20 stored in IndexedDB); 17 of 20 fails and does not pass the unit, 18 of 20 passes; a miss writes the review queue; **Ode to Joy locked on Home, song list and direct link, still locked after Unit 1 only, unlocked after Unit 2 (Jingle Bells still locked), and the unlocked song autoplays to the end**; Advanced profile keeps Unit 2 songs locked; Unit 3 note flash draws a VexFlow staff, Unit 3 passes and unlocks Jingle Bells, Unit 4 draws a bass staff; mini song and rhythm tap play through.
+
+### Decisions
+
+- **Catalog entries instead of flagged stubs.** Ode to Joy and Jingle Bells are real bundled songs now (Beethoven and Pierpont, public domain, arranged by me in MusicXML with fingers), so the unlock is proven end to end including playing the song. Jingle Bells is a simplified two-section arrangement (chorus tune). Saints (Unit 4) and the Unit 6 to 9 songs stay for Phase 5; the unlock rule already covers them through `unlockedBy`.
+- **Advanced override is literal:** only songs behind Units 6 to 9 open for Advanced profiles, as CLAUDE.md says; songs behind Units 2 to 4 still need those units. It is one set in `src/learn/unlocks.ts` if you want Advanced to skip those too. The sentinel `unlockedBy: 'advanced'` is supported for Clair de Lune in Phase 5.
+- **Unit pass = one 20-prompt unit test** that mixes the unit's prompt kinds. Other lessons are practice (10 or 15 prompts, no pass state, keyboard labels shown). The test hides the key labels so it is a real test. Practice lessons still feed the review queue.
+- **Rhythm tap is wired as an optional Unit 2 lesson** (CLAUDE.md puts rhythm in Unit 6, which is "coming soon"); without that the lesson type would have been unreachable. Taps match within 200 ms of the click as heard (output latency added); 6 of 8 counts as done. Mini songs are optional too. Optional lessons never gate a unit.
+- **Review queue weighting:** a note in the pool weighs 1; queued notes add 2 x (3 minus current streak), so 7, 5, 3 then back to 1 after the third right answer. Queued notes from earlier units (already taught) can appear in later units' prompts; untaught notes never do. The same note never comes twice in a row. Review writes happen after every answer; unit progress at the end of a run.
+- **Units go in order**; Unit 1 is always open. A direct link to a locked unit shows "Locked".
+- **One attempt per prompt:** the first key decides. A wrong key (or Show the answer) counts as a miss and waits for Next or Enter; a right key advances after 400 ms.
+- **Mini songs** are played note by note in order (no timing), shown on a staff with VexFlow; they do not use the falling-notes engine.
+- **VexFlow 5** (`vexflow` dependency) in a lazy chunk (about 1.1 MB, mostly bundled music fonts), loaded only on Learn screens.
+- **Debug aid:** `data-target-midi` on the prompt card (and `data-tap-times` on rhythm tap) is rendered only when the virtual input is enabled (dev or `?debug=1`).
+- **Staff notes** use the clef by pitch: middle C and up treble, below bass.
+
+### Adapted tests (assertions unchanged unless noted)
+
+- `tests/musicxml.test.ts` "lists Mary and Twinkle...": filters the catalog to songs with no `unlockedBy` first (the catalog now also holds the two gated songs); same expectations on those two. A new test covers Ode to Joy and Jingle Bells.
+- `e2e/profiles.spec.ts` Home test: the Learn tile no longer says "Coming soon" (asserts "Unit 1"), and the songs summary reads "2 of 4 unlocked" instead of "2 of 2" (the Home placeholders from Phase 3 became the real feature).
+
+### Deferred
+
+- Units 6 to 10 content (data and "coming soon" only). Saints and the remaining bundled songs: Phase 5.
+- Learn progress sync with Supabase (rows are ready): Phase 8. XP and badges for Learn: Phase 9.
+- Mid-run quitting keeps review-queue changes but loses the half-finished run (no resume).
+- Black keys, accidentals and rests are not drawn by the staff helpers (not needed until Unit 7).
+- `?debug=1` is needed to drive Learn from tests in a production build, as for Play.

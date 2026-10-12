@@ -97,7 +97,7 @@ describe('bundled songs', () => {
   const pitches = (id: string) => getSong(id)!.notes.map((n) => n.midi);
 
   it('lists Mary and Twinkle, open from the start, level 1, right hand', () => {
-    const songs = getSongs();
+    const songs = getSongs().filter((s) => !s.unlockedBy);
     expect(songs.map((s) => s.id)).toEqual(['mary-had-a-little-lamb', 'twinkle-twinkle-little-star']);
     for (const s of songs) {
       expect(s.level).toBe(1);
@@ -105,6 +105,20 @@ describe('bundled songs', () => {
       expect(s.unlockedBy).toBeUndefined();
       expect(s.source).toBe('bundled');
       expect(s.composer).toBe('Traditional');
+    }
+  });
+
+  it('Ode to Joy (Unit 2) and Jingle Bells (Unit 3): level 2, right hand C position, fingers on every note', () => {
+    const ode = getSong('ode-to-joy')!;
+    const jingle = getSong('jingle-bells')!;
+    expect(ode).toMatchObject({ level: 2, hands: 'right', composer: 'Beethoven', unlockedBy: 'unit-2' });
+    expect(jingle).toMatchObject({ level: 2, hands: 'right', composer: 'Pierpont', unlockedBy: 'unit-3' });
+    expect(pitches('ode-to-joy').slice(0, 15)).toEqual([64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 64, 62, 62]);
+    expect(Math.max(...ode.notes.map((n) => n.measure))).toBe(16);
+    expect(Math.max(...jingle.notes.map((n) => n.measure))).toBe(16);
+    for (const s of [ode, jingle]) {
+      expect(s.notes.every((n) => n.finger !== undefined)).toBe(true);
+      expect(s.notes.every((n) => n.midi >= 60 && n.midi <= 67)).toBe(true);
     }
   });
 

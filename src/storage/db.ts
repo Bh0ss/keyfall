@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { AttemptRecord, LatencyRecord, MetaRecord, NoteStatRecord, Profile, ScoreRecord } from './types';
+import type { AttemptRecord, LatencyRecord, LearnProgressRecord, MetaRecord, NoteStatRecord, Profile, ReviewRecord, ScoreRecord } from './types';
 
 export class KeyfallDb extends Dexie {
   profiles!: Table<Profile, string>;
@@ -8,6 +8,8 @@ export class KeyfallDb extends Dexie {
   noteStats!: Table<NoteStatRecord, string>;
   latency!: Table<LatencyRecord, string>;
   meta!: Table<MetaRecord, string>;
+  learnProgress!: Table<LearnProgressRecord, string>;
+  reviewQueue!: Table<ReviewRecord, string>;
 
   constructor(name = 'keyfall') {
     super(name);
@@ -18,6 +20,11 @@ export class KeyfallDb extends Dexie {
       noteStats: 'id, profileId, updatedAt',
       latency: 'id, updatedAt',
       meta: 'key',
+    });
+    // Version 2 adds Learn. The version 1 tables are unchanged.
+    this.version(2).stores({
+      learnProgress: 'id, profileId, unitId, updatedAt',
+      reviewQueue: 'id, profileId, updatedAt',
     });
   }
 }

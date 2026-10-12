@@ -208,14 +208,14 @@ test.describe('profile picker, Home and settings per profile', () => {
     await second.close();
   });
 
-  test('Home: connection chip, up-next, Learn placeholder, avatar switches profile', async ({ page }) => {
+  test('Home: connection chip, up-next, Learn tile, avatar switches profile', async ({ page }) => {
     await page.goto('/');
     await createProfile(page, 'Alex');
     await expect(page.getByTestId('connection-chip')).toBeVisible();
     await expect(page.getByTestId('up-next-title')).toHaveText('Mary Had a Little Lamb');
     await expect(page.getByTestId('up-next-best')).toHaveText('Not played yet');
-    await expect(page.getByTestId('learn-tile')).toContainText('Coming soon');
-    await expect(page.getByTestId('songs-summary')).toContainText('2 of 2 unlocked');
+    await expect(page.getByTestId('learn-tile')).toContainText('Unit 1');
+    await expect(page.getByTestId('songs-summary')).toContainText('2 of 4 unlocked');
     await expect(page.getByTestId('play-next')).toHaveText(/Play · Wait/);
     await page.getByTestId('play-next').click();
     await expect(page.getByTestId('play-ready')).toBeVisible();

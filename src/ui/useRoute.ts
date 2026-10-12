@@ -13,6 +13,7 @@ export type Route =
   | { name: 'home' }
   | { name: 'keyboard' }
   | { name: 'songs' }
+  | { name: 'learn'; unitId?: string; lessonId?: string }
   | { name: 'stats' }
   | { name: 'settings' }
   | { name: 'results'; attemptId: string }
@@ -29,6 +30,8 @@ export function parseRoute(hash: string): Route {
   const [pathPart = '', query = ''] = hash.replace(/^#\/?/, '').split('?');
   const path = pathPart;
   if (path === 'songs') return { name: 'songs' };
+  const learn = /^learn(?:\/([^/]+)(?:\/([^/]+))?)?$/.exec(path);
+  if (learn) return { name: 'learn', unitId: learn[1] && decodeURIComponent(learn[1]), lessonId: learn[2] && decodeURIComponent(learn[2]) };
   if (path === 'stats') return { name: 'stats' };
   if (path === 'settings') return { name: 'settings' };
   // "#setup" is the in-page anchor to the setup steps on the keyboard screen.
@@ -54,6 +57,8 @@ export const hrefFor = {
   home: () => '#/',
   keyboard: () => '#/keyboard',
   songs: () => '#/songs',
+  learn: (unitId?: string, lessonId?: string) =>
+    `#/learn${unitId ? `/${encodeURIComponent(unitId)}` : ''}${unitId && lessonId ? `/${encodeURIComponent(lessonId)}` : ''}`,
   stats: () => '#/stats',
   settings: () => '#/settings',
   results: (attemptId: string) => `#/results/${encodeURIComponent(attemptId)}`,

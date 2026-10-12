@@ -82,6 +82,30 @@ export interface LatencyRecord extends Stamped {
   offsetMs: number;
 }
 
+/** A profile's progress through one Learn unit. `id` is `${profileId}:${unitId}`. */
+export interface LearnProgressRecord extends Stamped {
+  profileId: string;
+  unitId: string;
+  passed: boolean;
+  passedAt: number | null;
+  /** Best unit-test result so far. */
+  bestCorrect: number;
+  bestTotal: number;
+  /** Unit-test runs taken. */
+  attempts: number;
+  /** Ids of finished practice lessons. */
+  lessonsDone: string[];
+}
+
+/** A missed note in a profile's review queue. `id` is `${profileId}:${midi}`; kept after it clears so sync can see the change. */
+export interface ReviewRecord extends Stamped {
+  profileId: string;
+  midi: number;
+  streak: number;
+  misses: number;
+  active: boolean;
+}
+
 export interface MetaRecord {
   key: string;
   value: unknown;

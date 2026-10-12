@@ -31,13 +31,13 @@ function Icon({ item }: { item: RailItem }) {
 
 const ITEMS: { id: RailItem; label: string; href: string | null }[] = [
   { id: 'home', label: 'Home', href: hrefFor.home() },
-  { id: 'learn', label: 'Learn', href: null },
+  { id: 'learn', label: 'Learn', href: hrefFor.learn() },
   { id: 'play', label: 'Play', href: hrefFor.songs() },
   { id: 'stats', label: 'Stats', href: hrefFor.stats() },
   { id: 'settings', label: 'Settings', href: hrefFor.settings() },
 ];
 
-/** Left navigation rail from the canvas, around a screen. Learn is a placeholder until it is built. */
+/** Left navigation rail from the canvas, around a screen. */
 export function AppLayout({ active, children }: { active: RailItem; children: ReactNode }) {
   return (
     <div className="frame">
