@@ -37,7 +37,7 @@ test.describe('Learn', () => {
   });
 
   test('rail and Home lead into Learn; units 2 to 10 are locked at the start; unit 2 is locked', async ({ page }) => {
-    await gotoApp(page, '/');
+    await gotoApp(page, './?debug=1');
     await expect(page.getByTestId('rail-learn')).toHaveAttribute('href', '#/learn');
     await page.getByTestId('learn-continue').click();
     await expect(page.getByTestId('unit-title')).toHaveText('Keyboard map');
@@ -102,7 +102,7 @@ test.describe('Learn', () => {
   });
 
   test('Ode to Joy unlocks only after Unit 2', async ({ page }) => {
-    await gotoApp(page, '/');
+    await gotoApp(page, './?debug=1');
     // Locked at the start: Home, song list and a direct link.
     await expect(page.getByTestId('home-song-ode-to-joy')).toHaveAttribute('data-locked', 'true');
     await page.goto('./?debug=1#/songs');

@@ -609,6 +609,8 @@ Kasumi's Phase 8 lows (Content-Security-Policy, server limits migration) and a w
 - **Whole suite runs against any base URL**: every spec uses base-relative URLs with `?debug=1` (`./?debug=1#/songs`), the file-read oracles (Mary's MusicXML, bar counts) read the repo file instead of fetching `src/` from the server, the permission origin comes from `ORIGIN` in `e2e/helpers.ts` (same rules as `playwright.config.ts`), `isolateMidi` is unchanged and still used where it was.
 - **CSP guard in every e2e test** (`e2e/fixtures.ts`): an automatic fixture wraps `test`, collecting the browser's CSP console reports and `securitypolicyviolation` events for the test's context and failing the test on any. `sync.spec.ts` also watches the extra contexts it opens. It is a no-op against the dev server and a hard check on `vite preview` and the live site. Proven to fire with a throwaway probe (a blocked fetch to another host was reported).
 - **Scripts**: `npm run test:e2e:live` now runs every project and spec (was phone and iPad only); new `npm run test:e2e:preview` (`KEYFALL_PREVIEW=1 playwright test`, needs `npm run build` first).
+- **Live-run harness fixes** (the first live run was 256 passed, 3 failed, all test defects, no app bug): `learn.spec.ts` two tests opened `gotoApp(page, '/')`, an absolute path that resolves to the host root on Pages (404); both now use `./?debug=1`. `import.spec.ts` "nothing was fetched from the network" classified requests as external by `hostname !== 'localhost'`, which flags the app's own assets on the live host; it now compares `u.origin !== ORIGIN` (the base URL's origin from `helpers.ts`), so same-origin app files are allowed and any other origin still fails the assertion (same strictness, correct base). A grep of all specs and helpers found no other absolute-path navigation.
+- **Learn Units 2 to 5 full-pass e2e** (`e2e/learn-units-2-5.spec.ts`, 4 tests, `isolateMidi` in each): earlier units seeded as passed, the unit's 20-prompt test passed through its own screens with `__keyfall.press` (or the choice buttons) answering every prompt, `learnProgress` asserted passed 20/20, the next unit asserted open, and the unlocks checked (Ode to Joy, Jingle Bells, When the Saints Go Marching In, and the Unit 5 songs Bach Musette in D and Bach Prelude in C go from locked to open). With Unit 1 (already covered) the goal's "passing Learn units 1 to 5" is now covered on any base URL.
 - **New tests**: `tests/sync-limits.test.ts` (fake remote size cap, clamp, null `deleted_at` stays null, a clamped row does not pin later edits, mime list; the migration file matches the client constants; CSP directives) and a second `e2e/sync-rls.spec.ts` test against the real API (60 KB body fits, 70 KB refused on all 7 tables, future stamp clamped to within 5 minutes of the server clock, past stamp and null `deleted_at` untouched, a later real edit wins, octet-stream accepted, text/html, image/png, application/javascript refused).
 
 ### Checks (local, run from /Users/bhoss/code/Bh0ss/keyfall)
@@ -619,12 +621,12 @@ Kasumi's Phase 8 lows (Content-Security-Policy, server limits migration) and a w
 | `npm run lint` | exit 0 |
 | `npm test` | exit 0, 37 files, 672 tests passed |
 | `npm run build` | exit 0 |
-| `npm run test:e2e` (dev server, all 4 projects) | exit 0, 175 passed, 3 skipped (the orientation-specific iPad tests skip in the other orientation, as in Part A) |
-| `KEYFALL_PREVIEW=1 npx playwright test` (production build under `vite preview`, all 4 projects, CSP guard live) | exit 0, 175 passed, 3 skipped, 0 CSP violations |
+| `npm run test:e2e` (dev server, all 4 projects) | exit 0, 179 passed, 3 skipped (the orientation-specific iPad tests skip in the other orientation, as in Part A) |
+| `KEYFALL_PREVIEW=1 npx playwright test` (production build under `vite preview`, all 4 projects, CSP guard live) | exit 0, 179 passed, 3 skipped, 0 CSP violations |
 | `npm run lighthouse` | exit 0, accessibility 100 on Home, Play, Songs, Learn, Stats, Settings |
 | `supabase migration list` | 4 migrations, local and remote equal |
 
-**Live run (against https://bh0ss.github.io/keyfall/ after Miranda pushes): PENDING, to be filled in by the verifier.** Command: `npm run test:e2e:live` (all projects; set `KEYFALL_BASE_URL` to override the URL). Result: exit ___, ___ passed, ___ skipped, ___ failed.
+**Live run (against https://bh0ss.github.io/keyfall/ after Miranda pushes): PENDING, to be filled in by the verifier.** The first live run, before the harness fixes above, was 256 passed, 3 failed. Command: `npm run test:e2e:live` (all projects; set `KEYFALL_BASE_URL` to override the URL). Result: exit ___, ___ passed, ___ skipped, ___ failed.
 
 ### Decisions
 
@@ -641,7 +643,7 @@ Kasumi's Phase 8 lows (Content-Security-Policy, server limits migration) and a w
 - `scoring.spec.ts`, `profiles.spec.ts`: Mary's MusicXML is read from the repo file (`maryXml()`) instead of `page.request.get('/keyfall/src/songs/...')`, which only the dev server serves. `songs.spec.ts`: `barsIn` reads the repo file likewise.
 - `learn-units-6-10.spec.ts` Unit 8: the second `page.goto` to `./?debug=1#/learn/unit-8/together` became `page.reload()`. The old absolute URL differed from the app URL, so it forced a full load; the relative one is a hash-only navigation and would not start a fresh lesson.
 - `sync-rls.spec.ts`: the storage uploads now pass `contentType: 'application/octet-stream'`, because the bucket now refuses the client library's default (`text/plain`); the forged-upload case is therefore still refused for the RLS reason, not the mime type.
-- Nothing skipped, deleted or weakened.
+- `learn.spec.ts` (2 tests, `/` to `./?debug=1`) and `import.spec.ts` (1 test, origin check) fixed for the live URL as described under Built. Nothing skipped, deleted or weakened.
 
 ### Deferred
 

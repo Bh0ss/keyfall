@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import { test } from './fixtures';
 import { FIXTURE_NOTE_COUNT, MELODY, musicXml, mxl, oneTrackMidi, singleStaffMusicXml, twoTrackMidi, zipBomb } from '../tests/fixtures/generate';
-import { createProfile, gotoApp, isolateMidi, readStore, switchTo } from './helpers';
+import { createProfile, gotoApp, isolateMidi, ORIGIN, readStore, switchTo } from './helpers';
 
 test.use({ permissions: ['midi', 'midi-sysex'] });
 
@@ -255,7 +255,7 @@ test.describe('bad files get a friendly message', () => {
     const external: string[] = [];
     page.on('request', (r) => {
       const u = new URL(r.url());
-      if (u.hostname !== 'localhost') external.push(r.url());
+      if (u.origin !== ORIGIN) external.push(r.url());
     });
     await gotoApp(page, './?debug=1#/songs');
     await page.getByTestId('import-link').click();
