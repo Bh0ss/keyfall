@@ -93,6 +93,13 @@ test.describe('piano-key navigation', () => {
     await tap(page, E1);
     await expect(page).toHaveURL(/#\/$/);
 
+    // Credits from the rail, and back with A0.
+    await press(page, '[data-testid=rail-credits]');
+    await expect(page).toHaveURL(/#\/credits$/);
+    await expect(page.getByTestId('credits')).toBeVisible();
+    await tap(page, A0);
+    await expect(page).toHaveURL(/#\/$/);
+
     // Songs, Keyboard check, Import, each left with A0.
     await press(page, '[data-testid=rail-play]');
     await expect(page).toHaveURL(/#\/songs$/);

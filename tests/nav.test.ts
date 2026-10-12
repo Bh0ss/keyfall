@@ -71,7 +71,7 @@ describe('what the keys do in a menu', () => {
 
   it('back from Results, Import and Play lands on Songs; from Stats, Settings and Keyboard on Home', () => {
     for (const h of ['#/results/x', '#/import', '#/import/imp-1', '#/play/x']) expect(parentHash(route(h)), h).toBe('#/songs');
-    for (const h of ['#/stats', '#/settings', '#/keyboard', '#/songs']) expect(parentHash(route(h)), h).toBe('#/');
+    for (const h of ['#/stats', '#/settings', '#/credits', '#/keyboard', '#/songs']) expect(parentHash(route(h)), h).toBe('#/');
   });
 });
 

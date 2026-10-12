@@ -247,7 +247,7 @@ New e2e: Learn entry points and unit states; Unit 1 passed with `__keyfall.press
 
 - Sheet view (`src/ui/SheetView.tsx`, `src/ui/sheetSync.ts`): OpenSheetMusicDisplay renders the song's MusicXML as one long line of music on the dark surface (light ink). A cursor (amber bar) steps through the score with the song clock, the line scrolls so the cursor sits a quarter of the way in (eased between cursor stops), and each note turns green (#6FE3A8) when hit and coral (#FF6B5A) when missed (set on the note's SVG group, `data-tone="hit|miss"`). Drawn notes are paired with song notes by start time and pitch; a loop wrap or retry clears the colours. Measure numbers are drawn. OSMD is lazy-loaded (`React.lazy`, own chunk) like VexFlow.
 - Views on Play: a Falling / Sheet / Split control in the header (`view-falling`, `view-sheet`, `view-split`). Split puts the score above the highway and keyboard. The choice is remembered per profile (`settings.view`, optional field, no schema change). Expert is unchanged from Phase 2 (tight windows, labels off by default) and has the sheet view like every mode.
-- Songs: the other seven bundled songs plus the Captain's Nocturne (11 files in `src/songs/`, catalog entries with levels and unlocks as in the spec table: Saints Unit 4, Minuet Unit 6, Greensleeves Unit 7, Für Elise Unit 8, Canon Unit 9, Clair de Lune and the Nocturne `advanced`). Units 6 to 9 songs open for Advanced profiles through the existing rule. Saints has finger numbers on every note. Repeats are written out. `src/songs/NOTICE.md` records provenance and the one non-PD-licensed file.
+- Songs: the other seven bundled songs plus the Nocturne (11 files in `src/songs/`, catalog entries with levels and unlocks as in the spec table: Saints Unit 4, Minuet Unit 6, Greensleeves Unit 7, Für Elise Unit 8, Canon Unit 9, Clair de Lune and the Nocturne `advanced`). Units 6 to 9 songs open for Advanced profiles through the existing rule. Saints has finger numbers on every note. Repeats are written out. `src/songs/NOTICE.md` records provenance and the one non-PD-licensed file.
 - Home song count now reads "of 11".
 
 ### Checks
@@ -540,7 +540,7 @@ New e2e (`e2e/learn-units-6-10.spec.ts`, every test calls `isolateMidi`; earlier
 
 ## Phase 9: Polish, Part A
 
-Part A of Phase 9: XP and levels, daily streak, badges, sound and animation, empty and error states, the accessibility pass, Lighthouse, the Captain's piano-key navigation and iPad pass, and lazy-loaded song data. Part B (Kasumi's Phase 8 lows: CSP, migration, pull cursor; the full e2e on the live URL) is not in this part. CLAUDE.md is unchanged.
+Part A of Phase 9: XP and levels, daily streak, badges, sound and animation, empty and error states, the accessibility pass, Lighthouse, the owner's piano-key navigation and iPad pass, and lazy-loaded song data. Part B (Kasumi's Phase 8 lows: CSP, migration, pull cursor; the full e2e on the live URL) is not in this part. CLAUDE.md is unchanged.
 
 ### Built
 
@@ -573,9 +573,9 @@ New tests: unit `progress` (levels, streak incl. DST and midnight, every badge t
 
 ### Decisions (requested additions)
 
-- **Piano-key navigation (Captain's request, CLAUDE.md unchanged):** keys A0 21, B0 23, C1 24, D1 26, E1 28. Menus: B0 and D1 move the selection through the screen's controls in page order (wrapping; an open overlay holds the selection), C1 presses it, A0 goes to the parent screen (lesson to unit to Learn path to Home; Play, Results, Import to Songs; others to Home), E1 goes Home. The first press with nothing selected only selects the screen's default (the first primary button) so the ring shows what C1 would do. Play: C1 pauses and resumes while playing, waiting or paused; the other four do nothing, so a paused song is left by resuming (literal reading of "only pause and resume"); before the start and after the end they are menu keys. The commands are swallowed from the game (a song or Learn lesson never counts them) unless the song uses a command note, which turns them all off for that song and they play as notes. The latency check ignores them and hears every key. The keyboard check screen needs every key to light as a plain key, so there the commands only act when the key is held about 0.7 s. Text fields, sliders and the file chooser cannot be driven by five keys: Import's file picker, profile names and sign-in need the mouse or keyboard (the Import screen is reachable and leavable by keys). First-run card on Home per profile, Settings switch on by default, both stored in the profile settings.
+- **Piano-key navigation (owner's request, CLAUDE.md unchanged):** keys A0 21, B0 23, C1 24, D1 26, E1 28. Menus: B0 and D1 move the selection through the screen's controls in page order (wrapping; an open overlay holds the selection), C1 presses it, A0 goes to the parent screen (lesson to unit to Learn path to Home; Play, Results, Import to Songs; others to Home), E1 goes Home. The first press with nothing selected only selects the screen's default (the first primary button) so the ring shows what C1 would do. Play: C1 pauses and resumes while playing, waiting or paused; the other four do nothing, so a paused song is left by resuming (literal reading of "only pause and resume"); before the start and after the end they are menu keys. The commands are swallowed from the game (a song or Learn lesson never counts them) unless the song uses a command note, which turns them all off for that song and they play as notes. The latency check ignores them and hears every key. The keyboard check screen needs every key to light as a plain key, so there the commands only act when the key is held about 0.7 s. Text fields, sliders and the file chooser cannot be driven by five keys: Import's file picker, profile names and sign-in need the mouse or keyboard (the Import screen is reachable and leavable by keys). First-run card on Home per profile, Settings switch on by default, both stored in the profile settings.
 - **Backlog correction:** the backlog says no bundled song goes below F#1 (30); Clair de Lune reaches D#1 (27) and The Entertainer F1 (29). Neither is a command note (the commands are the white keys 21, 23, 24, 26, 28), so nothing changes, and `tests/nav.test.ts` asserts that no bundled song uses a command note.
-- **iPad (Captain's request):** the phone-portrait prompt now applies under 600 px; 600 to 1100 px portrait is `tablet-portrait` with the stacked layout. Landscape widths 600 to 899 px still use the compact phone layout (as before); iPad landscape (1180 and up) is the full layout. Playwright iPad projects use the Pro 11 descriptor with the Air's 820 x 1180 and 1180 x 820 viewports on Chromium.
+- **iPad (owner's request):** the phone-portrait prompt now applies under 600 px; 600 to 1100 px portrait is `tablet-portrait` with the stacked layout. Landscape widths 600 to 899 px still use the compact phone layout (as before); iPad landscape (1180 and up) is the full layout. Playwright iPad projects use the Pro 11 descriptor with the Air's 820 x 1180 and 1180 x 820 viewports on Chromium.
 - **XP and levels:** the Phase 3 formula (4 per note hit plus 25 per star, stored on every attempt) is kept as the run XP: it is now the real rule, not a placeholder (the Results caption that said levels were coming is replaced). Learn adds 150 XP per unit passed and 20 per practice lesson finished. Level n needs 50 x n x (n - 1) XP in total (100, 300, 600, 1,000 ...), titles Newcomer, Student, Player, Performer, Virtuoso, Maestro. Levels are per profile. All of it is derived from synced history, nothing extra is stored.
 - **Daily streak:** consecutive local calendar days with a finished song or any Learn progress; it stays alive through the end of tomorrow ("play today to keep it"), then resets; longest streak is kept on Stats. Derived from timestamps, so it needs no sync.
 - **Badges (17):** Opening Night (finish a song), Full Marks (3 stars), Flawless (a run with every note right, 8 notes or more), Hot Streak (30 in a row), Repertoire (10 songs), Expert Finisher, Tough Piece (a level 5 or Expert song), Your Own Music (an imported song), Star Collector (30 best stars), First Steps (a unit), Halfway There (5 units), Graduate (all 10), Warming Up, One Full Week and Devoted (streaks of 3, 7 and 30 days), Level 5 and Level 10. Earned badges are remembered on the profile with the time first seen (a merge that drops it is healed on the next award), and the run that earned them keeps the list for Results.
@@ -613,7 +613,7 @@ Kasumi's Phase 8 lows (Content-Security-Policy, server limits migration) and a w
 - **Learn Units 2 to 5 full-pass e2e** (`e2e/learn-units-2-5.spec.ts`, 4 tests, `isolateMidi` in each): earlier units seeded as passed, the unit's 20-prompt test passed through its own screens with `__keyfall.press` (or the choice buttons) answering every prompt, `learnProgress` asserted passed 20/20, the next unit asserted open, and the unlocks checked (Ode to Joy, Jingle Bells, When the Saints Go Marching In, and the Unit 5 songs Bach Musette in D and Bach Prelude in C go from locked to open). With Unit 1 (already covered) the goal's "passing Learn units 1 to 5" is now covered on any base URL.
 - **New tests**: `tests/sync-limits.test.ts` (fake remote size cap, clamp, null `deleted_at` stays null, a clamped row does not pin later edits, mime list; the migration file matches the client constants; CSP directives) and a second `e2e/sync-rls.spec.ts` test against the real API (60 KB body fits, 70 KB refused on all 7 tables, future stamp clamped to within 5 minutes of the server clock, past stamp and null `deleted_at` untouched, a later real edit wins, octet-stream accepted, text/html, image/png, application/javascript refused).
 
-### Checks (local, run from /Users/bhoss/code/Bh0ss/keyfall)
+### Checks (local, run from the repo root)
 
 | Command | Result |
 |---|---|
@@ -630,10 +630,10 @@ Kasumi's Phase 8 lows (Content-Security-Policy, server limits migration) and a w
 
 ### Decisions
 
-- **CSP only in the production build**, as the Captain specified; `style-src 'self'` plus `style-src-attr 'unsafe-inline'` instead of a blanket `'unsafe-inline'`: OSMD and VexFlow only need inline style attributes, and the sheet view renders for every bundled song under it with no violations.
+- **CSP only in the production build**, as the owner specified; `style-src 'self'` plus `style-src-attr 'unsafe-inline'` instead of a blanket `'unsafe-inline'`: OSMD and VexFlow only need inline style attributes, and the sheet view renders for every bundled song under it with no violations.
 - **Real bug caught by the e2e, fixed by a second migration**: in the first server-limits migration `least(new.deleted_at, ceiling)` returned the ceiling for a NULL `deleted_at` (Postgres `least` ignores NULL), which soft-deleted every synced row 5 minutes in the future and broke the two-context sync test. Fixed in `20261012130100` (clamp `deleted_at` only when set); a unit test and the live API test now guard it. The remote tables were empty throughout, so no data was affected. The applied migration was not edited.
 - **Upload content type stays `application/octet-stream`**: the file is stored verbatim and its kind is known from the row, and it is on the allowed list.
-- **Clamp, not reject** for future stamps (Captain's wording); the 5 minute margin is shared by the trigger, the fake and the tests.
+- **Clamp, not reject** for future stamps (the owner's wording); the 5 minute margin is shared by the trigger, the fake and the tests.
 - **Fake size check uses JSON byte length**, a slightly stricter stand-in for `pg_column_size` (which measures stored, possibly compressed, size).
 - The preview and live suites need `?debug=1` for the virtual input; every URL carries it, so one set of specs serves the dev server, the preview and the live site.
 
@@ -649,3 +649,28 @@ Kasumi's Phase 8 lows (Content-Security-Policy, server limits migration) and a w
 
 - Pull-cursor overlap window for late commits (optional in the backlog).
 - Clickjacking protection (`frame-ancestors`) needs a host that can send headers.
+
+## Pre-launch (requested additions beyond the spec)
+
+### Built
+
+- **Credits / About screen** at `#/credits`, reachable from Settings (About Keyfall card) and the rail (Credits item), and operable with the piano nav keys. Shows the project (personal, non-commercial, repo link), bundled-song attributions (CC BY-SA 4.0 Chopin Nocturne, Benjamin Esham, Mutopia 509; CC BY-SA 2.5 Schumann Melody and The Happy Farmer, Philippe Hezaine, Mutopia 647 and 659; each licence covers those files only; public-domain Mutopia typesettings; original folk arrangements) and open-source library and font licences, verified from `node_modules`. Content comes from `src/ui/credits.ts`; `src/songs/NOTICE.md` stays the source of record and `tests/credits.test.ts` fails if they drift or if a listed licence differs from the installed package.
+- **Docs privacy pass**: PROGRESS.md, HUMAN_CHECKS.md and SETUP_STATUS.md use neutral wording ("the owner", "an advanced player"); no real email addresses in tracked files (the only matches are the commented `admin@email.com` placeholders in `supabase/config.toml`).
+- **Supabase accounts (no repo change)**: the household and two test accounts now use `@keyfall.example.com` addresses; passwords unchanged; both test accounts sign in.
+- **Supabase auth rate limits (no repo change)**: SMS, OTP, anonymous and Web3 limits lowered to 5, verify to 10; email sent stays 2; token refresh stays 150 (a full e2e run makes about 25 sign-ins and refreshes). Anonymous and phone sign-in were already off. CAPTCHA not enabled (needs a third-party account; optional).
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| `npm run lint` | clean |
+| `npm test` | 38 files, 677 tests passed |
+| `npm run build` | passes (existing chunk-size warning only) |
+| `npx playwright test` (dev server, all 4 projects) | 182 passed, 3 skipped (orientation-specific iPad tests), 0 failed |
+| `npm run lighthouse` | accessibility 100 on Home, Play, Songs, Learn, Stats, Settings, Credits |
+
+### Decisions
+
+- The Credits screen is a requested addition beyond the spec. External links use `target="_blank" rel="noopener noreferrer"`; the CSP is unchanged (navigation is not covered by `connect-src` and nothing new is loaded).
+- Back (A0) from Credits goes Home, like every screen without a per-screen parent.

@@ -17,6 +17,7 @@ export type Route =
   | { name: 'import'; songId?: string }
   | { name: 'stats' }
   | { name: 'settings' }
+  | { name: 'credits' }
   | { name: 'results'; attemptId: string }
   | { name: 'play'; songId: string; preset: PlayPreset };
 
@@ -37,6 +38,7 @@ export function parseRoute(hash: string): Route {
   if (imp) return { name: 'import', songId: imp[1] && decodeURIComponent(imp[1]) };
   if (path === 'stats') return { name: 'stats' };
   if (path === 'settings') return { name: 'settings' };
+  if (path === 'credits') return { name: 'credits' };
   // "#setup" is the in-page anchor to the setup steps on the keyboard screen.
   if (path === 'keyboard' || path === 'setup') return { name: 'keyboard' };
   const results = /^results\/(.+)$/.exec(path);
@@ -65,6 +67,7 @@ export const hrefFor = {
   import: (songId?: string) => `#/import${songId ? `/${encodeURIComponent(songId)}` : ''}`,
   stats: () => '#/stats',
   settings: () => '#/settings',
+  credits: () => '#/credits',
   results: (attemptId: string) => `#/results/${encodeURIComponent(attemptId)}`,
   play: (songId: string, preset?: PlayPreset) => {
     const q = new URLSearchParams();

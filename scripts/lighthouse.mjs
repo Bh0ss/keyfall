@@ -19,6 +19,7 @@ const TARGETS = [
   ['Learn', '#/learn'],
   ['Stats', '#/stats'],
   ['Settings', '#/settings'],
+  ['Credits', '#/credits'],
 ];
 
 async function waitFor(url, ms = 20000) {

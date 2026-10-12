@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { hrefFor } from './useRoute';
 
-export type RailItem = 'home' | 'learn' | 'play' | 'stats' | 'settings';
+export type RailItem = 'home' | 'learn' | 'play' | 'stats' | 'settings' | 'credits';
 
 const ICONS: Record<RailItem, ReactNode> = {
   home: <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />,
@@ -13,6 +13,12 @@ const ICONS: Record<RailItem, ReactNode> = {
   ),
   play: <path d="M7 4l13 8-13 8z" />,
   stats: <path d="M5 20V10M12 20V4M19 20v-7" />,
+  credits: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v6M12 7.5v.01" />
+    </>
+  ),
   settings: (
     <>
       <circle cx="12" cy="12" r="3" />
@@ -35,6 +41,7 @@ const ITEMS: { id: RailItem; label: string; href: string | null }[] = [
   { id: 'play', label: 'Play', href: hrefFor.songs() },
   { id: 'stats', label: 'Stats', href: hrefFor.stats() },
   { id: 'settings', label: 'Settings', href: hrefFor.settings() },
+  { id: 'credits', label: 'Credits', href: hrefFor.credits() },
 ];
 
 /** Left navigation rail from the canvas, around a screen. */

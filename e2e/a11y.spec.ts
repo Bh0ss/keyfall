@@ -48,6 +48,7 @@ const SCREENS: [string, string, string][] = [
   ['Unit', './?debug=1#/learn/unit-1', 'unit-detail'],
   ['Stats', './?debug=1#/stats', 'stats'],
   ['Settings', './?debug=1#/settings', 'latency-card'],
+  ['Credits', './?debug=1#/credits', 'credits'],
   ['Keyboard check', './?debug=1#/keyboard', ''],
   ['Import', './?debug=1#/import', 'import-file'],
   ['Play setup', './?debug=1#/play/mary-had-a-little-lamb', 'play-ready'],

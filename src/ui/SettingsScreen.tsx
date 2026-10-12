@@ -182,6 +182,15 @@ export function SettingsScreen() {
           </a>
         </header>
         <PreferencesCard />
+        <section className="card" data-testid="about-card">
+          <h2>About Keyfall</h2>
+          <p>Who made it, the songs and libraries it uses, and their licences.</p>
+          <div className="row">
+            <a className="btn" href={hrefFor.credits()} data-testid="credits-link">
+              Credits
+            </a>
+          </div>
+        </section>
         <AccountPanel />
         <section className="card" data-testid="latency-card">
           <h2>Latency check</h2>

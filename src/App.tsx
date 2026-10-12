@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useSyncExternalStore } from 'react';
 import { ErrorBoundary } from './ui/ErrorBoundary';
 import { PianoNav } from './ui/PianoNav';
+import { CreditsScreen } from './ui/CreditsScreen';
 import { ConnectionScreen } from './ui/ConnectionScreen';
 import { HomeScreen } from './ui/HomeScreen';
 import { PlayScreen } from './ui/PlayScreen';
@@ -70,6 +71,8 @@ function renderRoute(route: Route) {
       return <StatsScreen />;
     case 'settings':
       return <SettingsScreen />;
+    case 'credits':
+      return <CreditsScreen />;
     case 'results':
       return <ResultsScreen attemptId={route.attemptId} />;
     case 'play':
