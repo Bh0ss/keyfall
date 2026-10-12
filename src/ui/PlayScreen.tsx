@@ -18,10 +18,11 @@ import { getLatency } from '../storage/latency';
 import { noteStreaks } from '../storage/noteStats';
 import { scheduleClick } from './audio';
 import { drawFrame, LOOKAHEAD_BEATS } from './highwayDraw';
-import { buildLayout, keyRangeFor } from './highwayLayout';
+import { buildLayout, keyRangeFor, PHONE_MIN_WHITES } from './highwayLayout';
 import { noteName } from './keyboardLayout';
 import { profiles, useActiveProfile } from './profileStore';
 import { useMidi } from './useMidi';
+import { useViewportMode } from './useViewportMode';
 import { hrefFor, type PlayPreset } from './useRoute';
 
 // OpenSheetMusicDisplay is large: load it only when a sheet view is opened.
@@ -69,6 +70,7 @@ function Stat({ value, label, tone, testId }: { value: string; label: string; to
 export function PlayScreen({ songId, preset }: { songId: string; preset: PlayPreset }) {
   const song = findPlayableSong(songId);
   const [attempt, setAttempt] = useState(0);
+  const portraitPhone = useViewportMode() === 'phone-portrait';
   if (!song) {
     return (
       <div className="shell">
@@ -86,7 +88,29 @@ export function PlayScreen({ songId, preset }: { songId: string; preset: PlayPre
       </div>
     );
   }
-  return <PlayLoader key={`${song.id}:${attempt}`} songId={song.id} preset={preset} onRetry={() => setAttempt((a) => a + 1)} />;
+  return (
+    <>
+      {portraitPhone && <RotatePrompt />}
+      <PlayLoader key={`${song.id}:${attempt}`} songId={song.id} preset={preset} onRetry={() => setAttempt((a) => a + 1)} />
+    </>
+  );
+}
+
+/** Portrait on a phone: the highway needs the width, so ask for the phone to be turned. */
+function RotatePrompt() {
+  return (
+    <div className="rotate-prompt" data-testid="rotate-prompt" role="alert">
+      <svg aria-hidden="true" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="7" y="2" width="10" height="16" rx="2" />
+        <path d="M4 14a8 8 0 0 0 8 8M12 22l-3-2M12 22l-1.5-3" />
+      </svg>
+      <h2>Turn your phone sideways</h2>
+      <p>Keyfall plays in landscape. Rest the phone on the music stand and the keys line up with the piano.</p>
+      <a className="btn" href={hrefFor.songs()}>
+        Back to songs
+      </a>
+    </div>
+  );
 }
 
 /** Loads what the song needs from storage (latency offset, label-fade streaks) before it opens. */
@@ -157,8 +181,12 @@ function PlayInner({
     if (setup.mode === 'wait') return new WaitSession(song, common);
     return new TimedSession(song, { ...common, mode: setup.mode, speed: setup.speedPct / 100, latencyMs });
   }, [song, setup, bar, latencyMs]);
-  const layout = useMemo(() => buildLayout(keyRangeFor(song.notes.map((n) => n.midi))), [song]);
-  const [view, setView] = useState<PlayView>(profile.settings.view ?? 'falling');
+  const viewport = useViewportMode();
+  const phone = viewport !== 'wide';
+  const layout = useMemo(() => buildLayout(keyRangeFor(song.notes.map((n) => n.midi), phone ? PHONE_MIN_WHITES : undefined)), [song, phone]);
+  const [chosenView, setView] = useState<PlayView>(profile.settings.view ?? 'falling');
+  // The phone screen is too short for a score beside the notes: it always shows the falling view.
+  const view: PlayView = phone ? 'falling' : chosenView;
   const chooseView = (v: PlayView) => {
     setView(v);
     void profiles.saveSettings(profile.id, { view: v });
@@ -299,6 +327,11 @@ function PlayInner({
     return () => cancelAnimationFrame(raf);
   }, [session, layout, song, bar]);
 
+  // Turning the phone upright mid-song pauses it instead of letting the notes run under the prompt.
+  useEffect(() => {
+    if (viewport === 'phone-portrait' && session.status === 'playing') session.pause(performance.now());
+  }, [viewport, session, status]);
+
   const togglePause = () => {
     const now = performance.now();
     if (session.status === 'paused') session.resume(now);
@@ -310,7 +343,7 @@ function PlayInner({
     status === 'waiting' ? `Waiting for ${needed}` : status === 'paused' ? 'Paused' : status === 'finished' ? 'Complete' : status === 'ready' ? 'Ready' : 'Playing';
 
   return (
-    <div className="play" data-testid="play-screen">
+    <div className="play" data-testid="play-screen" data-phone={phone}>
       <header className="play-head">
         <div className="play-head-left">
           <a className="icon-btn" href={hrefFor.songs()} aria-label="Back to songs">

@@ -2,6 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { getSong } from '../src/songs/catalog';
 import { buildLayout, keyRangeFor } from '../src/ui/highwayLayout';
 
+describe('keyRangeFor on a phone', () => {
+  it('shows one octave plus the closing C for a narrow song', async () => {
+    const { PHONE_MIN_WHITES } = await import('../src/ui/highwayLayout');
+    const r = keyRangeFor([64, 67], PHONE_MIN_WHITES);
+    expect(r).toEqual({ lo: 60, hi: 72 });
+    expect(buildLayout(r).whites).toHaveLength(8);
+  });
+
+  it('still covers every note of a wide song', async () => {
+    const { PHONE_MIN_WHITES } = await import('../src/ui/highwayLayout');
+    const r = keyRangeFor([40, 90], PHONE_MIN_WHITES);
+    expect(r.lo).toBeLessThanOrEqual(40);
+    expect(r.hi).toBeGreaterThanOrEqual(90);
+  });
+});
+
 describe('keyRangeFor', () => {
   it('centres a one-octave song in a C-to-C range of 15 white keys, like the Play canvas', () => {
     const mary = getSong('mary-had-a-little-lamb')!;

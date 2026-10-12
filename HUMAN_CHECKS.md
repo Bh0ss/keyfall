@@ -163,3 +163,18 @@ Needs the piano connected and a MusicXML or MIDI file of a piece you own (for ex
    - Good: the new hands apply, the song keeps its earlier scores, and a second profile (switch with the avatar button) sees and can play the same imported song.
 5. Try a bad file (a PDF renamed to `.mid`, or a very large file).
    - Good: a short, plain message appears and nothing breaks.
+
+## Phase 7: iPhone in Web MIDI Browser
+
+Needs the iPhone with the Web MIDI Browser app and the FP-30X. The Pages URL is https://bh0ss.github.io/keyfall/ (the Actions run for the latest push must be green first).
+
+1. Disconnect the piano from the Mac (turn Bluetooth MIDI off in the Mac's Audio MIDI Setup, or quit the Mac browser) so the phone can take it. Open Web MIDI Browser on the iPhone and connect the FP-30X inside the app (its Bluetooth MIDI device list), not in iOS Settings.
+   - Good: the app lists the FP-30X as connected.
+2. In Web MIDI Browser, open https://bh0ss.github.io/keyfall/ and allow MIDI access when asked. Bookmark the page in the app.
+   - Good: Home loads, the chip reads "FP-30X connected · Bluetooth", and the bottom tab bar (Home, Learn, Play, Stats, Settings) works in portrait.
+3. Open a song in portrait.
+   - Good: a full-screen "Turn your phone sideways" prompt appears instead of the highway.
+4. Turn the phone to landscape on the music rest and play Mary Had a Little Lamb in Wait mode.
+   - Good: only about one octave of keys is shown and they line up with the piano; the header is slim; the notes and your key presses light up with no visible lag; the Start, Pause and result buttons are easy to hit with a thumb; nothing is hidden under the notch or the home bar.
+5. Finish a song and open Results, then go back and open Learn and Stats in landscape.
+   - Good: every screen scrolls and nothing is cut off. If notes feel late, run Settings, Latency check once on the phone (offsets are stored per device).

@@ -6,17 +6,19 @@ export interface KeyRange {
 }
 
 const MIN_WHITES = 14;
+/** One octave: the phone layout shows only the keys the song uses. */
+export const PHONE_MIN_WHITES = 7;
 
 /**
  * Key range for a song: whole octaves C..B covering its notes, at least two
- * octaves wide, closed with the next C like a real keyboard strip.
+ * octaves wide (one on a phone: pass `PHONE_MIN_WHITES`), closed with the next C like a real keyboard strip.
  */
-export function keyRangeFor(midis: number[]): KeyRange {
+export function keyRangeFor(midis: number[], minWhites = MIN_WHITES): KeyRange {
   if (midis.length === 0) return { lo: 48, hi: 72 };
   let lo = Math.floor(Math.min(...midis) / 12) * 12;
   let hi = Math.floor(Math.max(...midis) / 12) * 12 + 11;
   let below = true;
-  while ((hi - lo + 1) / 12 * 7 < MIN_WHITES) {
+  while ((hi - lo + 1) / 12 * 7 < minWhites) {
     if (below && lo - 12 >= LOWEST_MIDI - 9) lo -= 12;
     else if (hi + 12 <= HIGHEST_MIDI) hi += 12;
     else lo -= 12;

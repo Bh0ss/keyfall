@@ -350,3 +350,49 @@ New e2e (`e2e/import.spec.ts`, all through the real file input): each of the fiv
 - Drag-and-drop onto the import screen; importing several files at once.
 - Preview of the split on the keyboard (hand counts are shown, not a picture).
 - Hand picks per measure (pieces where the hands cross a lot need a split point per passage).
+
+## Phase 7: Deploy and iPhone
+
+### Built
+
+- `.github/workflows/deploy.yml`: on push to `main` and `workflow_dispatch`. Job `build` (checkout, Node 22 with npm cache, `npm ci`, typecheck, lint, unit tests, build with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` passed from repo `vars`, `upload-pages-artifact` of `dist`); job `deploy` (`deploy-pages`, environment `github-pages`). Permissions `contents: read`, `pages: write`, `id-token: write`; concurrency group `pages` (no cancel). No `gh-pages` branch.
+- `public/404.html`: Pages serves it for unknown paths; it sends the visitor to `/keyfall/` keeping query and hash. The app routes by URL hash (`useRoute.ts`), so the real routes never hit the server.
+- Phone layout (`src/ui/useViewportMode.ts`, `PlayScreen.tsx`, `highwayLayout.ts`, `app.css`, `index.html`):
+  - `useViewportMode()` returns `wide`, `phone-landscape` or `phone-portrait` from media queries and updates on rotation.
+  - Phone landscape: the highway shows only the keys the song uses, whole octaves C to B plus the closing C, minimum one octave (`keyRangeFor(midis, PHONE_MIN_WHITES)`; Mary shows C4 to C5, 8 white keys). Compact HUD (52 px header, title and mode, three stats, a 44 px pause button; view and note-name toggles hidden, falling view forced). Setup overlay is a compact wrapped row pinned to the top so the keys stay visible; results overlay scrolls inside the screen. `100dvh` and safe-area insets for the notch.
+  - Phone portrait: Play shows a full-screen "Turn your phone sideways" prompt (`rotate-prompt`) with a Back to songs link, and a running song pauses.
+  - Other screens: in landscape under 500 px tall the rail is slimmer with 48 px targets; in portrait (700 px and narrower) the rail becomes a bottom tab bar so Home, Learn, Play, Stats and Settings stay reachable. Home, Learn, Stats, Settings and Results already reflowed to one column under 900 px.
+  - `index.html`: `viewport-fit=cover`, `theme-color`.
+- Playwright (`playwright.config.ts`): `KEYFALL_BASE_URL=<url>` runs against a live site with no local server; `KEYFALL_PREVIEW=1` runs against `vite preview` of the production build on :4173; default stays the dev server. Projects: `chromium` (desktop, everything except the phone spec) and `iphone-landscape` (the `iPhone 15 landscape` device descriptor on Chromium, `isMobile` and `hasTouch` from the descriptor, phone spec only). New scripts: `npm run preview`, `npm run test:e2e:live`.
+- `e2e/phone.spec.ts` (4 tests, all use `isolateMidi`, all URLs relative to the base URL and carry `?debug=1`): portrait prompt then landscape plays; Home and Learn in portrait with the tab bar and no sideways scroll; landscape compact layout (header at most 56 px, canvas fills the screen, 44 px pause and Start, overlay inside the viewport, 8 to 10 white keys drawn for Mary); Mary autoplays to the end (26 of 26, results link visible, overlay inside the viewport).
+- Unit tests: phone key range (one octave plus closing C for a narrow song, still covers a wide song).
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm test` | exit 0, 27 files, 448 tests |
+| `npm run build` | exit 0 |
+| `npm run test:e2e` (dev server) | exit 0, 96 tests (92 in `chromium`, 4 in `iphone-landscape`) |
+| `KEYFALL_PREVIEW=1 npx playwright test --project=iphone-landscape` (production build under `vite preview`, `?debug=1`) | exit 0, 4 tests |
+
+### Live deploy results (fill in after the push)
+
+| Check | Result |
+| --- | --- |
+| GitHub Actions run | PENDING: run URL and conclusion |
+| `curl -I https://bh0ss.github.io/keyfall/` | PENDING: expect 200 |
+| `npm run test:e2e:live` | PENDING: expect 4 passed |
+
+### Decisions
+
+- Actions are pinned to full commit SHAs (with the version in a comment), resolved from each action's latest release at build time. The repo is public and the job holds `pages: write` and `id-token: write`, so a moved tag would be a real risk; the cost is a manual bump. `actions/configure-pages` is not used: the Vite `base` is fixed and Pages already has `build_type=workflow`.
+- Playwright e2e does not run in CI. The suite takes about 6 minutes (full bundled-song playthroughs in real time), and a hosted runner has no MIDI device or audio, which the specs and the Phase 0 check assume. Local runs and the live run are the acceptance gate. CI runs typecheck, lint, unit tests and build before it deploys.
+- The live script runs only the `iphone-landscape` project. The older specs address the dev server with absolute paths (`/#/songs`), which break under the `/keyfall/` base on Pages; the full suite on the live URL is Phase 9. The phone spec uses relative URLs so it runs anywhere.
+- Phone detection is "under 900 px wide and landscape" as specified, plus landscape screens up to 500 px tall with a coarse pointer, because the widest iPhones turned sideways are 932 to 956 px wide. The portrait prompt applies to portrait under 900 px wide, so a narrow tablet in portrait sees it on Play too.
+- Phone Play always shows the falling view. A 343 to 393 px tall screen cannot hold a score and a highway; the saved view choice is untouched for desktop.
+- The `iPhone 15 landscape` descriptor's Chromium viewport is 734 by 343 (browser chrome excluded), so the spec reads the real viewport size instead of assuming 852 by 393.
+- Portrait rail became a bottom tab bar rather than a hamburger: fewer taps, no new state, and the five destinations fit at 393 px.
+- Supabase variables are passed to the build through `vars.` (never hard-coded); nothing reads them until Phase 8.
