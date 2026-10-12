@@ -1,0 +1,16 @@
+# secrets
+.env*
+
+# dependencies
+node_modules/
+
+# reference copies (CLAUDE.md is tracked)
+Keyfall — Build and Install Plan.md
+Keyfall Screens.html
+
+# build and test artifacts
+dist/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

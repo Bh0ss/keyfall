@@ -1,0 +1,71 @@
+@import '@fontsource/bricolage-grotesque/latin-700.css';
+@import '@fontsource/bricolage-grotesque/latin-800.css';
+@import '@fontsource/dm-sans/latin-400.css';
+@import '@fontsource/dm-sans/latin-500.css';
+@import '@fontsource/dm-sans/latin-700.css';
+@import '@fontsource/jetbrains-mono/latin-500.css';
+
+:root {
+  --bg: #0e1116;
+  --bg-play: #0b0e13;
+  --surface: #1a1f2b;
+  --border: #2a303b;
+  --text: #f2f0ea;
+  --muted: #9aa3b2;
+  --accent: #f5a524;
+  --accent-hi: #ffc35c;
+  --accent-ink: #1a1206;
+  --right-hand: #4da8ff;
+  --left-hand: #b78cff;
+  --correct: #6fe3a8;
+  --miss: #ff6b5a;
+
+  --chip-ok-bg: #15281f;
+  --chip-warn-bg: #2a1f0e;
+  --chip-miss-bg: #2b1613;
+  --chip-idle-bg: #232a38;
+  --raised: #1c2230;
+
+  --key-white: #f4f1ea;
+  --key-white-ink: #1e2430;
+  --key-label: #5a6272;
+  --key-black: #161a22;
+
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+a {
+  color: var(--accent);
+}
+
+a:hover {
+  color: var(--accent-hi);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-hi);
+  outline-offset: 2px;
+}
