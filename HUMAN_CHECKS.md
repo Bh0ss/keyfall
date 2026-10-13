@@ -357,3 +357,13 @@ The arranger is dark and only tested on synthetic audio, which is easy. Once the
    - Good: a thick ring shows on whatever is selected, including Choose recording.
 5. On the iPhone in Web MIDI Browser: open the same page and choose a short recording (under a minute), then one over 4 minutes.
    - Good: the short one either completes or shows "This works best on the Mac" with a reason; the long one shows the Mac card straight away. Tell me which card text you saw and whether Cancel works on the phone.
+
+## v1.2 I5: Wait-mode preview (Mac and piano; on the review at `#/add/audio`)
+
+1. On a real review (any recording), set Full, a tempo, a key, a trim, the hands split and a difficulty, then press Preview in Wait mode and play a few bars on the piano.
+   - Good: the song waits for each note, the header says Preview, and the piano still pauses with C1.
+   - Bad: any other mode is offered, or the song sounds different from what Add to my songs would save.
+2. Press A0 (or Back to review) and look at the review.
+   - Good: every choice is as you left it. Open Stats afterwards: the preview left no score and no attempt.
+3. Reload the page during a preview.
+   - Good: a "Preview not found" card with a way back to Add song; the review and its choices are gone, as the copy says.

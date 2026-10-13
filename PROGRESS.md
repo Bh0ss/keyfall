@@ -1274,3 +1274,59 @@ default-src 'self'; script-src 'self'; connect-src 'self' https://ubheylmkufyuam
 - Wait-mode preview and its bubble (I5); the entry button and `#/import` chooser (I6).
 - Real recordings and the iPhone: HUMAN_CHECKS (I4 section).
 - A Lighthouse pass over the listening and review states (the script visits URLs only).
+
+### I5: Wait-mode preview (dark)
+
+#### Built
+
+- `src/songs/library.ts`: a transient preview slot (`setPreviewSong`, `clearPreviewSong`, `isPreviewId`, id prefix `preview-`). `findPlayableSong` and `loadPlayableSong` consult it; it is not in `getAllSongs`, not in IndexedDB and not synced. `setPreviewSong` throws for an id without the prefix.
+- `src/audioImport/draft.ts`: the in-memory review draft (events, seconds, meta, choices, form values). `holdDraft` just before navigating to the preview, `peekDraft` returns it only while held, `release` when Add song is back, `leaveAddAudio` on unmount (drops draft and preview song unless a preview is in flight), `clearDraft`. Module state only: no IndexedDB, localStorage or sessionStorage.
+- `src/audioImport/review.ts`: `buildPreviewSong` makes the song exactly as Save would (arrangement to MusicXML file, `analyseFile`, `buildSong`), under the id `preview-draft`.
+- `PlayPreset.preview` (`?preview=1`); `parentHash` sends a preview's A0 back to `#/add/audio`.
+- `PlayScreen` preview mode: Wait forced and the only mode offered, "Preview" in the header, back arrow and rotate prompt and not-found card all return to Add song, no save, finish card has "Back to review" and "Play again" only.
+- `ImportForm` gained an optional `actions(values, busy)` render prop (buttons that need the form's current values). The review uses it for "Preview in Wait mode" + `addAudio.preview` help bubble + a note that a reload clears the preview.
+- `AddAudioScreen` restores the review from the draft on return (version, tempo, key, trim, title, artist, hands split, difficulty and whether it was overridden).
+
+#### Persistence paths audited (everything PlayScreen and Results reach)
+
+| Path | Write? | Preview |
+| --- | --- | --- |
+| `saveRun` (attempt, note stats via `recordNoteOutcomes`, score via `recordScore`, `trackProgress` badges/level/XP, `attempts.update`) | yes | not called |
+| `profiles.saveSettings` from `update` (mode, speed, metronome, count-in) | yes (profiles; sync hook) | gated by `remember`; changes last for the preview only |
+| `profiles.saveSettings` for view, note-name mode | yes | gated by `remember` |
+| `profiles.saveSettings` for position names, auto fingers (SetupPanel) | yes | kept in local state in preview |
+| `getLatency`, `noteStreaks` (PlayLoader) | read only | unchanged |
+| Results screen (`#/results/<id>`: retry, practise my mistakes) | reads attempt rows | not reachable: no attempt exists, finish card has no Results link |
+| Dexie `creating`/`updating` hooks that kick sync (`src/sync/controller.ts`) | fire only on table writes | no writes, so no kicks |
+| `setCurrentPlay`, nav scope, sounds | memory only | unchanged |
+
+#### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm test` | exit 0, 67 files, 1113 tests (I4: 66 files, 1106 tests; +7 tests, +1 file: `tests/audio-import-preview.test.ts`) |
+| `npm run build` | exit 0 |
+| `npx playwright test` (dev, all projects) | 249 passed, 3 skipped (the same 3 orientation skips), 0 failed, 11.8 min (I4: 246 / 3 / 0; +3 new, all in `add-audio.spec.ts`) |
+| `npm run lighthouse` | accessibility 100 on Home, Play, Songs, Import, Add song, Learn, Stats, Settings, Credits (the preview state is not audited by the script) |
+| Mutation check | with the `preview ||` guard removed from the save effect, the preview e2e fails on the store comparison; guard restored |
+
+#### Decisions
+
+- Requested addition beyond spec.
+- Skipped Results in preview: there is no attempt to show, and its retry and "practise my mistakes" write. The finish card offers Back to review and Play again instead, with a line saying nothing was saved.
+- Settings changed during a preview (mode is fixed, metronome, count-in, view, note names, position names, auto fingers) apply to the preview only; saving them would write the profile and kick sync, which the order forbids.
+- The draft survives only the round trip: leaving the preview for anywhere but `#/add/audio` clears it (checked on unmount, and a still-current preview URL is treated as React's dev remount, not leaving). Cancel on the review, Save, and leaving the Add song screen otherwise all clear the preview song too.
+- The preview song is built through the same file, analyse, build path as Save, so it is the song that would be saved.
+- A reload on a preview URL shows a "Preview not found" card with a way back to Add song; the review note says a reload clears the preview and the choices.
+- No CSP change. No schema change.
+
+#### Adapted tests
+
+- None. `parseRoute` leaves `preview` undefined unless `?preview=1`, so existing preset assertions still hold.
+
+#### Deferred
+
+- Entry button and `#/import` chooser: I6. Real-device check of the preview: HUMAN_CHECKS (I5).
+

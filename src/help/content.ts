@@ -195,6 +195,10 @@ const ENTRIES = {
     title: 'Trim',
     text: 'Keep only the part of the recording from the start second to the end second. Use it to cut off talking, applause or a long intro. Use whole song puts it back.',
   },
+  'addAudio.preview': {
+    title: 'Preview in Wait mode',
+    text: 'Play the song you are about to save, in Wait mode, to check that it feels right. A preview saves nothing: no score, no results and no song. Back returns here with every choice you made. Reloading the page clears the preview and your choices.',
+  },
 } as const satisfies Record<string, HelpEntry>;
 
 export type HelpId = keyof typeof ENTRIES;

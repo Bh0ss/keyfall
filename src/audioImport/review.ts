@@ -2,8 +2,11 @@
 import { arrange } from '../arrange/arrange';
 import { arrangementToFile } from '../arrange/toImport';
 import type { Arrangement, Mode, Version } from '../arrange/types';
+import type { Song } from '../engine/song';
 import { analyseFile } from '../import/analyse';
-import type { ImportAnalysis } from '../import/types';
+import { buildSong } from '../import/build';
+import type { ImportAnalysis, ImportChoices } from '../import/types';
+import { PREVIEW_PREFIX } from '../songs/library';
 import type { NoteEvent } from '../transcribe/types';
 
 export interface ReviewChoices {
@@ -44,3 +47,10 @@ export const keyLabel = (k: { tonic: number; mode: Mode }): string => `${TONICS[
 export const KEY_CHOICES: readonly { tonic: number; mode: Mode }[] = (['major', 'minor'] as const).flatMap((mode) =>
   TONICS.map((_, tonic) => ({ tonic, mode })),
 );
+
+/** The song a save would make from this arrangement and these form choices, under the one preview id. Same path as Save: file, analyse, build. */
+export async function buildPreviewSong(arrangement: Arrangement, choices: ImportChoices): Promise<Song> {
+  const file = arrangementToFile(arrangement, { title: choices.title, composer: choices.composer });
+  const analysis = await analyseFile(file.fileName, file.bytes.slice().buffer);
+  return buildSong(analysis, `${PREVIEW_PREFIX}draft`, choices).song;
+}

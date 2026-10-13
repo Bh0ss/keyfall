@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { arrangementToFile } from '../arrange/toImport';
 import type { Mode, Version } from '../arrange/types';
+import { holdDraft, leaveAddAudio, peekDraft, release, type DraftMeta, type ReviewDraft } from '../audioImport/draft';
 import { Listener, type Fallback, type ListenState } from '../audioImport/listen';
-import { buildReview, KEY_CHOICES, keyLabel, type Review, type ReviewChoices } from '../audioImport/review';
+import { buildPreviewSong, buildReview, KEY_CHOICES, keyLabel, type Review, type ReviewChoices } from '../audioImport/review';
 import { BPM_RANGE, clampBpm, doubleBpm, halveBpm, tapBpm } from '../audioImport/tempo';
 import { analyseFile } from '../import/analyse';
 import { ImportError } from '../import/limits';
@@ -11,6 +12,7 @@ import { lookupTrack } from '../spotify/link';
 import { decodeAudio } from '../transcribe/decode';
 import { currentPaceLimitSec, currentTranscriber } from '../transcribe/seam';
 import type { NoteEvent } from '../transcribe/types';
+import { clearPreviewSong, setPreviewSong } from '../songs/library';
 import { getDb } from '../storage/db';
 import { AppLayout } from './AppLayout';
 import { HelpBubble } from './HelpBubble';
@@ -22,12 +24,7 @@ const clock = () => performance.now();
 const isPhone = () => typeof navigator !== 'undefined' && /iPhone|iPod/.test(navigator.userAgent);
 const stemOf = (name: string) => name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim();
 
-interface Meta {
-  title: string;
-  artist: string;
-  thumbnail: string | undefined;
-  fileName: string;
-}
+type Meta = DraftMeta;
 
 /** A number box that lets the player type freely and only passes on values that are valid. */
 function NumField({ value, min, max, onCommit, label, testId, wide }: { value: number; min: number; max: number; onCommit: (n: number) => void; label: string; testId: string; wide?: boolean }) {
@@ -236,8 +233,8 @@ function MacCard({ fallback, onTryAnyway, onCancel }: { fallback: Fallback; onTr
   );
 }
 
-function ReviewStep({ events, seconds, meta, onRestart }: { events: NoteEvent[]; seconds: number; meta: Meta; onRestart: () => void }) {
-  const [choices, setChoices] = useState<ReviewChoices>({ version: 'beginner', bpm: null, key: null, trimSec: null });
+function ReviewStep({ events, seconds, meta, restored, onRestart }: { events: NoteEvent[]; seconds: number; meta: Meta; restored: ReviewDraft | null; onRestart: () => void }) {
+  const [choices, setChoices] = useState<ReviewChoices>(restored?.choices ?? { version: 'beginner', bpm: null, key: null, trimSec: null });
   const [review, setReview] = useState<Review | null>(null);
   const [detectedKey, setDetectedKey] = useState<{ tonic: number; mode: Mode } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -400,7 +397,7 @@ function ReviewStep({ events, seconds, meta, onRestart }: { events: NoteEvent[];
     </div>
   );
 
-  const initial: Initial = { title, composer: meta.artist, splitMode: 'groups', splitMidi: 60, level: 1, levelOverridden: false };
+  const initial: Initial = restored?.form ?? { title, composer: meta.artist, splitMode: 'groups', splitMidi: 60, level: 1, levelOverridden: false };
   return (
     <ImportForm
       analysis={review.analysis}
@@ -409,11 +406,34 @@ function ReviewStep({ events, seconds, meta, onRestart }: { events: NoteEvent[];
       saveLabel="Add to my songs"
       controls={controls}
       onCancel={onRestart}
+      actions={(v, busy) => (
+        <>
+          <button
+            className="btn"
+            type="button"
+            data-testid="preview-wait"
+            disabled={busy || !v.title.trim()}
+            onClick={async () => {
+              const song = await buildPreviewSong(review.arrangement, v);
+              setPreviewSong(song);
+              holdDraft({ events, seconds, meta, choices, form: v });
+              window.location.hash = hrefFor.play(song.id, { preview: true });
+            }}
+          >
+            Preview in Wait mode
+          </button>
+          <HelpBubble id="addAudio.preview" />
+          <p className="muted" data-testid="preview-note">
+            A preview saves nothing. Reloading the page clears it and your choices.
+          </p>
+        </>
+      )}
       onSave={async (v) => {
         const file = arrangementToFile(review.arrangement, { title: v.title, composer: v.composer });
         const bytes = file.bytes.slice().buffer;
         const analysis = await analyseFile(file.fileName, bytes);
         const row = await saveNewImport(getDb(), analysis, file.fileName, bytes, v);
+        leaveAddAudio();
         window.location.hash = hrefFor.play(row.id);
       }}
     />
@@ -422,7 +442,9 @@ function ReviewStep({ events, seconds, meta, onRestart }: { events: NoteEvent[];
 
 /** Add song: an optional Spotify link, a recording, listening, then a review where the player fixes the guesses and saves. */
 export function AddAudioScreen() {
-  const [meta, setMetaState] = useState<Meta>({ title: '', artist: '', thumbnail: undefined, fileName: '' });
+  // Back from a Wait-mode preview: the review comes back from the in-memory draft with every choice.
+  const [restored, setRestored] = useState<ReviewDraft | null>(() => peekDraft());
+  const [meta, setMetaState] = useState<Meta>(() => restored?.meta ?? { title: '', artist: '', thumbnail: undefined, fileName: '' });
   const setMeta = (m: Partial<Meta>) => setMetaState((cur) => ({ ...cur, ...m }));
   const listener = useMemo(
     () =>
@@ -438,6 +460,12 @@ export function AddAudioScreen() {
   const state = useSyncExternalStore(listener.subscribe, listener.getState);
   // Leaving the screen stops the run and frees the worker.
   useEffect(() => () => listener.cancel(), [listener]);
+  // The draft has been taken; leaving for anywhere but a preview drops it and the preview song.
+  useEffect(() => {
+    release();
+    return leaveAddAudio;
+  }, []);
+  const review = restored ? { notes: restored.events, seconds: restored.seconds } : state.phase === 'done' ? { notes: state.notes, seconds: state.seconds } : null;
 
   const showCard = state.phase === 'fallback' || (state.phase === 'running' && state.fallback);
   return (
@@ -450,7 +478,7 @@ export function AddAudioScreen() {
             <h1 className="title">Add a song</h1>
           </div>
         </header>
-        {(state.phase === 'idle' || state.phase === 'failed') && (
+        {!review && (state.phase === 'idle' || state.phase === 'failed') && (
           <>
             <LinkCard meta={meta} setMeta={setMeta} />
             <FileCard
@@ -462,15 +490,28 @@ export function AddAudioScreen() {
             />
           </>
         )}
-        {showCard && (
+        {!review && showCard && (
           <MacCard
             fallback={state.phase === 'fallback' ? state.fallback : (state as Extract<ListenState, { phase: 'running' }>).fallback!}
             onTryAnyway={() => listener.tryAnyway()}
             onCancel={() => listener.cancel()}
           />
         )}
-        {!showCard && (state.phase === 'decoding' || state.phase === 'running') && <ListeningCard state={state} onCancel={() => listener.cancel()} />}
-        {state.phase === 'done' && <ReviewStep key={meta.fileName} events={state.notes} seconds={state.seconds} meta={meta} onRestart={() => listener.cancel()} />}
+        {!review && !showCard && (state.phase === 'decoding' || state.phase === 'running') && <ListeningCard state={state} onCancel={() => listener.cancel()} />}
+        {review && (
+          <ReviewStep
+            key={meta.fileName}
+            events={review.notes}
+            seconds={review.seconds}
+            meta={meta}
+            restored={restored}
+            onRestart={() => {
+              setRestored(null);
+              clearPreviewSong();
+              listener.cancel();
+            }}
+          />
+        )}
       </main>
     </AppLayout>
   );

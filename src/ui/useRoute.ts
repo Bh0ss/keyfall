@@ -7,6 +7,8 @@ export interface PlayPreset {
   from?: number;
   to?: number;
   speedPct?: number;
+  /** The Add song review's Wait-mode preview: plays a transient song, forces Wait and records nothing. */
+  preview?: boolean;
 }
 
 export type Route =
@@ -54,6 +56,7 @@ export function parseRoute(hash: string): Route {
       from: int(q.get('from')),
       to: int(q.get('to')),
       speedPct: int(q.get('speed')),
+      preview: q.get('preview') === '1' ? true : undefined,
     };
     return { name: 'play', songId: decodeURIComponent(play[1]!), preset };
   }
@@ -78,6 +81,7 @@ export const hrefFor = {
     if (preset?.from) q.set('from', String(preset.from));
     if (preset?.to) q.set('to', String(preset.to));
     if (preset?.speedPct) q.set('speed', String(preset.speedPct));
+    if (preset?.preview) q.set('preview', '1');
     const qs = q.toString();
     return `#/play/${encodeURIComponent(songId)}${qs ? `?${qs}` : ''}`;
   },

@@ -402,6 +402,184 @@ test.describe('add song from a recording (fake transcriber)', () => {
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
+
+  /** Every IndexedDB store, found by listing them (not a hard-coded list), as name -> JSON of its rows; plus the web storage areas. */
+  async function persisted(page: Page) {
+    return page.evaluate(
+      () =>
+        new Promise<{ stores: Record<string, string>; web: string }>((resolve, reject) => {
+          const open = indexedDB.open('keyfall');
+          open.onerror = () => reject(open.error);
+          open.onsuccess = async () => {
+            const db = open.result;
+            const stores: Record<string, string> = {};
+            for (const name of Array.from(db.objectStoreNames)) {
+              const rows = await new Promise<unknown[]>((res, rej) => {
+                const r = db.transaction(name, 'readonly').objectStore(name).getAll();
+                r.onsuccess = () => res(r.result);
+                r.onerror = () => rej(r.error);
+              });
+              stores[name] = JSON.stringify(rows);
+            }
+            db.close();
+            resolve({ stores, web: JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]) });
+          };
+        }),
+    );
+  }
+
+  /** Set every review choice to something other than its default and return what to expect back. */
+  async function choose(page: Page) {
+    await page.getByTestId('version-full').check();
+    await page.getByTestId('tempo-input').fill('90');
+    await page.getByTestId('key-select').selectOption('9-minor');
+    await page.getByTestId('trim-end').fill('6');
+    await page.getByTestId('trim-start').fill('1');
+    await page.getByTestId('import-title').fill('Preview Title');
+    await page.getByTestId('import-composer').fill('Preview Artist');
+    await page.getByTestId('import-split-pitch').check();
+    await page.getByTestId('import-split').fill('64');
+    await page.getByTestId('import-level').selectOption('4');
+    await expect(page.getByTestId('import-facts')).toContainText('90 bpm');
+  }
+
+  async function expectChoices(page: Page) {
+    await expect(page.getByTestId('version-full')).toBeChecked();
+    await expect(page.getByTestId('tempo-input')).toHaveValue('90');
+    await expect(page.getByTestId('key-select')).toHaveValue('9-minor');
+    await expect(page.getByTestId('trim-start')).toHaveValue('1');
+    await expect(page.getByTestId('trim-end')).toHaveValue('6');
+    await expect(page.getByTestId('import-title')).toHaveValue('Preview Title');
+    await expect(page.getByTestId('import-composer')).toHaveValue('Preview Artist');
+    await expect(page.getByTestId('import-split-pitch')).toBeChecked();
+    await expect(page.getByTestId('import-split')).toHaveValue('64');
+    await expect(page.getByTestId('import-level')).toHaveValue('4');
+  }
+
+  test('a Wait-mode preview plays to the end, writes nothing anywhere, returns to the review with every choice, and then save works', async ({ page }) => {
+    test.setTimeout(120_000);
+    await open(page);
+    await pick(page, 'ode.wav', goodWav);
+    await expect(page.getByTestId('import-form')).toBeVisible();
+    await expect(page.getByTestId('help-addAudio.preview')).toBeVisible();
+    await expect(page.getByTestId('preview-note')).toContainText('Reloading the page clears it');
+    await choose(page);
+
+    const before = await persisted(page);
+    expect(Object.keys(before.stores).sort()).toEqual(expect.arrayContaining(['attempts', 'latency', 'learnProgress', 'meta', 'noteStats', 'profiles', 'reviewQueue', 'scores', 'songs']));
+    const sessionKeys = await page.evaluate(() => Object.keys(sessionStorage).concat(Object.keys(localStorage)));
+
+    await page.getByTestId('preview-wait').click();
+    await expect(page).toHaveURL(/#\/play\/preview-draft\?preview=1$/);
+    await expect(page.getByTestId('play-ready')).toBeVisible();
+    // Wait is the only mode, and the header says it is a preview.
+    await expect(page.getByTestId('mode-wait')).toHaveAttribute('aria-pressed', 'true');
+    for (const m of ['practice', 'full', 'expert']) await expect(page.getByTestId(`mode-${m}`)).toHaveCount(0);
+    await expect(page.getByTestId('play-screen')).toContainText('Preview');
+    // Settings changed during the preview are not saved.
+    await page.getByTestId('toggle-metronome').click();
+    await page.getByTestId('toggle-labels').click();
+    await page.getByTestId('view-split').click();
+
+    const played = await page.evaluate(() => window.__keyfall!.autoplay({}));
+    await expect(page.getByTestId('play-finished')).toBeVisible({ timeout: 60_000 });
+    expect(played.presses).toBeGreaterThan(20);
+    await expect(page.getByTestId('preview-note')).toContainText('Nothing was saved');
+    await expect(page.getByTestId('see-results')).toHaveCount(0);
+    await expect(page.getByTestId('saving-results')).toHaveCount(0);
+
+    // Zero new rows in any store, nothing changed in any row (the sync queue is driven by these tables), no web storage.
+    const after = await persisted(page);
+    expect(after.stores).toEqual(before.stores);
+    expect(after.web).toBe(before.web);
+    expect(await page.evaluate(() => Object.keys(sessionStorage).concat(Object.keys(localStorage)))).toEqual(sessionKeys);
+
+    await page.getByTestId('preview-back').click();
+    await expect(page).toHaveURL(/#\/add\/audio$/);
+    await expect(page.getByTestId('import-form')).toBeVisible();
+    await expectChoices(page);
+
+    // A second preview from the restored review, left with the Back arrow instead.
+    await page.getByTestId('preview-wait').click();
+    await expect(page.getByTestId('play-ready')).toBeVisible();
+    await page.getByRole('link', { name: 'Back to review' }).click();
+    await expectChoices(page);
+    expect((await persisted(page)).stores).toEqual(before.stores);
+
+    await page.getByTestId('import-save').click();
+    await expect(page).toHaveURL(/#\/play\/imp-/);
+    const rows = await readStore<{ song: { title: string; level: number } }>(page, 'songs');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.song).toMatchObject({ title: 'Preview Title', level: 4 });
+    expect(await readStore(page, 'attempts')).toHaveLength(0);
+    expect(await readStore(page, 'scores')).toHaveLength(0);
+    expect(await readStore(page, 'noteStats')).toHaveLength(0);
+    // The preview song is gone once the real one is saved.
+    await page.evaluate(() => (window.location.hash = '#/play/preview-draft?preview=1'));
+    await expect(page.getByText('Preview not found')).toBeVisible();
+  });
+
+  test('a reload drops the preview and the draft; leaving the flow elsewhere does too', async ({ page }) => {
+    test.setTimeout(60_000);
+    await open(page);
+    await pick(page, 'ode.wav', goodWav);
+    await expect(page.getByTestId('import-form')).toBeVisible();
+    await choose(page);
+    await page.getByTestId('preview-wait').click();
+    await expect(page.getByTestId('play-ready')).toBeVisible();
+    await page.reload();
+    await expect(page.getByText('Preview not found')).toBeVisible();
+    await expect(page.getByText('Reloading the page clears it')).toBeVisible();
+    await page.getByRole('link', { name: 'Back to Add song' }).click();
+    await expect(page.getByTestId('add-audio-file')).toBeVisible();
+    await expect(page.getByTestId('import-form')).toHaveCount(0);
+
+    // Preview, then go to Songs instead of back: coming to Add song afterwards starts empty.
+    await installFake(page);
+    await pick(page, 'ode.wav', goodWav);
+    await page.getByTestId('preview-wait').click();
+    await expect(page.getByTestId('play-ready')).toBeVisible();
+    await page.evaluate(() => (window.location.hash = '#/songs'));
+    await expect(page).toHaveURL(/#\/songs$/);
+    await page.evaluate(() => (window.location.hash = '#/add/audio'));
+    await expect(page.getByTestId('add-audio-file')).toBeVisible();
+    await expect(page.getByTestId('import-form')).toHaveCount(0);
+    // Cancel on the review clears the preview slot.
+    await installFake(page);
+    await pick(page, 'ode.wav', goodWav);
+    await page.getByTestId('preview-wait').click();
+    await page.getByRole('link', { name: 'Back to review' }).click();
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByTestId('add-audio-file')).toBeVisible();
+    await page.evaluate(() => (window.location.hash = '#/play/preview-draft?preview=1'));
+    await expect(page.getByText('Preview not found')).toBeVisible();
+  });
+
+  test('piano-nav alone: Preview in Wait mode, play, and A0 back to the review', async ({ page }) => {
+    test.setTimeout(60_000);
+    const A0 = 21;
+    const C1 = 24;
+    const D1 = 26;
+    const tap = (midi: number) =>
+      page.evaluate((m) => {
+        window.__keyfall!.press(m);
+        window.__keyfall!.release(m);
+      }, midi);
+    await open(page);
+    await pick(page, 'ode.wav', goodWav);
+    await expect(page.getByTestId('import-form')).toBeVisible();
+    await page.getByTestId('version-full').check();
+    for (let i = 0; i < 80 && !(await page.getByTestId('preview-wait').evaluate((el) => document.activeElement === el)); i++) await tap(D1);
+    await expect(page.getByTestId('preview-wait')).toBeFocused();
+    const ring = await page.getByTestId('preview-wait').evaluate((el) => getComputedStyle(el).outlineStyle);
+    expect(ring).not.toBe('none');
+    await tap(C1);
+    await expect(page.getByTestId('play-ready')).toBeVisible();
+    // A0 goes back to the review, not to Songs, and the choice is still there.
+    await tap(A0);
+    await expect(page).toHaveURL(/#\/add\/audio$/);
+    await expect(page.getByTestId('version-full')).toBeChecked();
+  });
 });
 
 test.describe('add song with the real model', () => {

@@ -34,6 +34,7 @@ export function ImportForm({
   extra,
   controls,
   heading,
+  actions,
 }: {
   analysis: ImportAnalysis;
   initial: Initial;
@@ -45,6 +46,8 @@ export function ImportForm({
   controls?: React.ReactNode;
   /** Replaces the small label above the title (the file kind). */
   heading?: string;
+  /** Extra buttons in the button row that need the form's current values (the Add song review's preview). */
+  actions?: (v: Initial, busy: boolean) => React.ReactNode;
 }) {
   const [title, setTitle] = useState(initial.title);
   const [composer, setComposer] = useState(initial.composer);
@@ -183,6 +186,7 @@ export function ImportForm({
         <button className="btn" type="button" onClick={onCancel}>
           Cancel
         </button>
+        {actions?.({ title, composer, splitMode, splitMidi, level, levelOverridden: pickedLevel !== null }, saving)}
         {extra}
       </div>
     </form>

@@ -25,6 +25,24 @@ function publish(records: ImportedSongRecord[]): void {
   listeners.forEach((l) => l());
 }
 
+/**
+ * The Add song review's Wait-mode preview: one transient song held in memory only. It is not in the lists, not in
+ * IndexedDB and not synced; Play finds it by its `preview-` id. Cleared on save, on cancel and on leaving the flow.
+ */
+export const PREVIEW_PREFIX = 'preview-';
+let preview: Song | null = null;
+
+export const isPreviewId = (id: string): boolean => id.startsWith(PREVIEW_PREFIX);
+
+export function setPreviewSong(song: Song): void {
+  if (!isPreviewId(song.id)) throw new Error(`A preview song id must start with ${PREVIEW_PREFIX}.`);
+  preview = song;
+}
+
+export function clearPreviewSong(): void {
+  preview = null;
+}
+
 /** Load the imported songs. If storage fails the bundled songs still work. */
 export async function loadLibrary(db: KeyfallDb): Promise<void> {
   try {
@@ -45,13 +63,15 @@ export function findSong(id: string): SongSummary | undefined {
   return bundledSummary(id) ?? (rec ? summarize(rec.song) : undefined);
 }
 
-/** An import that can still be played (not deleted). */
+/** An import that can still be played (not deleted), or the transient preview song. */
 export function findPlayableSong(id: string): SongSummary | undefined {
+  if (preview && preview.id === id) return summarize(preview);
   return state.songs.find((s) => s.id === id);
 }
 
 /** The whole song with its notes. Bundled songs are fetched on first use; imports are already in memory. */
 export async function loadPlayableSong(id: string): Promise<Song | undefined> {
+  if (preview && preview.id === id) return preview;
   if (bundledSummary(id)) return loadBundledSong(id);
   return importedRecord(id)?.song;
 }

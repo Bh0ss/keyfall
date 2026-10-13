@@ -15,7 +15,8 @@ import type { Song } from '../engine/song';
 import { midi } from '../midi/engine';
 import { songUsesCommandNotes } from '../nav/commands';
 import { isNavSwallowed, useNavScope, usePauseHandler } from '../nav/store';
-import { findPlayableSong, hasApproximateSheet, loadPlayableSong, songLookups } from '../songs/library';
+import { clearPreviewSong, findPlayableSong, hasApproximateSheet, loadPlayableSong, songLookups } from '../songs/library';
+import { clearDraft } from '../audioImport/draft';
 import type { PlayView } from '../storage/types';
 import { saveRun, type SavedRun } from '../storage/attempts';
 import { getDb } from '../storage/db';
@@ -86,11 +87,11 @@ export function PlayScreen({ songId, preset }: { songId: string; preset: PlayPre
       <div className="shell">
         <main className="main">
           <section className="card" data-tone="warn" role="alert">
-            <h2>Song not found</h2>
-            <p>That song is not in the library.</p>
+            <h2>{preset.preview ? 'Preview not found' : 'Song not found'}</h2>
+            <p>{preset.preview ? 'The preview is gone. Reloading the page clears it, along with your choices. Choose the recording again to start over.' : 'That song is not in the library.'}</p>
             <div className="row">
-              <a className="btn" data-primary href={hrefFor.songs()}>
-                Back to songs
+              <a className="btn" data-primary href={preset.preview ? hrefFor.addAudio() : hrefFor.songs()}>
+                {preset.preview ? 'Back to Add song' : 'Back to songs'}
               </a>
             </div>
           </section>
@@ -100,14 +101,14 @@ export function PlayScreen({ songId, preset }: { songId: string; preset: PlayPre
   }
   return (
     <>
-      {portraitPhone && <RotatePrompt />}
+      {portraitPhone && <RotatePrompt preview={preset.preview === true} />}
       <PlayLoader key={`${song.id}:${attempt}`} songId={song.id} preset={preset} onRetry={() => setAttempt((a) => a + 1)} />
     </>
   );
 }
 
 /** Portrait on a phone: the highway needs the width, so ask for the phone to be turned. */
-function RotatePrompt() {
+function RotatePrompt({ preview }: { preview: boolean }) {
   return (
     <div className="rotate-prompt" data-testid="rotate-prompt" role="alert" data-nav-modal>
       <svg aria-hidden="true" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -116,8 +117,8 @@ function RotatePrompt() {
       </svg>
       <h2>Turn your phone sideways</h2>
       <p>Keyfall plays in landscape. Rest the phone on the music stand and the keys line up with the piano.</p>
-      <a className="btn" href={hrefFor.songs()}>
-        Back to songs
+      <a className="btn" href={preview ? hrefFor.addAudio() : hrefFor.songs()}>
+        {preview ? 'Back to review' : 'Back to songs'}
       </a>
     </div>
   );
@@ -171,8 +172,8 @@ function PlayLoader({ songId, preset, onRetry }: { songId: string; preset: PlayP
               <button className="btn" data-primary type="button" onClick={() => window.location.reload()}>
                 Try again
               </button>
-              <a className="btn" href={hrefFor.songs()}>
-                Back to songs
+              <a className="btn" href={preset.preview ? hrefFor.addAudio() : hrefFor.songs()}>
+                {preset.preview ? 'Back to review' : 'Back to songs'}
               </a>
             </div>
           </section>
@@ -199,11 +200,14 @@ function PlayInner({
 }) {
   const profile = useActiveProfile();
   const keyboard = useMidi().devices;
+  // The Add song review's preview: Wait mode only, and nothing it does is written anywhere (see the guards below).
+  const preview = preset.preview === true;
+  const [previewFlags, setPreviewFlags] = useState<{ positionLabels?: boolean; autoFingering?: boolean }>({});
   const lastBar = lastMeasure(song);
   const [setup, setSetup] = useState<Setup>(() => {
     const clamp = (n: number) => Math.min(Math.max(1, n), lastBar);
     const from = clamp(preset.from ?? 1);
-    const mode = preset.mode ?? profile.settings.mode;
+    const mode = preview ? 'wait' : (preset.mode ?? profile.settings.mode);
     const speed = preset.speedPct ?? profile.settings.speedPct;
     return {
       mode,
@@ -219,11 +223,11 @@ function PlayInner({
   const bar = barBeats(song);
   // Fingers the song does not carry are worked out once per song (and only when asked for); the position help reads them too.
   const lacksFingers = useMemo(() => song.notes.some((n) => n.finger === undefined), [song]);
-  const autoOn = profile.settings.autoFingering !== false && lacksFingers;
+  const autoOn = (previewFlags.autoFingering ?? profile.settings.autoFingering) !== false && lacksFingers;
   const auto = useMemo(() => (autoOn ? autoFingersFor(song.notes) : null), [autoOn, song]);
   const positions = useMemo(() => analysePositions(song.notes, auto ? (n) => n.finger ?? auto.get(n.id) : undefined), [song, auto]);
   const helpOn = profile.settings.handHelp !== false && positions.shifts.length > 0;
-  const posLabels = profile.settings.positionLabels === true && positions.hasFingering;
+  const posLabels = (previewFlags.positionLabels ?? profile.settings.positionLabels) === true && positions.hasFingering;
   const drillShift = helpOn && setup.drill !== null ? positions.shifts[setup.drill] : undefined;
   const drillSpan = useMemo(() => (drillShift ? drillRange(drillShift, song.notes) : undefined), [drillShift, song]);
   // The shift drill replaces the A-B loop; as bars it is the span of the notes it loops.
@@ -253,9 +257,13 @@ function PlayInner({
   const [chosenView, setView] = useState<PlayView>(profile.settings.view ?? 'falling');
   // The phone screen is too short for a score beside the notes: it always shows the falling view.
   const view: PlayView = phone ? 'falling' : chosenView;
+  // Settings changed in a preview last for the preview only; saving them would write the profile (and sync it).
+  const remember = (patch: Parameters<typeof profiles.saveSettings>[1]) => {
+    if (!preview) void profiles.saveSettings(profile.id, patch);
+  };
   const chooseView = (v: PlayView) => {
     setView(v);
-    void profiles.saveSettings(profile.id, { view: v });
+    remember({ view: v });
   };
   const [labelMode, setLabelMode] = useState<LabelMode>(setup.mode === 'expert' ? 'off' : profile.settings.labels);
   const labelsRef = useRef({ mode: labelMode, streaks });
@@ -285,16 +293,16 @@ function PlayInner({
     });
     if (patch.mode) setLabelMode(patch.mode === 'expert' ? 'off' : profile.settings.labels);
     const { mode, speedPct, metronome, countIn } = patch;
-    const remember = { mode, speedPct, metronome, countIn };
-    if (Object.values(remember).some((v) => v !== undefined)) {
-      void profiles.saveSettings(profile.id, Object.fromEntries(Object.entries(remember).filter(([, v]) => v !== undefined)));
+    const changed = { mode, speedPct, metronome, countIn };
+    if (Object.values(changed).some((v) => v !== undefined)) {
+      remember(Object.fromEntries(Object.entries(changed).filter(([, v]) => v !== undefined)));
     }
   };
 
   const cycleLabels = () => {
     const next: LabelMode = labelMode === 'on' ? 'fade' : labelMode === 'fade' ? 'off' : 'on';
     setLabelMode(next);
-    void profiles.saveSettings(profile.id, { labels: next });
+    remember({ labels: next });
   };
 
   useEffect(() => {
@@ -303,7 +311,7 @@ function PlayInner({
 
   // Save the finished run (attempt, high score, per-note stats) exactly once.
   useEffect(() => {
-    if (session.status !== 'finished' || saveRef.current) return;
+    if (preview || session.status !== 'finished' || saveRef.current) return;
     saveRef.current = saveRun(getDb(), {
       profileId: profile.id,
       song,
@@ -314,7 +322,7 @@ function PlayInner({
       wait: session instanceof WaitSession ? { wrong: session.stats().wrong, avgTimeToPressMs: session.stats().avgTimeToPressMs } : null,
     }, songLookups);
     void saveRef.current.then(setSaved, () => undefined);
-  }, [status, session, profile.id, song, setup, loopBars]);
+  }, [status, session, profile.id, song, setup, loopBars, preview]);
 
   // The end card's sounds: a cadence, a chime per star, then a sparkle if the run earned a level or a badge.
   const doneStars = session.status === 'finished' ? session.summary().stars : -1;
@@ -333,6 +341,20 @@ function PlayInner({
   const retry = () => {
     void (saveRef.current ?? Promise.resolve()).then(onRetry, onRetry);
   };
+
+  // Leaving the preview drops the transient song; the draft survives only on the way back to the review.
+  // Leaving the preview drops the transient song; the draft survives only on the way back to the review.
+  // Still on the preview URL means React's dev-only unmount and remount, not leaving.
+  useEffect(
+    () => () => {
+      if (!preview) return;
+      const to = window.location.hash;
+      if (to.startsWith('#/play/') && to.includes('preview=1')) return;
+      clearPreviewSong();
+      if (!to.startsWith('#/add/audio')) clearDraft();
+    },
+    [preview],
+  );
 
   useEffect(() => {
     rulesRef.current = { metronome: setup.metronome, countIn: setup.countIn, barBeats: bar, playStartBeat: session.playStartBeat };
@@ -477,7 +499,7 @@ function PlayInner({
     <div className="play" data-testid="play-screen" data-phone={phone} data-tablet={tablet}>
       <header className="play-head">
         <div className="play-head-left">
-          <a className="icon-btn" href={hrefFor.songs()} aria-label="Back to songs">
+          <a className="icon-btn" href={preview ? hrefFor.addAudio() : hrefFor.songs()} aria-label={preview ? 'Back to review' : 'Back to songs'}>
             <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 5l-7 7 7 7" />
             </svg>
@@ -485,6 +507,7 @@ function PlayInner({
           <div>
             <div className="play-title">{song.title}</div>
             <div className="play-sub">
+              {preview ? 'Preview · ' : ''}
               {MODES.find((m) => m.id === setup.mode)!.label}
               {timed && timed.speed < 1 ? ` ${Math.round(timed.speed * 100)}%` : ''} · {HANDS[song.hands]} ·{' '}
               <span data-testid="play-status" data-status={status}>
@@ -588,9 +611,10 @@ function PlayInner({
               shifts={helpOn ? positions.shifts : []}
               fingered={positions.hasFingering}
               posLabels={posLabels}
-              onPosLabels={() => void profiles.saveSettings(profile.id, { positionLabels: !posLabels })}
+              onPosLabels={() => (preview ? setPreviewFlags((f) => ({ ...f, positionLabels: !posLabels })) : void profiles.saveSettings(profile.id, { positionLabels: !posLabels }))}
               autoFingers={lacksFingers ? autoOn : null}
-              onAutoFingers={() => void profiles.saveSettings(profile.id, { autoFingering: !autoOn })}
+              onAutoFingers={() => (preview ? setPreviewFlags((f) => ({ ...f, autoFingering: !autoOn })) : void profiles.saveSettings(profile.id, { autoFingering: !autoOn }))}
+              waitOnly={preview}
             />
             <button className="btn" data-primary type="button" data-testid="play-start" onClick={() => session.start(performance.now())}>
               Start
@@ -653,8 +677,22 @@ function PlayInner({
               </div>
             )}
             {saved && <EarnedCard levelFrom={saved.levelFrom} levelTo={saved.levelTo} newBadges={saved.newBadges} />}
+            {preview && (
+              <p className="muted" data-testid="preview-note">
+                This was a preview. Nothing was saved: no score, no results.
+              </p>
+            )}
             <div className="row">
-              {saved ? (
+              {preview ? (
+                <>
+                  <a className="btn" data-primary href={hrefFor.addAudio()} data-testid="preview-back">
+                    Back to review
+                  </a>
+                  <button className="btn" type="button" onClick={onRetry} data-testid="preview-again">
+                    Play again
+                  </button>
+                </>
+              ) : saved ? (
                 <a className="btn" data-primary href={hrefFor.results(saved.attempt.id)} data-testid="see-results">
                   See results
                 </a>
@@ -663,12 +701,16 @@ function PlayInner({
                   Saving...
                 </span>
               )}
-              <button className="btn" type="button" onClick={retry}>
-                Retry
-              </button>
-              <a className="btn" href={hrefFor.songs()}>
-                Songs
-              </a>
+              {!preview && (
+                <>
+                  <button className="btn" type="button" onClick={retry}>
+                    Retry
+                  </button>
+                  <a className="btn" href={hrefFor.songs()}>
+                    Songs
+                  </a>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -688,6 +730,7 @@ function SetupPanel({
   onPosLabels,
   autoFingers,
   onAutoFingers,
+  waitOnly,
 }: {
   setup: Setup;
   lastBar: number;
@@ -701,6 +744,8 @@ function SetupPanel({
   /** Whether auto finger numbers are on; null when the song carries a finger on every note. */
   autoFingers: boolean | null;
   onAutoFingers: () => void;
+  /** The Add song preview: Wait mode is the only mode. */
+  waitOnly: boolean;
 }) {
   const drilling = setup.drill !== null && setup.drill < shifts.length ? shifts[setup.drill]! : null;
   const step = (by: number) => onChange({ drill: ((setup.drill ?? 0) + by + shifts.length) % shifts.length });
@@ -709,7 +754,7 @@ function SetupPanel({
     <div className="setup" data-testid="setup">
       <div className="help-row">
         <div className="seg" role="group" aria-label="Difficulty">
-          {MODES.map((m) => (
+          {MODES.filter((m) => !waitOnly || m.id === 'wait').map((m) => (
             <button key={m.id} type="button" data-testid={`mode-${m.id}`} aria-pressed={setup.mode === m.id} title={m.hint} onClick={() => onChange({ mode: m.id })}>
               {m.label}
             </button>

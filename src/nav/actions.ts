@@ -28,6 +28,7 @@ export function parentHash(route: Route): string | null {
     case 'home':
       return null;
     case 'play':
+      return route.preset.preview ? hrefFor.addAudio() : hrefFor.songs();
     case 'results':
     case 'import':
     case 'addAudio':
