@@ -2,12 +2,15 @@ import { expect, type Browser, type Page } from '@playwright/test';
 import { test, watchCsp } from './fixtures';
 import { musicXml } from '../tests/fixtures/generate';
 import { createProfile, isolateMidi, readStore, ORIGIN } from './helpers';
+import { bundledSong, synthesize, toWav } from '../tests/fixtures/audio';
 import { SYNC_TABLES, signedInClient, testUser } from './sync-helpers';
 
 const MARY = './?debug=1#/play/mary-had-a-little-lamb';
 const RUN = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 const NAME = `E2E Sync ${RUN}`;
 const FILE = `e2e-sync-${RUN}.musicxml`;
+const AUDIO_TITLE = `e2e-sync-audio-${RUN}`;
+const AUDIO_FILE = `${AUDIO_TITLE}.musicxml`;
 
 /** A fresh browser context: new storage, no session, no MIDI hardware. */
 async function freshPage(browser: Browser): Promise<Page> {
@@ -45,7 +48,7 @@ async function cleanup() {
     if (ids.length) await sb.from(t).delete().in('id', ids);
   }
   const { data: songs } = await sb.from('imported_songs').select('id, data');
-  const songIds = (songs ?? []).filter((r) => (r.data as { fileName?: string }).fileName === FILE).map((r) => r.id as string);
+  const songIds = (songs ?? []).filter((r) => [FILE, AUDIO_FILE].includes(String((r.data as { fileName?: string }).fileName))).map((r) => r.id as string);
   if (songIds.length) {
     await sb.storage.from('songs').remove(songIds.map((id) => `${uid}/${id}`));
     await sb.from('imported_songs').delete().in('id', songIds);
@@ -119,6 +122,63 @@ test.describe('sync across devices', () => {
     const { sb } = await signedInClient(testUser(1));
     const { data } = await sb.from('scores').select('score').eq('id', scores1[0]!.id);
     expect((data ?? []).map((r) => r.score)).toEqual([4800]);
+
+    await one.context().close();
+    await two.context().close();
+  });
+
+  test('a song added from a recording syncs as MusicXML text, and no audio-shaped object reaches the bucket', async ({ browser }) => {
+    test.setTimeout(120_000);
+    const name = `${NAME}a`; // profile names are capped at 22 characters
+    const wav = Buffer.from(toWav(synthesize(bundledSong('ode-to-joy'), { seconds: 8 })));
+    const one = await freshPage(browser);
+    await one.goto('./?debug=1');
+    await createProfile(one, name);
+    await one.goto('./?debug=1#/add/audio');
+    await expect(one.getByTestId('add-audio-screen')).toBeVisible();
+    expect(await one.evaluate(() => window.__keyfall!.useFakeTranscriber('ode-to-joy', { stepMs: 10, steps: 3, finishingMs: 60 }))).toBe(true);
+    await one.getByTestId('link-title').fill(AUDIO_TITLE);
+    await one.getByTestId('link-artist').fill('E2E');
+    await one.getByTestId('audio-file').setInputFiles({ name: 'recording.wav', mimeType: 'audio/wav', buffer: wav });
+    await expect(one.getByTestId('import-form')).toBeVisible();
+    await one.getByTestId('import-save').click();
+    await expect(one).toHaveURL(/#\/play\/imp-/);
+    const id = decodeURIComponent(one.url().split('#/play/')[1]!.split('?')[0]!);
+
+    await one.goto('./?debug=1#/settings');
+    await signInOnPage(one);
+    await expect(one.getByTestId('account-card')).toHaveAttribute('data-state', 'choose', { timeout: 20_000 });
+    await one.getByTestId('choice-upload').click();
+    await expect(one.getByTestId('account-card')).toHaveAttribute('data-state', 'signed-in', { timeout: 20_000 });
+    await expect(one.getByTestId('sync-status')).toHaveAttribute('data-phase', 'synced', { timeout: 30_000 });
+
+    // The bucket holds the generated MusicXML text, smaller than the recording, and nothing audio-shaped at all.
+    const { sb, uid } = await signedInClient(testUser(1));
+    const row = await sb.from('imported_songs').select('id, data').eq('id', id).single();
+    expect((row.data?.data as { fileName?: string }).fileName).toBe(AUDIO_FILE);
+    const file = await sb.storage.from('songs').download(`${uid}/${id}`);
+    expect(file.error).toBeNull();
+    const bytes = Buffer.from(await file.data!.arrayBuffer());
+    expect(bytes.subarray(0, 5).toString('utf8')).toBe('<?xml');
+    expect(bytes.byteLength).toBeLessThan(wav.byteLength);
+    const listed = await sb.storage.from('songs').list(uid, { limit: 1000 });
+    expect(listed.error).toBeNull();
+    for (const o of listed.data ?? []) {
+      const meta = (o.metadata ?? {}) as { mimetype?: string };
+      expect(`${o.name} ${meta.mimetype ?? ''}`, 'bucket object').not.toMatch(/audio\/|\.(wav|mp3|m4a|aac|flac)\b|wav|mpeg/i);
+    }
+
+    // A second fresh context gets the song.
+    const two = await freshPage(browser);
+    await two.goto('./?debug=1');
+    await expect(two.getByTestId('profile-picker')).toBeVisible();
+    await signInOnPage(two);
+    await expect(two.getByTestId(`profile-card-${name}`)).toBeVisible({ timeout: 30_000 });
+    await two.getByRole('button', { name: `Play as ${name}` }).click();
+    await expect(two.getByTestId('app-ready')).toBeAttached();
+    await expect.poll(async () => (await readStore<{ id: string }>(two, 'songs')).map((s) => s.id), { timeout: 30_000 }).toContain(id);
+    await two.goto('./?debug=1#/songs');
+    await expect(two.getByTestId(`song-${id}`)).toContainText(AUDIO_TITLE);
 
     await one.context().close();
     await two.context().close();

@@ -1035,7 +1035,44 @@ Wall time 11.6m.
 
 ## v1.2: Add song from Spotify link + audio file
 
-A requested addition beyond the original spec (Captain's request, 2026-10-13). Plan: the V12 scope (Garrus). Dark until the last increment: no route, button or screen shows it.
+A requested addition beyond the original spec (Captain's request, 2026-10-13). Plan: the V12 scope (Garrus). I1 to I5 were built dark (no route, button or screen showed it); I6 adds the entry point, so the feature is live.
+
+### Summary
+
+Play > Add song now offers two ways in: From a file (MIDI, MusicXML, the existing flow) and From Spotify + audio (`#/add/audio`). The audio route takes an optional Spotify track link (title and cover from oEmbed; artist typed by hand), then an m4a, mp3 or wav recording. A worker runs Basic Pitch on the device (WebGL), the arranger turns the notes into a Beginner or Full two-hand arrangement, and a review screen offers version, tempo (estimate, Half, Double, Tap, typed), key, trim, hands and difficulty, plus a Wait-mode preview that saves nothing. Save writes generated MusicXML through the existing import pipeline, so sync, fingering and difficulty work unchanged. The recording is decoded on the main thread, transcribed in memory, and never stored or uploaded.
+
+| Increment | What it added |
+| --- | --- |
+| I1 | Transcription engine: basic-pitch 1.0.1 model files, TF.js 4.22.0 (override), own windowing runner, worker, decode, bundle guard, measurements |
+| I2 | Arranger core: grid, key, chords, melody, RH, LH, MusicXML out; accuracy floors on synthetic fixtures |
+| I3 | Spotify link module (strict URL parsing, oEmbed, title sanitising, thumbnail allowlist) and the CSP change |
+| I4 | The Add song screen at `#/add/audio`: link, file, listening, Mac fallback card, review, save, help, piano-nav |
+| I5 | Wait-mode preview with no persistence, in-memory draft that survives the round trip |
+| I6 | Entry point ("Add song", same `import-link` test id), the `#/import` chooser, sync e2e, Lighthouse on all routes, this summary and HUMAN_CHECKS |
+
+#### CSP before and after
+
+Full strings are under I3. Before: `connect-src` held `'self'` and the Supabase host and websocket; `img-src` was `'self' data: blob:`. After: `connect-src` also allows `https://open.spotify.com`; `img-src` also allows `https://image-cdn-fa.spotifycdn.com` and `https://image-cdn-ak.spotifycdn.com`. No wildcard, no `unsafe-eval`, no `wasm-unsafe-eval`, `script-src` and `worker-src` unchanged (the model is same-origin).
+
+#### Measurements (from I1 to I3, commands in those sections)
+
+Model files 174,537 B + 742,392 B (+ 11,357 B LICENSE); cold model load median 9 ms unthrottled (Fast 4G figure under I1); 198 s of audio: inference about 1.8 to 2.0 s, post-processing about 8.2 s (about 80 percent of the total), 1,421 notes; main chunk grew by 471 B raw / 141 B gzip (budget 2 KB); the worker is its own chunk of 1,229,698 B raw / 195,618 B gzip.
+
+#### Accuracy (synthetic fixtures; they over-state real recordings)
+
+Melody F1 from `tests/arrange-accuracy.test.ts` (full table with raw F1, tempo and key under I2): Ode to Joy clean 1.000, mix 0.667; When the Saints clean 0.870, mix 0.769; Fur Elise opening clean 0.970, mix 0.644. Recall of raw transcription is about 1.0; precision is the weak point, which the melody extractor repairs. Real full-mix accuracy is unmeasured and expected to be lower (HUMAN_CHECKS).
+
+#### Captain decisions D1 to D7 and the provisional rulings taken
+
+| | Question | Ruling taken (provisional, from the ledger) |
+| --- | --- | --- |
+| D1 | Input expectation | Accept solo piano and full mixes; copy recommends a solo piano or a simple recording |
+| D2 | Spotify thumbnail | Shown; `img-src` widened to exactly the two CDN hosts |
+| D3 | Artist | Manual entry (oEmbed carries none) |
+| D4 | Dependency stance | `@spotify/basic-pitch` 1.0.1 for model files and post-processing only, TF.js 4.22.0 override, our own windowing loop; model copied from `node_modules` at build, not committed |
+| D5 | Tempo | Constant tempo only; Tap tempo, Half, Double and Trim are the remedy |
+| D6 | iPhone CPU path | No CPU path anywhere; no WebGL sends the player to "This works best on the Mac" |
+| D7 | Formats | `.m4a`, `.mp3`, `.wav` only |
 
 ### I1: Transcription engine (dark)
 
@@ -1330,3 +1367,50 @@ default-src 'self'; script-src 'self'; connect-src 'self' https://ubheylmkufyuam
 
 - Entry button and `#/import` chooser: I6. Real-device check of the preview: HUMAN_CHECKS (I5).
 
+
+### I6: Ship (entry point, chooser, sync e2e, docs)
+
+#### Built
+
+- `src/ui/SongPicker.tsx`: the Play > Songs header button "Import a song" is now "Add song", same `data-testid="import-link"` and `data-primary`, with a `songs.addSong` help bubble next to it.
+- `src/ui/ImportScreen.tsx`: `#/import` is titled "Add a song" and opens with a two-choice header (`import-choice`): "From a file (MIDI, MusicXML)" (the current page, `aria-current="page"`, the existing file flow underneath unchanged) and "From Spotify + audio" (links to `#/add/audio`), an `import.choose` help bubble, and the line "From Spotify + audio works best on the Mac." The edit screen (`#/import/<id>`) keeps "Edit imported song".
+- `src/help/content.ts`: `songs.addSong` and `import.choose`.
+- iPhone: the choice and the screen show on a phone; the Mac fallback card ("This works best on the Mac", built in I4) is reached from there. Copy is the D6 ruling's. No new code path.
+- `e2e/sync.spec.ts`: a new test in the existing describe (same account, same serial run, first test untouched): add a song through `#/add/audio` (fake transcriber), sign in and upload, then check the real bucket. The object is MusicXML text (starts with `<?xml`) and smaller than the recording; no object under the user's folder has an audio name or audio MIME type; a second fresh context signs in, picks the profile and gets the song. Cleanup now also removes the audio-added song's row and bucket object.
+- `e2e/import.spec.ts` (chooser test, and the Songs button label), `e2e/phone.spec.ts` (chooser on a phone), `tests/help-content.test.ts` (ImportScreen added to the file list it scans for help bubbles).
+- `scripts/lighthouse.mjs` already audited Import and Add song (added in I4/I5); no change needed.
+- HUMAN_CHECKS: "v1.2 I6" section (Mac piano solo, Mac full mix with the D1 accuracy expectation, real Spotify link and the `-fa` or `-ak` thumbnail host, iPhone in Web MIDI Browser, sync).
+
+#### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm test` | exit 0, 67 files, 1113 tests |
+| `npm run build` | exit 0 |
+| `npx playwright test` (dev, all projects) | 252 passed, 3 skipped (the same 3 orientation skips), 0 failed, 11.8 min (I5: 249 / 3 / 0; +3 new: sync, chooser, phone chooser) |
+| `KEYFALL_PREVIEW=1 npx playwright test` (all projects, CSP live) | 252 passed, 3 skipped, 0 failed, 11.8 min |
+| `npm run lighthouse` | accessibility 100 on Home, Play, Songs, Import, Add song, Learn, Stats, Settings, Credits |
+
+#### Decisions
+
+- Requested addition beyond spec.
+- The "From a file" choice is a link to the current page marked `aria-current`, not a toggle: the file flow is the page itself, so there is nothing to switch.
+- The "works best on the Mac" line is shown on every device, not only phones, because the screen cannot tell a phone from a narrow window reliably; it is true on any non-Mac device without WebGL.
+- Sync e2e checks the bucket by listing the user's folder and testing every object name and MIME type, so leftovers from other runs would also be caught. Profile name is `NAME` plus one letter because profile names are capped at 22 characters (a longer suffix was truncated and the card was not found).
+- The first sync test and its budget are untouched.
+
+#### Adapted tests
+
+- `e2e/import.spec.ts` "Songs links to Import ...": gained an assertion that the button reads "Add song". No assertion weakened.
+- `tests/help-content.test.ts`: `ImportScreen` added to the list of files scanned for `<HelpBubble>`, so every help id must still be used and every bubble must name a real entry.
+- Nothing else changed: `e2e/piano-nav.spec.ts` and the existing import e2e kept all their assertions and pass unchanged.
+
+#### Deferred (whole of v1.2)
+
+- Live-URL runs after deploy: `e2e/transcribe-real.spec.ts` and cold model load over the real network (I1), the real Spotify lookup and thumbnail host (I3).
+- A typed-array port of `outputToNotesPoly` (post-processing is about 80 percent of conversion time).
+- Tempo maps (D5), `.aac` and `.flac` (D7), a CPU path for the phone (D6), an artist from Spotify (D3, would need a proxy).
+- Re-editing tempo or trim after save: not possible by design, the audio is gone.
+- Real-recording accuracy, iPhone behaviour and the real Spotify link: HUMAN_CHECKS (I1, I3, I4, I5, I6).

@@ -10,6 +10,7 @@ import { importedRecord, loadLibrary } from '../songs/library';
 import { getDb } from '../storage/db';
 import { deleteImportedSong } from '../storage/songs';
 import { AppLayout } from './AppLayout';
+import { HelpBubble } from './HelpBubble';
 import { useAsync } from './useAsync';
 import { hrefFor } from './useRoute';
 
@@ -223,6 +224,21 @@ function NewImport() {
   const split = state ? defaultSplit(state.analysis) : null;
   return (
     <>
+      <section className="card import-choice" aria-label="How to add a song" data-testid="import-choice">
+        <div className="title-help">
+          <span className="label">Add a song</span>
+          <HelpBubble id="import.choose" />
+        </div>
+        <div className="row">
+          <a className="btn" href={hrefFor.import()} aria-current="page" data-testid="import-choice-file">
+            From a file (MIDI, MusicXML)
+          </a>
+          <a className="btn" href={hrefFor.addAudio()} data-testid="import-choice-audio">
+            From Spotify + audio
+          </a>
+        </div>
+        <p className="muted">From Spotify + audio works best on the Mac.</p>
+      </section>
       <section className="card import-drop" data-testid="import-drop">
         <h2>Choose a file</h2>
         <p>
@@ -343,7 +359,7 @@ export function ImportScreen({ songId }: { songId?: string }) {
           <div>
             <div className="mark">Kf</div>
             <div className="eyebrow">Keyfall</div>
-            <h1 className="title">{songId ? 'Edit imported song' : 'Import a song'}</h1>
+            <h1 className="title">{songId ? 'Edit imported song' : 'Add a song'}</h1>
           </div>
         </header>
         {songId ? <EditImport songId={songId} /> : <NewImport />}

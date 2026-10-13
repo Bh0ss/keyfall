@@ -103,7 +103,7 @@ describe('help content', () => {
   });
 
   it('every help id is used by a bubble somewhere, and every bubble names a real entry', () => {
-    const files = ['PlayScreen', 'SongPicker', 'SettingsScreen', 'ResultsScreen', 'AccountPanel', 'learn/UnitDetail', 'AddAudioScreen'].map((f) => read(`src/ui/${f}.tsx`));
+    const files = ['PlayScreen', 'SongPicker', 'SettingsScreen', 'ResultsScreen', 'AccountPanel', 'learn/UnitDetail', 'AddAudioScreen', 'ImportScreen'].map((f) => read(`src/ui/${f}.tsx`));
     const all = files.join('\n') + read('src/help/content.ts');
     const direct = new Set([...all.matchAll(/<HelpBubble\s+id="([a-zA-Z.]+)"/g)].map((m) => m[1]!));
     const mapped = new Set([...Object.values(CONTROL_HELP), ...Object.values(SETTINGS_PREFERENCE_HELP)]);

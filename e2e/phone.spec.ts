@@ -103,3 +103,14 @@ test('a song autoplays to the end on the phone layout', async ({ page }) => {
   const box = await page.getByTestId('play-finished').boundingBox();
   expect(box!.y + box!.height).toBeLessThanOrEqual(vp.height);
 });
+
+test('Add song shows both choices on a phone and says the recording option works best on the Mac', async ({ page }) => {
+  await gotoApp(page, '?debug=1#/songs');
+  await expect(page.getByTestId('import-link')).toHaveText('Add song');
+  await page.getByTestId('import-link').click();
+  await expect(page.getByTestId('import-choice-file')).toBeVisible();
+  await expect(page.getByTestId('import-choice-audio')).toBeVisible();
+  await expect(page.getByTestId('import-choice')).toContainText('works best on the Mac');
+  await page.getByTestId('import-choice-audio').click();
+  await expect(page.getByTestId('add-audio-screen')).toBeVisible();
+});

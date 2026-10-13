@@ -367,3 +367,21 @@ The arranger is dark and only tested on synthetic audio, which is easy. Once the
    - Good: every choice is as you left it. Open Stats afterwards: the preview left no score and no attempt.
 3. Reload the page during a preview.
    - Good: a "Preview not found" card with a way back to Add song; the review and its choices are gone, as the copy says.
+
+## v1.2 I6: Add song, shipped (Mac, iPhone, live site)
+
+1. Mac, piano solo: on the live site open Play, press Add song, choose From Spotify + audio, paste a real Spotify link for a piano piece and choose a real piano-solo recording (m4a, mp3 or wav).
+   - Good: the title and cover appear, the review shows a tempo close to the recording, and Beginner plays the tune you know with a plain left hand. Expect the melody to be mostly right and a few notes wrong; Half, Double, Tap tempo, Key and Trim are there to fix the rest.
+   - Bad: the tune is unrecognisable, the tempo is far off and Half or Double does not fix it, or the page freezes.
+   - Tell me the song, the length and roughly how many wrong notes you heard in the first 20 seconds.
+2. Mac, full mix: repeat with a real full-band recording of a song with a sung melody.
+   - Expectation (decision D1): this is accepted but much rougher than the piano solo, because Basic Pitch hears every instrument and the arranger has to guess which line is the tune. Measured on synthetic mixes the melody F1 was 0.56 to 0.77 (see PROGRESS), and real vocals are expected to be worse. A recognisable chorus is a pass; a perfect transcription is not expected.
+3. Real Spotify link on the live site: paste a track link, press Look up song.
+   - Good: the title and the cover picture appear and the console shows no Content-Security-Policy error.
+   - Bad: the cover is missing. Open the console, run `await window.__keyfall.spotifyLookup('<the link>')` (with `?debug=1`) and tell me the thumbnail host: `image-cdn-fa.spotifycdn.com` (expected, seen 6 of 6 times) or `image-cdn-ak.spotifycdn.com` (allowed, never seen), or anything else (blocked on purpose).
+4. iPhone, in Web MIDI Browser: open Play, press Add song.
+   - Good: both choices show (From a file, From Spotify + audio) with "works best on the Mac" under them. Choosing a file still works. Choosing Spotify + audio and a short recording either completes or shows the "This works best on the Mac" card with a reason; a recording over 4 minutes shows the card at once. Cancel returns to the start.
+   - Bad: the choices are cut off or hard to tap, the page crashes or reloads during listening, or the Mac card has no way back.
+   - Tell me which card and reason text you saw, how long a short recording took, and whether the song then synced to the Mac.
+5. Sync: add a song from audio on the Mac while signed in, then open Keyfall on a second device.
+   - Good: the song appears there and plays. Nothing about the recording is on the second device.

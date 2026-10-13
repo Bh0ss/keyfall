@@ -166,6 +166,15 @@ const ENTRIES = {
     title: 'Review list',
     text: 'Notes you get wrong go on a review list and come up more often in lessons. A note leaves the list after you answer it right 3 times in a row.',
   },
+  // Add song
+  'songs.addSong': {
+    title: 'Add song',
+    text: 'Bring your own music into Keyfall. You can import a MIDI or MusicXML file, or build a song from a recording and a Spotify link. Everything is done on this device.',
+  },
+  'import.choose': {
+    title: 'Two ways to add a song',
+    text: 'From a file reads a MIDI or MusicXML file as it is. From Spotify + audio listens to a recording and writes an easy arrangement for you to check. The recording option works best on the Mac.',
+  },
   // Add song from a recording
   'addAudio.link': {
     title: 'Spotify link',

@@ -258,6 +258,7 @@ test.describe('bad files get a friendly message', () => {
       if (u.origin !== ORIGIN) external.push(r.url());
     });
     await gotoApp(page, './?debug=1#/songs');
+    await expect(page.getByTestId('import-link')).toHaveText('Add song');
     await page.getByTestId('import-link').click();
     await expect(page.getByTestId('import-screen')).toBeVisible();
     await pickFile(page, 'a.mxl', Buffer.from(mxl()));
@@ -266,6 +267,20 @@ test.describe('bad files get a friendly message', () => {
     await expect(page.getByTestId(/^song-imp-/)).toHaveCount(1);
     expect(external).toEqual([]);
   });
+});
+
+test('the Add song chooser offers both ways, with help, and the Spotify choice opens the audio flow', async ({ page }) => {
+  await gotoApp(page, './?debug=1#/import');
+  const file = page.getByTestId('import-choice-file');
+  const audio = page.getByTestId('import-choice-audio');
+  await expect(file).toHaveText('From a file (MIDI, MusicXML)');
+  await expect(file).toHaveAttribute('aria-current', 'page');
+  await expect(audio).toHaveText('From Spotify + audio');
+  await expect(page.getByTestId('help-import.choose')).toBeVisible();
+  await expect(page.getByTestId('import-file')).toBeAttached();
+  await audio.click();
+  await expect(page).toHaveURL(/#\/add\/audio$/);
+  await expect(page.getByTestId('add-audio-screen')).toBeVisible();
 });
 
 test('a profile can be created before importing (picker flow)', async ({ page }) => {

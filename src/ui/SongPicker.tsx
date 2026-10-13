@@ -49,8 +49,9 @@ export function SongPicker() {
           </div>
           <div className="row">
             <a className="btn" data-primary href={hrefFor.import()} data-testid="import-link">
-              Import a song
+              Add song
             </a>
+            <HelpBubble id="songs.addSong" />
             <a className="btn" href={hrefFor.keyboard()}>
               Keyboard check
             </a>
