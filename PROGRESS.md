@@ -979,3 +979,38 @@ Requested addition beyond spec: "Moving around the keyboard" moves from the end 
 ### Deferred
 
 - None. HUMAN_CHECKS covers the real-piano side.
+
+## v1.1: live run
+
+**Date:** 2026-10-13. **Live URL:** https://bh0ss.github.io/keyfall/ (HTTP 200 before the run). **Commit:** f590744 on main, tree clean, deployed by run https://github.com/Bh0ss/keyfall/actions/runs/38349139839. **Command:** `KEYFALL_BASE_URL=https://bh0ss.github.io/keyfall/ npx playwright test` (all four projects, 229 tests, 7 workers, no local server, no other Playwright or vite process running). Duration 11.6 minutes.
+
+| Project | Passed | Failed | Skipped |
+| --- | --- | --- | --- |
+| chromium | 210 | 1 | 0 |
+| iphone-landscape | 4 | 0 | 0 |
+| ipad-landscape | 5 | 0 | 2 |
+| ipad-portrait | 6 | 0 | 1 |
+| Total | 225 | 1 | 3 |
+
+**Skipped (3, by design, orientation-specific iPad tests):** ipad-landscape skips `e2e/ipad.spec.ts:31` (portrait stacks the song) and `e2e/ipad.spec.ts:60` (portrait split view); ipad-portrait skips `e2e/ipad.spec.ts:73` (landscape keeps the full desktop layout). Same three as the v1 live run.
+
+**Failure (1), first full run:**
+
+```
+[chromium] › e2e/learn-units-6-10.spec.ts:146:3 › Learn units 6 to 10 › a profile that already passed the old Unit 9 is not re-locked (5.5s)
+Error: expect(locator).toHaveAttribute(expected) failed
+Locator:  getByTestId('learn-unit-9')
+Expected: "passed"
+Received: "locked"
+Timeout:  5000ms
+(14 x locator resolved to <div class="unit-row" aria-disabled="true" data-status="locked" data-testid="learn-unit-9">)
+at e2e/learn-units-6-10.spec.ts:150:52
+```
+
+**Rerun of that test alone against the live URL** (`npx playwright test e2e/learn-units-6-10.spec.ts:146 --project=chromium`): 1 passed (578ms). The sync and RLS specs passed in the full run, so no network-error rerun was needed. No test or source was edited. Diagnosis after this run: it was a test bug, not a flake in the app. After seeding `learn_progress`, the test called `page.goto` on the same `./?debug=1#/learn` URL it was already on. That is a same-document hash navigation, so the page did not reload and kept the progress it had loaded before the seed. The sibling unit-order test had the same line and failed once in a later repeat run.
+
+**Compared with the v1 live run (179 passed, 0 failed, 3 skipped):** 225 passed on the first run (226 counting the passing rerun), 1 flaky failure that passed on rerun, the same 3 skipped. The 46 extra passing tests are the v1.1 additions (help bubbles, auto-fingering, song sort and filter, Learn content, Unit 11, unit order).
+
+### Adapted tests
+
+- `e2e/learn-units-6-10.spec.ts`, the two B6 unit-order tests: `page.goto('./?debug=1#/learn')` after seeding became `page.reload()`, the pattern the Unit 8 test already uses. Assertions unchanged. After the fix, the two Learn specs passed 180 of 180 over 10 repeats, and 40 of 40 at 7 workers. The other seed-then-navigate calls in e2e go to a different route, which re-mounts the screen and reads fresh progress, so they are unaffected.
