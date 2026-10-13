@@ -40,6 +40,10 @@ export interface ProfileSettings {
   positionLabels?: boolean;
   /** Fill in finger numbers the song does not carry (shown in parentheses and italic). On unless false. */
   autoFingering?: boolean;
+  /** Songs list order: easiest first (default), A-Z, or recently played. */
+  songSort?: 'difficulty' | 'title' | 'recent';
+  /** Songs list filter by hands (default all). */
+  songHands?: 'all' | 'right' | 'left' | 'both';
 }
 
 export interface Profile extends Stamped {

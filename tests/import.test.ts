@@ -249,7 +249,8 @@ describe('untrusted input is refused politely', () => {
     const t = many.addTrack();
     for (let i = 0; i <= MAX_NOTES; i++) t.addNote({ midi: 60, ticks: i * 10, durationTicks: 5 });
     expect(await rejects('many.mid', many.toArray())).toMatch(/more than/);
-  });
+    // Parsing 60,001 notes takes ~0.5 s here but timed out at 5 s on a slow CI runner, so this test gets a longer limit.
+  }, 20_000);
 
   it('leaves out notes beyond the 88 keys and says how many', async () => {
     const m = new Midi();

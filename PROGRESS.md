@@ -793,6 +793,46 @@ Kasumi's Phase 8 lows (Content-Security-Policy, server limits migration) and a w
 - Hand span: the model assumes an average hand and has no setting for a small hand.
 - Whether the fingers feel right for The Entertainer and the Minuet needs a player (HUMAN_CHECKS.md).
 
+## v1.1: Song list sort and filter (B3)
+
+### Built
+
+- **Logic** (`src/songs/listView.ts`, pure, unit-tested): `sortSongs` (difficulty = level then title, expert last; A-Z; recently played = latest play first, never-played last in A-Z order), `filterSongs` (all / right / left / both, from each song's `hands`, which the importer and the MusicXML reader derive from the notes), `viewSongs` (filter then sort), `lastPlayedBySong` (latest of the profile's attempt `finishedAt` and score `achievedAt` per song), and `parseSort` / `parseHandsFilter` (unknown stored values fall back to the defaults).
+- **Songs screen** (`src/ui/SongPicker.tsx`): two labelled groups of toggle buttons, "Sort by" (Difficulty, A-Z, Recent) and "Hands" (All, Right, Left, Both), plus a status line ("10 of 29 songs", or "No songs match this filter."). They reuse the `.seg` control from the Play setup card, so they are native buttons with `aria-pressed`, 44px targets and the existing focus ring, and the piano keys reach them like any other button (D1/B0 to move, C1 to choose).
+- **Remembered and synced**: `songSort` and `songHands` in the profile settings (`src/storage/types.ts`), saved with `profiles.saveSettings`. The profile row syncs whole, so they sync like the other switches. Defaults are difficulty and all hands. This changes the default order: the list used to follow catalog order with imports at the end, and now it is level then title, with imports placed in their level.
+- Tests: `tests/song-list-view.test.ts` (11), `e2e/song-list.spec.ts` (2: choose A-Z and Right, reload, still applied, switching profile shows that profile's choice and back; Recent puts a played song first, driven from the piano keys).
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| `npm run lint` | clean |
+| `npm test` | 43 files, 815 tests passed |
+| `npm run build` | passes (existing chunk-size warning only) |
+| `npx playwright test` (dev server, all 4 projects) | 196 passed, 3 skipped (orientation-specific iPad tests), 0 failed |
+| `npm run lighthouse` | accessibility 100 on Home, Play, Songs, Learn, Stats, Settings, Credits |
+
+### Decisions
+
+- A requested addition beyond the spec (v1.1 batch item 3).
+- Toggle button groups instead of `<select>`: C1 on the piano only clicks, which cannot change a select, and the Play setup card already uses this pattern.
+- "Recently played" counts finished runs and high scores (practice and loop runs too), loaded once per profile. Until that load finishes, every song counts as never played, so Recent briefly shows A-Z; other sorts do not wait on it. Play times are not reloaded while the screen stays open.
+- Hands labels are short ("Right", "Left", "Both") so the four buttons fit a phone width; the group is labelled "Hands". Today no bundled song is left-hand only, so "Left" shows the empty message until a left-hand import exists.
+- Locked songs stay in the list and sort like any other.
+- Title ties and case: titles compare ignoring case and accents (`sensitivity: 'base'`); equal titles fall back to the id.
+- Tests were written with the module in one slice (red run not captured separately); the e2e specs came after the UI.
+- **CI flake (tests/import.test.ts "rejects a MIDI file with no notes and one with too many")**: measured 509 ms locally. Split: building the 60,001-note fixture 12 ms, writing it 51 ms, analysing it about 440 ms. The time is in the code under test (parsing 60,000 notes), so the fixture cannot be made cheaper without changing what it asserts. Gave that one test an explicit 20 s timeout with a one-line comment. Assertions untouched. Duration after: 509 ms (the limit only matters on a slow runner).
+
+### Adapted tests
+
+- None.
+
+### Deferred
+
+- Sorting or filtering by anything else (composer, locked or unlocked, best stars).
+- Showing the sort/filter on Home's song tiles.
+
 ## Licence (owner's ruling)
 
 Added an MIT licence on the Captain's ruling. `LICENSE` (MIT, "Copyright (c) 2026 Bh0ss") with a footer saying it covers the Keyfall code only and that the three CC BY-SA song files (Chopin Nocturne under CC BY-SA 4.0, the two Schumann files under CC BY-SA 2.5) are not relicensed; `src/songs/NOTICE.md` gained a top line pointing at it; `package.json` gained `"license": "MIT"` (still `private`); the Credits About card now reads "a personal project, free to use" and links the MIT licence (`LICENCE_URL` in `src/ui/credits.ts`) and says the song files keep their own terms. Tests: `tests/credits.test.ts` gained a "project licence" block (LICENSE text, package.json field, link, CC files named in LICENSE); `e2e/credits.spec.ts` gained assertions for the MIT line and link. Checks: typecheck clean; lint clean; npm test 42 files / 804 tests passed; build ok; Playwright 194 passed / 3 skipped (all 4 projects); Lighthouse a11y 100 on all 7 screens. Decisions: the old e2e assertion `toContainText('non-commercial')` is inverted to `not.toContainText('non-commercial')` because the phrase intentionally left the screen (adapted test, equally strict); other "commercial" mentions are only this e2e line and a historical PROGRESS.md line describing the old Credits screen, left unchanged.

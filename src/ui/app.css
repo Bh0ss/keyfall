@@ -245,6 +245,24 @@
   gap: 14px;
 }
 
+.song-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 24px;
+  margin: 0 0 14px;
+}
+
+.song-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.song-controls > p {
+  margin: 0;
+}
+
 .song-card {
   flex-direction: row;
   align-items: center;
