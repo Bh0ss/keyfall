@@ -330,3 +330,11 @@ Nothing is visible in the app yet. This is a one-minute probe of the riskiest un
 1. After the build is deployed, open `https://bh0ss.github.io/keyfall/?debug=1` in Web MIDI Browser on the iPhone and, from the Mac with Safari's Web Inspector attached, run `await window.__keyfall.transcribe(new Uint8Array(await (await fetch('some-small.wav')).arrayBuffer()))` against any short WAV you can serve.
    - Good: `{ ok: true, info: { backend: 'webgl' } }` with a note list.
    - Also useful: `{ ok: false, kind: 'unsupported' }` means the phone will get the "use the Mac" card later. Tell me which you see.
+
+## v1.2 I2: Arranger on a real recording (Mac, after I4 makes it reachable)
+
+The arranger is dark and only tested on synthetic audio, which is easy. Once the add-song flow exists:
+
+1. Take a real recording of a solo piano piece you know (your own, or any you have the right to use) and run it through the flow in Beginner and Full. Play the result: is the right hand the tune you expected, is the left hand sensible under it?
+2. Repeat with a full-band recording with a vocal. Expect worse. Note whether the tune is recognisable and whether the tempo and key guesses were wrong (the tap-tempo control should fix the tempo).
+3. Record what you found in the PROGRESS v1.2 section next to the synthetic F1 table.

@@ -1108,3 +1108,67 @@ Machine: this Mac, headless Chromium from Playwright with `--enable-gpu --ignore
 - Post-processing speed (typed-array port of `outputToNotesPoly`): still deferred, as in the scope.
 - Melody-extraction F1 floors: I2.
 - iPhone behaviour (WebGL in a worker in Web MIDI Browser, memory): HUMAN_CHECKS.
+
+### I2: Arranger core (dark)
+
+#### Built
+
+- `src/arrange/` is pure TypeScript with no DOM, worker or model dependency; `arrange()` is the one deep module.
+  - `grid.ts`: constant tempo and downbeat from note onsets. One Fourier bin per candidate tempo (60 to 180 BPM, exact, no binning) weighted by loudness, duration and bass, supported by the two-beat and whole-bar periods, times a log-normal preference around 100 BPM (sigma 0.7 octave). Phase from the same bin. Downbeat slot by a duration-weighted vote with a head start for the first onset's beat. A given tempo (tap) keeps the tempo and only searches the phase.
+  - `key.ts`: Krumhansl-Schmuckler with the published Krumhansl-Kessler profile values (taken from the literature, not from the private scripts), bass notes counted 1.8 times.
+  - `chords.ts`: one chord per half bar (per bar when the bar does not halve), pitch-class histogram with bass x1.8, templates = the key's diatonic triads, sus2 and sus4 on each degree (small prior against), major V in minor, V/vi in major; Viterbi with a change penalty; silence scores zero for every chord so it carries a neighbour.
+  - `melody.ts`: merge same-pitch re-onsets within 120 ms; reject upper partials (12, 19, 24 semitones above a louder simultaneous note); register band C4-C6, widened to G3-E6 for a bar with nothing in the band; 8th-grid slots; Viterbi on amplitude x duration salience with a leap cost; out-of-key notes shorter than an 8th and specks shorter than a 16th dropped.
+  - `rh.ts`: the simplified right hand. Beginner folds to C4-G5 (octave bleed of 10 to 14 semitones pulled toward the previous note), drops notes shorter than an 8th. Full folds to C4-C6 and adds one chord tone a third to a sixth below on notes of a beat or more, two on notes of two beats or more (G3 and up).
+  - `lh.ts`: the left hand. Its input type (`LhInput`) is chords, the bar length, the version and a per-bar energy number; it has no field for notes. Beginner: root (plus fifth when the chord lasts half a bar or more), C2-B2 root zone, held per chord, restruck at bar lines. Full: our own pattern table (3 energy buckets x 2 variants, one table for 4-beat bars and one for 3-beat bars, 12 named patterns), variant picked by a fixed hash of bar and root.
+  - `arrange.ts`: wires the above. Integer BPM (the score and the song record carry an integer tempo). Options: version, time signature, tap tempo, downbeat, trim seconds. Throws `ImportError` with a plain message when nothing is left to arrange or the time signature cannot be written in whole sixteenths.
+  - `toImport.ts`: `arrangementToFile` through the existing `toMusicXml`, so the result goes through `analyseFile`, `buildSong`, `suggestLevel`, `autoFingersFor` and `analysePositions` unchanged.
+- Tests: `tests/arrange-grid.test.ts`, `arrange-key-chords.test.ts`, `arrange-melody.test.ts`, `arrange-lh.test.ts` (including a `@ts-expect-error` that a `notes` field on `LhInput` does not compile, and a runtime check that smuggled notes change nothing), `arrange-rh.test.ts`, `arrange.test.ts` (3 songs x 2 versions: ranges, byte-identical MusicXML on a rerun, full bars per staff and voice, `parseMusicXml` round trip equal to the arranged notes, import pipeline, fingering and positions on the result, level ordering, the arrangement is not the recording), `arrange-accuracy.test.ts` (real model, Node CPU), helper `tests/fixtures/events.ts`.
+- Nothing imports `src/arrange` from the app yet: still dark, wired in I4. The tests are its only consumers.
+
+#### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm test` | exit 0, 61 files, 994 tests (I1: 54 files, 910 tests); wall time 42.4 s against about 24 s after I1, so +18 s (the accuracy file runs the real model six times) |
+| `npm run build` | exit 0 |
+| `npx playwright test` (dev, all projects) | 229 passed, 3 skipped (the same 3 orientation skips), 0 failed, 11.6 min (I1: 229 / 3 / 0; no e2e added in I2) |
+| `npm run lighthouse` | accessibility 100 on all seven screens |
+
+#### Accuracy (real Basic Pitch model, Node CPU, first 10 s, synthesized bundled songs)
+
+Command: `npx vitest run tests/arrange-accuracy.test.ts`; the `ACC` lines in its output carry these figures. Raw = all reference notes, 50 ms, exact pitch. Melody = `arrange().melody` against the right-hand reference, tolerance one 8th at the song's tempo. "Mix" is the crude stand-in (beat noise bursts plus a parallel pad a major third below the right hand).
+
+| Fixture | Input | Raw F1 (P / R) | Melody F1 (P / R) | Tempo (true / estimated) | Key | Floor |
+| --- | --- | --- | --- | --- | --- | --- |
+| Ode to Joy | clean | 1.000 (1.000 / 1.000) | 1.000 (1.000 / 1.000) | 100 / 100 | E minor (wrong) | 0.95 |
+| Ode to Joy | mix | 0.627 (0.457 / 1.000) | 0.667 (0.647 / 0.688) | 100 / 99.9 | C major | 0.61 |
+| When the Saints | clean | 0.829 (0.708 / 1.000) | 0.870 (0.909 / 0.833) | 100 / 100 | C major | 0.82 |
+| When the Saints | mix | 0.576 (0.405 / 1.000) | 0.769 (0.714 / 0.833) | 100 / 100.1 | C minor (wrong) | 0.71 |
+| Fur Elise opening | clean | 0.824 (0.700 / 1.000) | 0.970 (1.000 / 0.941) | 72 / 143.4 (double) | A minor | 0.92 |
+| Fur Elise opening | mix | 0.553 (0.388 / 0.959) | 0.644 (0.760 / 0.559) | 72 / 96.9 (wrong) | A minor | 0.59 |
+
+Floors are the measured melody F1 minus 0.05, rounded down to 0.01. Melody extraction lifts F1 over raw transcription in every row except clean Ode to Joy (already 1.0), which is the point of the extractor: precision, not recall, was the problem.
+
+#### Decisions
+
+- Requested addition beyond spec; dark, no route or button.
+- Concepts only from the private `build.py` and `verify.py`; nothing copied. Key profiles are the published Krumhansl-Kessler values. The LH patterns, thresholds and names are new and generic. No song data, constant or output from the private folder is in the repo.
+- Structural guarantee that the arrangement is not the recording: `LhInput` has no notes field (compile-time test plus a runtime test); the right hand is the quantised, folded, monophonic melody (plus chord tones in Full), never the raw events; `arrange.test.ts` checks that at most a third of the generated left hand coincides with the transcribed bass in (pitch, start).
+- Melody Viterbi has no rest option for an occupied slot. With one, the leap cost made a lone far note cheaper to drop than to play, which lost a real octave leap and a bar whose only notes were outside the band. Leaps now only choose between notes that compete.
+- Tempo: onsets alone cannot tell 72 from 144 BPM on a sixteenth-note piece (Fur Elise opening). The estimate there is 143.4 (double), which is harmless to the melody (the 8th grid at 144 lands on the sixteenths) and is what the tap-tempo control in the review screen is for. The grid test asserts "right or doubled" for it and an exact tempo for the other two. On the mix stand-in the Fur Elise tempo is wrong (96.9); the number is recorded, not hidden.
+- Key is a best guess: it was wrong for Ode to Joy clean (a melody-only 10 s clip dominated by E) and Saints mix. It only steers the out-of-key filter and the chord templates, and the chord detector stays inside whatever key it is given; a key selector on the review screen is a candidate for I4 (not built).
+- Time signature: 4/4 default, 3/4 selectable, anything `barUnitsOf` can write is accepted; others throw `ImportError`.
+- Tempo is rounded to whole BPM because the song record and the score carry an integer; the grid uses the same integer so the melody is snapped to the grid the player hears.
+- Total added `npm test` time: about 18 s wall (42.4 s against about 24 s).
+
+#### Adapted tests
+
+None.
+
+#### Deferred
+
+- Wiring (route, review screen, tap tempo, version choice, trim): I4. Wait-mode preview: I5.
+- Key override control (see Decisions) and a manual tempo-doubling toggle.
+- Real-recording accuracy: unverified, HUMAN_CHECKS (a real piano solo and a real full mix on the Mac).
