@@ -21,6 +21,7 @@ import { initSync } from './sync/controller';
 const LearnRoutes = lazy(() => import('./ui/learn/LearnRoutes'));
 // The MIDI parser is only needed when a file is imported.
 const ImportScreen = lazy(() => import('./ui/ImportScreen').then((m) => ({ default: m.ImportScreen })));
+const AddAudioScreen = lazy(() => import('./ui/AddAudioScreen').then((m) => ({ default: m.AddAudioScreen })));
 
 /** Keyboard users jump past the navigation rail to the screen's own content. */
 function skipToContent() {
@@ -65,6 +66,12 @@ function renderRoute(route: Route) {
       return (
         <Suspense fallback={<LoadingShell testId="import-loading" what="the importer" />}>
           <ImportScreen songId={route.songId} />
+        </Suspense>
+      );
+    case 'addAudio':
+      return (
+        <Suspense fallback={<LoadingShell testId="add-audio-loading" what="Add song" />}>
+          <AddAudioScreen />
         </Suspense>
       );
     case 'stats':

@@ -161,3 +161,23 @@ describe('arrangementToFile', () => {
     expect(an.composer).toBe('A & B');
   });
 });
+
+describe('arrange key override', () => {
+  const song = bundledSong('ode-to-joy');
+  const events = eventsOf(song, 30);
+
+  it('uses the key it is given instead of the estimate, and says which', () => {
+    const detected = arrange(events, { version: 'beginner', timeSignature: [4, 4] });
+    const other = { tonic: (detected.key.tonic + 5) % 12, mode: detected.key.mode === 'major' ? 'minor' : 'major' } as const;
+    const forced = arrange(events, { version: 'beginner', timeSignature: [4, 4], key: other });
+    expect(forced.key).toMatchObject(other);
+    expect(forced.key.pcs.size).toBeGreaterThanOrEqual(7);
+    expect(forced.chords).not.toEqual(detected.chords);
+  });
+
+  it('giving the detected key back changes nothing', () => {
+    const a = arrange(events, { version: 'full', timeSignature: [4, 4] });
+    const b = arrange(events, { version: 'full', timeSignature: [4, 4], key: { tonic: a.key.tonic, mode: a.key.mode } });
+    expect(b.notes).toEqual(a.notes);
+  });
+});

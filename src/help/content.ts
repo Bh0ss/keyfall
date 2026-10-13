@@ -166,6 +166,35 @@ const ENTRIES = {
     title: 'Review list',
     text: 'Notes you get wrong go on a review list and come up more often in lessons. A note leaves the list after you answer it right 3 times in a row.',
   },
+  // Add song from a recording
+  'addAudio.link': {
+    title: 'Spotify link',
+    text: 'Optional. Keyfall asks Spotify for the song title and cover picture so you do not have to type them. No audio comes from Spotify, and the link is not saved. Spotify does not share the artist, so type that yourself.',
+  },
+  'addAudio.file': {
+    title: 'Your recording',
+    text: 'An m4a, mp3 or wav file of you or someone else playing the song. It works best with a solo piano or a simple recording; a full band mix is accepted but the result is rougher. The audio stays on this device and is never saved.',
+  },
+  'addAudio.version': {
+    title: 'Beginner or Full',
+    text: 'Both play the recorded tune with the right hand and a left hand Keyfall writes itself.',
+    items: [
+      { term: 'Beginner', text: 'Simpler tune, fewer notes, and a plain left hand.' },
+      { term: 'Full', text: 'Closer to the recording, with a busier left hand.' },
+    ],
+  },
+  'addAudio.tempo': {
+    title: 'Tempo',
+    text: 'Keyfall guesses the speed, and it can be wrong. Tap Tap tempo along with the music, or type a number. Half and Double fix a guess that is twice too fast or twice too slow.',
+  },
+  'addAudio.key': {
+    title: 'Key',
+    text: 'The key the left hand chords are built in. Keyfall guesses it from the notes it heard. If the chords sound wrong against the recording, pick the key you think it is in.',
+  },
+  'addAudio.trim': {
+    title: 'Trim',
+    text: 'Keep only the part of the recording from the start second to the end second. Use it to cut off talking, applause or a long intro. Use whole song puts it back.',
+  },
 } as const satisfies Record<string, HelpEntry>;
 
 export type HelpId = keyof typeof ENTRIES;

@@ -70,7 +70,7 @@ describe('what the keys do in a menu', () => {
   });
 
   it('back from Results, Import and Play lands on Songs; from Stats, Settings and Keyboard on Home', () => {
-    for (const h of ['#/results/x', '#/import', '#/import/imp-1', '#/play/x']) expect(parentHash(route(h)), h).toBe('#/songs');
+    for (const h of ['#/results/x', '#/import', '#/import/imp-1', '#/add/audio', '#/play/x']) expect(parentHash(route(h)), h).toBe('#/songs');
     for (const h of ['#/stats', '#/settings', '#/credits', '#/keyboard', '#/songs']) expect(parentHash(route(h)), h).toBe('#/');
   });
 });
@@ -135,5 +135,14 @@ describe('results and suspended screens', () => {
     expect(swallowsNote(false, menu, 24)).toBe(false);
     expect(swallowsNote(true, menu, 24)).toBe(true);
     expect(swallowsNote(true, menu, 60)).toBe(false);
+  });
+});
+
+describe('add song route', () => {
+  it('#/add/audio is its own route and hrefFor round-trips', async () => {
+    const { hrefFor } = await import('../src/ui/useRoute');
+    expect(parseRoute('#/add/audio')).toEqual({ name: 'addAudio' });
+    expect(parseRoute(hrefFor.addAudio())).toEqual({ name: 'addAudio' });
+    expect(parseRoute('#/add/other')).toEqual({ name: 'home' });
   });
 });

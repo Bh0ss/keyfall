@@ -16,6 +16,8 @@ const TARGETS = [
   ['Home', '#/'],
   ['Play', '#/play/mary-had-a-little-lamb'],
   ['Songs', '#/songs'],
+  ['Import', '#/import'],
+  ['Add song', '#/add/audio'],
   ['Learn', '#/learn'],
   ['Stats', '#/stats'],
   ['Settings', '#/settings'],

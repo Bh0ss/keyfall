@@ -16,7 +16,7 @@ import { hrefFor } from './useRoute';
 const LEVELS: Song['level'][] = [1, 2, 3, 4, 5, 'expert'];
 const levelText = (l: Song['level']) => (l === 'expert' ? 'Expert' : `Level ${l}`);
 
-interface Initial {
+export interface Initial {
   title: string;
   composer: string;
   splitMode: SplitMode;
@@ -25,13 +25,15 @@ interface Initial {
   levelOverridden: boolean;
 }
 
-function ImportForm({
+export function ImportForm({
   analysis,
   initial,
   saveLabel,
   onSave,
   onCancel,
   extra,
+  controls,
+  heading,
 }: {
   analysis: ImportAnalysis;
   initial: Initial;
@@ -39,6 +41,10 @@ function ImportForm({
   onSave: (v: Initial) => Promise<void>;
   onCancel: () => void;
   extra?: React.ReactNode;
+  /** Rendered between title/composer and the hands split (the Add song review puts version, tempo, key and trim here). */
+  controls?: React.ReactNode;
+  /** Replaces the small label above the title (the file kind). */
+  heading?: string;
 }) {
   const [title, setTitle] = useState(initial.title);
   const [composer, setComposer] = useState(initial.composer);
@@ -72,7 +78,7 @@ function ImportForm({
 
   return (
     <form className="card import-form" onSubmit={submit} data-testid="import-form">
-      <div className="label">{analysis.format === 'midi' ? 'MIDI file' : analysis.format === 'mxl' ? 'Compressed MusicXML' : 'MusicXML'}</div>
+      <div className="label">{heading ?? (analysis.format === 'midi' ? 'MIDI file' : analysis.format === 'mxl' ? 'Compressed MusicXML' : 'MusicXML')}</div>
       <div className="import-grid">
         <label className="field stack">
           Title
@@ -83,6 +89,8 @@ function ImportForm({
           <input className="text-input" data-testid="import-composer" value={composer} maxLength={80} onChange={(e) => setComposer(e.target.value)} />
         </label>
       </div>
+
+      {controls}
 
       <fieldset className="import-split">
         <legend>Hands</legend>

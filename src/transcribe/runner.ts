@@ -15,13 +15,8 @@ import * as tf from '@tensorflow/tfjs-core';
 import type { GraphModel } from '@tensorflow/tfjs-converter';
 import { noteFramesToTime, outputToNotesPoly } from '@spotify/basic-pitch/esm/toMidi.js';
 import { SAMPLE_RATE, type NoteEvent, type TranscribeProgress } from './types';
+import { FRAMES_PER_SECOND, HOP_SAMPLES, OVERLAP_FRAMES, OVERLAP_SAMPLES, WINDOW_SAMPLES, windowCount } from './windows';
 
-const FFT_HOP = 256;
-const FRAMES_PER_SECOND = Math.floor(SAMPLE_RATE / FFT_HOP);
-const WINDOW_SAMPLES = SAMPLE_RATE * 2 - FFT_HOP;
-const OVERLAP_FRAMES = 30;
-const OVERLAP_SAMPLES = OVERLAP_FRAMES * FFT_HOP;
-const HOP_SAMPLES = WINDOW_SAMPLES - OVERLAP_SAMPLES;
 const HALF_OVERLAP = OVERLAP_FRAMES / 2;
 /** Output tensor names in the converted graph model. */
 const FRAMES = 'Identity_1';
@@ -55,7 +50,7 @@ export async function runBasicPitch(model: GraphModel, pcm: Float32Array, opts: 
   // Half an overlap of silence in front, so the first window's trimmed edge is not real audio.
   const padded = new Float32Array(OVERLAP_SAMPLES / 2 + pcm.length);
   padded.set(pcm, OVERLAP_SAMPLES / 2);
-  const windows = Math.max(1, Math.ceil((padded.length - WINDOW_SAMPLES) / HOP_SAMPLES) + 1);
+  const windows = windowCount(pcm.length);
 
   const frames: number[][] = [];
   const onsets: number[][] = [];

@@ -15,6 +15,7 @@ export type Route =
   | { name: 'songs' }
   | { name: 'learn'; unitId?: string; lessonId?: string }
   | { name: 'import'; songId?: string }
+  | { name: 'addAudio' }
   | { name: 'stats' }
   | { name: 'settings' }
   | { name: 'credits' }
@@ -36,6 +37,7 @@ export function parseRoute(hash: string): Route {
   if (learn) return { name: 'learn', unitId: learn[1] && decodeURIComponent(learn[1]), lessonId: learn[2] && decodeURIComponent(learn[2]) };
   const imp = /^import(?:\/(.+))?$/.exec(path);
   if (imp) return { name: 'import', songId: imp[1] && decodeURIComponent(imp[1]) };
+  if (path === 'add/audio') return { name: 'addAudio' };
   if (path === 'stats') return { name: 'stats' };
   if (path === 'settings') return { name: 'settings' };
   if (path === 'credits') return { name: 'credits' };
@@ -65,6 +67,7 @@ export const hrefFor = {
   learn: (unitId?: string, lessonId?: string) =>
     `#/learn${unitId ? `/${encodeURIComponent(unitId)}` : ''}${unitId && lessonId ? `/${encodeURIComponent(lessonId)}` : ''}`,
   import: (songId?: string) => `#/import${songId ? `/${encodeURIComponent(songId)}` : ''}`,
+  addAudio: () => '#/add/audio',
   stats: () => '#/stats',
   settings: () => '#/settings',
   credits: () => '#/credits',

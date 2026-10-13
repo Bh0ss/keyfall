@@ -1224,3 +1224,53 @@ default-src 'self'; script-src 'self'; connect-src 'self' https://ubheylmkufyuam
 
 - The link screen, manual title/artist fallback UI and thumbnail display: I4.
 - Real Spotify oEmbed and thumbnail host from the live site: HUMAN_CHECKS.
+
+### I4: Add-song flow UI (dark at `#/add/audio`)
+
+#### Built
+
+- Route `addAudio` (`#/add/audio`, lazy chunk `AddAudioScreen-*.js`, 27 KB raw); A0 goes back to Songs. Nothing links to it yet.
+- `src/ui/AddAudioScreen.tsx`: link card (optional Spotify link, Look up song, editable title, manual artist, thumbnail only when `lookupTrack` allowed its host), file card (m4a/mp3/wav, privacy line), listening card (Reading / Getting the listener ready / Listening with a determinate bar / Writing out the notes with an indeterminate bar, Cancel in every stage), the "This works best on the Mac" card, and the review (existing `ImportForm` plus Version, Tempo with Tap tempo / Half / Double / typed bpm, Key override, Trim). Save regenerates the MusicXML with the final title and artist (artist is the composer), reads it back with `analyseFile` and calls the existing `saveNewImport`, then opens the song.
+- Pure logic with unit tests: `src/audioImport/tempo.ts` (tap tempo, half, double), `listen.ts` (the `Listener`: decode, run, three fallback rules, pace check, cancel by run token plus abort), `review.ts` (choices to MusicXML and analysis; key labels).
+- `src/transcribe/windows.ts` (window constants and `windowCount`, moved out of `runner.ts` so the UI can predict windows without TF.js), `seam.ts` (which transcriber the screen uses), `fake.ts` and `fakeDebug.ts` (scripted fake behind `?debug=1`: `window.__keyfall.useFakeTranscriber(songId, opts)`).
+- `arrange()` gained an optional `key` (the Key override; tested).
+- Help bubbles `addAudio.link/file/version/tempo/key/trim`. Lighthouse now audits `#/import` and `#/add/audio`.
+
+#### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm test` | exit 0, 66 files, 1106 tests (I3: 62 files, 1069 tests; +37 tests, +4 files) |
+| `npm run build` | exit 0 |
+| `npx playwright test` (dev, all projects) | 246 passed, 3 skipped (the same 3 orientation skips), 0 failed, 11.8 min (I3: 234 / 3 / 0; +12 new, all in `add-audio.spec.ts`) |
+| `KEYFALL_PREVIEW=1 npx playwright test e2e/add-audio.spec.ts e2e/transcribe-real.spec.ts --project=chromium` | 15 passed (12 + 3), zero CSP violations (the fixtures guard fails any) |
+| `npm run lighthouse` | accessibility 100 on Home, Play, Songs, Import, Add song, Learn, Stats, Settings, Credits (Add song is the entry state; the listening and review states are not audited by the script) |
+
+#### Decisions
+
+- Requested addition beyond spec.
+- D6 as ruled: no CPU path. WebGL failure, a worker error or lost context, and a recording over the phone cap (iPhone user agent, 4 minutes) all show the Mac card with no Try anyway. Only the pace check offers Try anyway.
+- Pace check: after 3 windows, the listening time so far is projected to the whole stage and multiplied by 5 (post-processing took about 4 times inference in the I1 measurement), and a total over 120 s shows the card while the run keeps going underneath. Try anyway hides the card and the check never fires again. The factor 5 is derived from one measurement, not tuned.
+- Finishing is its own stage with an indeterminate bar and no number; cancel in it terminates the worker (unit test with the real client and a fake worker; real-worker e2e presses Cancel in the same DOM mutation that shows the stage, and asserts no worker is left).
+- Decode happens on the main thread with the desktop caps, then the phone cap is checked as a fallback card, not an error message.
+- `ImportForm` (exported from `ImportScreen.tsx`) gained two optional props: `controls` (rendered between title/composer and the hands split, because the existing `extra` slot sits in the button row, which is wrong for four fieldsets) and `heading` (the small label). `extra` is unchanged and unused here.
+- Tempo `Half`/`Double` act on the tempo in use; both clamp to 30-240. Tap tempo uses the median of the last 8 taps and starts over after a 2.5 s pause. Bar lines still come from the estimate (arrange re-phases at a given tempo).
+- Key override is 24 choices (12 major, 12 minor); the first option reads "Detected: X".
+- Time signature stays 4/4; there is no control for it (not in the order).
+- A piano-nav ring did not show on hidden file inputs before (the input is 1 px). Added a rule so the label around a focused hidden input gets the same ring while piano navigation is on; this also fixes `#/import`'s Choose file button.
+- Title defaults to the file name when no link was looked up.
+- Privacy: the e2e dumps every IndexedDB store, Cache storage and local/session storage after the save: the only buffer anywhere is the song's own `source`, which starts with `<?xml` and is smaller than the WAV; no cache; nothing with a RIFF/WAVE header.
+- No CSP change.
+
+#### Adapted tests
+
+- `tests/help-content.test.ts`, "every help id is used by a bubble somewhere": the list of screens it reads gained `AddAudioScreen` (the check itself is unchanged).
+- `tests/nav.test.ts`: `#/add/audio` added to the screens whose back target is Songs.
+
+#### Deferred
+
+- Wait-mode preview and its bubble (I5); the entry button and `#/import` chooser (I6).
+- Real recordings and the iPhone: HUMAN_CHECKS (I4 section).
+- A Lighthouse pass over the listening and review states (the script visits URLs only).

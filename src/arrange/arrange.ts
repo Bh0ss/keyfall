@@ -3,11 +3,11 @@ import { barUnitsOf } from '../import/toMusicXml';
 import type { NoteEvent } from '../transcribe/types';
 import { detectChords } from './chords';
 import { estimateGrid, gridFrom } from './grid';
-import { estimateKey } from './key';
+import { estimateKey, keyOf } from './key';
 import { generateLeftHand } from './lh';
 import { extractMelody } from './melody';
 import { simplifyMelody } from './rh';
-import { beatOf, type Arrangement, type TimeSignature, type Version } from './types';
+import { beatOf, type Arrangement, type Mode, type TimeSignature, type Version } from './types';
 
 export interface ArrangeOptions {
   version: Version;
@@ -17,6 +17,8 @@ export interface ArrangeOptions {
   bpm?: number;
   /** Seconds on the audio clock of the first bar line; overrides the phase estimate. */
   downbeatSec?: number;
+  /** From the key control; overrides the estimate. `tonic` is a pitch class 0-11. */
+  key?: { tonic: number; mode: Mode };
   /** Keep only notes that start in [from, to] seconds. */
   trimSec?: [number, number];
 }
@@ -53,7 +55,7 @@ export function arrange(input: NoteEvent[], opts: ArrangeOptions): Arrangement {
   const bpm = Math.round(opts.bpm ?? free.bpm);
   const phased = estimateGrid(events, opts.timeSignature, { bpm, ...(opts.downbeatSec !== undefined ? { downbeatSec: opts.downbeatSec } : {}) });
   const grid = gridFrom(bpm, phased.downbeatSec, opts.timeSignature);
-  const key = estimateKey(events);
+  const key = opts.key ? keyOf(opts.key.tonic, opts.key.mode) : estimateKey(events);
 
   const melody = extractMelody(events, grid, key);
   const lastBeat = melody.length

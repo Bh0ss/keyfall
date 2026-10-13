@@ -342,3 +342,18 @@ The arranger is dark and only tested on synthetic audio, which is easy. Once the
 ## v1.2 I3: Spotify link lookup
 
 - After deploy, from the live site with `?debug=1`, run `await window.__keyfall.spotifyLookup('https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC')` in the console: expect `ok: true`, a title, and `thumbnailLoaded: true` with no CSP error in the console. Also try a region you use: if the thumbnail host is not `image-cdn-fa`/`image-cdn-ak.spotifycdn.com` it shows no thumbnail (by design) and the host should be reported.
+
+## v1.2 I4: Add song screen (Mac and iPhone; reach it at `#/add/audio`, nothing links to it yet)
+
+1. On the Mac in Chrome, open `https://bh0ss.github.io/keyfall/#/add/audio` after deploy. Paste a real Spotify track link, press Look up song, then choose a real recording (solo piano first).
+   - Good: the title and cover appear, the artist stays empty for you to type, the progress goes Reading, Getting the listener ready, Listening with a moving bar, then Writing out the notes (a short, unnumbered bar), then the review.
+   - Bad: the bar sits full for several seconds, the cover is missing for a track you know has one (tell me the image host in the console), or the review never appears.
+2. On the review, try each control against the recording: Beginner and Full, Tap tempo along with the music, Half and Double, the Key list, Trim. Then Add to my songs and play the song in Wait mode.
+   - Good: each change updates the note counts at once, the saved song plays and syncs to a second device.
+   - Tell me which guesses were wrong (tempo, key) and whether Half, Double or Key fixed them.
+3. Press Cancel in each stage (Reading, Listening, Writing out the notes) and start again.
+   - Good: Cancel always returns to the two cards immediately, and the next run works.
+4. With the piano only (A0 back, B0 previous, C1 select, D1 next): paste a link by keyboard, then reach Look up song, Choose recording, the review controls and Add to my songs.
+   - Good: a thick ring shows on whatever is selected, including Choose recording.
+5. On the iPhone in Web MIDI Browser: open the same page and choose a short recording (under a minute), then one over 4 minutes.
+   - Good: the short one either completes or shows "This works best on the Mac" with a reason; the long one shows the Mac card straight away. Tell me which card text you saw and whether Cancel works on the phone.

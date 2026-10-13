@@ -30,6 +30,7 @@ export function parentHash(route: Route): string | null {
     case 'play':
     case 'results':
     case 'import':
+    case 'addAudio':
       return hrefFor.songs();
     case 'learn':
       return route.lessonId && route.unitId ? hrefFor.learn(route.unitId) : route.unitId ? hrefFor.learn() : hrefFor.home();

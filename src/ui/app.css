@@ -2754,3 +2754,65 @@ main:focus {
     opacity: 0;
   }
 }
+
+/* v1.2: Add song from a recording */
+.grow {
+  flex: 1 1 260px;
+}
+
+.add-audio-meta {
+  align-items: flex-end;
+}
+
+.add-audio-thumb {
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--raised);
+}
+
+.add-audio-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.progress-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--raised);
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.progress-track[data-indeterminate] .progress-fill {
+  width: 30%;
+  position: absolute;
+  animation: progress-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes progress-slide {
+  from {
+    left: -30%;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+.trim-input {
+  width: 96px;
+}
+
+/* A file picker is a hidden input inside a button-looking label: the ring goes on the label while piano navigation is on. */
+html[data-nav='piano'] .btn:has(.visually-hidden:focus) {
+  outline: 4px solid var(--accent-hi);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 9px rgb(245 165 36 / 0.28);
+}
