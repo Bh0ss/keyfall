@@ -127,7 +127,7 @@ test.describe('Learn units 6 to 10', () => {
   test('the path shows Moving around the keyboard as Unit 9, between Both hands and Eighth notes, and Eighth notes stay locked until it passes', async ({ page }) => {
     await gotoApp(page, './?debug=1#/learn');
     await seedPassed(page, idsBefore('unit-11'));
-    await page.goto('./?debug=1#/learn');
+    await page.reload();
     await expect(page.getByTestId('learn-unit-11')).toBeVisible();
     const names = await page.locator('.unit-row .unit-name').allTextContents();
     expect(names.slice(7, 10)).toEqual(['Both hands', 'Moving around the keyboard', 'Eighth notes and dotted rhythms']);
@@ -146,7 +146,7 @@ test.describe('Learn units 6 to 10', () => {
   test('a profile that already passed the old Unit 9 is not re-locked', async ({ page }) => {
     await gotoApp(page, './?debug=1#/learn');
     await seedPassed(page, [...idsBefore('unit-11'), 'unit-9']);
-    await page.goto('./?debug=1#/learn');
+    await page.reload();
     await expect(page.getByTestId('learn-unit-9')).toHaveAttribute('data-status', 'passed');
     await expect(page.getByTestId('learn-unit-10')).toHaveAttribute('data-status', 'open');
     await expect(page.getByTestId('learn-unit-11')).toHaveAttribute('data-status', 'open');
