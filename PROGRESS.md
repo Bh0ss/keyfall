@@ -1014,3 +1014,21 @@ at e2e/learn-units-6-10.spec.ts:150:52
 ### Adapted tests
 
 - `e2e/learn-units-6-10.spec.ts`, the two B6 unit-order tests: `page.goto('./?debug=1#/learn')` after seeding became `page.reload()`, the pattern the Unit 8 test already uses. Assertions unchanged. After the fix, the two Learn specs passed 180 of 180 over 10 repeats, and 40 of 40 at 7 workers. The other seed-then-navigate calls in e2e go to a different route, which re-mounts the screen and reads fresh progress, so they are unaffected.
+
+### Second live run
+
+Date 2026-10-13. Commit 9f56b4d (main, tree clean), deployed by run 38352421140. Command: `KEYFALL_BASE_URL=https://bh0ss.github.io/keyfall/ npx playwright test`, all 4 projects, foreground, no other Playwright or vite process running, site returned 200.
+
+| Project | Passed | Failed | Skipped |
+| --- | --- | --- | --- |
+| chromium | 211 | 0 | 0 |
+| iphone-landscape | 4 | 0 | 0 |
+| ipad-landscape | 5 | 0 | 2 |
+| ipad-portrait | 6 | 0 | 1 |
+| Total | 226 | 0 | 3 |
+
+Wall time 11.6m.
+
+**Skipped (3, by design, orientation-specific iPad tests):** ipad-landscape skips `e2e/ipad.spec.ts:31` (portrait stacks the song) and `e2e/ipad.spec.ts:60` (portrait split view); ipad-portrait skips `e2e/ipad.spec.ts:73` (landscape keeps the full desktop layout). Same three as the earlier live runs.
+
+**Failures:** none, so no reruns were needed. The sync and RLS specs passed against the live backend. No test or source was edited. The one failure of the first live run (the `learn-units-6-10` Unit 9 test) did not recur after the 9477095 test fix.
