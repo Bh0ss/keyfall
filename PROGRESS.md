@@ -1624,3 +1624,22 @@ Owner/coordinator rulings on Chakwas's review (Shepard's decisions, logged as ma
 | `npx playwright test` (dev, all projects incl. songs) | 394 passed, 3 skipped, 0 failed, 11.7 min (baseline 393 / 3 / 0, +1 Home piano-nav test) |
 | `npm run build` | ok |
 | `npm run lighthouse` | accessibility 100 on all nine screens, Home and Songs included |
+
+### v1.3: live run
+
+SHA f1cb1df, https://bh0ss.github.io/keyfall/ (deploy 38467829294). Command: `npm run test:e2e:live -- --reporter=list` (7 workers, 397 tests), 11.9 min.
+
+| Project | Passed | Failed | Skipped |
+|---|---|---|---|
+| chromium | 174 | 1 | 0 |
+| songs | 203 | 0 | 0 |
+| ipad-landscape | 5 | 0 | 2 |
+| ipad-portrait | 6 | 0 | 1 |
+| iphone-landscape | 5 | 0 | 0 |
+| Total | 393 | 1 | 3 |
+
+Baselines: v1.1 live 226/0/3; dev at ship 394/3 skipped/0 failed. sync.spec.ts passed in the parallel run (no solo rerun needed).
+
+Failure: `e2e/auto-fingering.spec.ts`, the B1 hand-position help test: after its first half passed, `page.goto(HOME)` then `page.goto(MINUET_SHIFT)` (hash-only changes, no reload), `play-ready` was not visible within the default 5 s expect timeout (8.1 s test). Not reproduced: alone against the live URL the file passed 6/6 and this test 40/40 at 8 workers.
+
+Diagnosis (follow-up on the built preview): no app regression from v1.3 was found. Home to Play time-to-play-ready, 20 runs each: v1.3 median 33 ms vs v1.2 28 ms unthrottled, 79 ms vs 67 ms at 4x CPU throttle, about 100x under the 5 s bound. Under load (the file x15 alongside the songs project; the test x60 at 12 workers with 8 CPU burners and the songs project running) 150 of 150 passed. Toggling Home and Play 40 times at 6x throttle never left Play stuck (median 57 ms, max 161 ms); PlayScreen guards every async effect and caches the song chunk, and after the first visit play-ready waits only on two IndexedDB reads. The one-off is consistent with a starvation spike on the test machine, but that is not demonstrated, so the expect was not widened. If it recurs, capture a trace and time the IndexedDB reads before changing the test.
