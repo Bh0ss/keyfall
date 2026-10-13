@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { expect, type Page } from '@playwright/test';
 import { test } from './fixtures';
+import { UNITS } from '../src/learn/units';
+import { BUNDLED_ENTRIES } from '../src/songs/entries';
 import { createProfile, readStore } from './helpers';
 
 test.use({ permissions: ['midi', 'midi-sysex'] });
@@ -9,49 +11,29 @@ interface Bundled {
   id: string;
   title: string;
   file: string;
-  /** Needs these learn units passed on the Advanced profile used here (units 6 to 9 and `advanced` are open for it). */
-  units: string[];
 }
 
-const SONGS: Bundled[] = [
-  { id: 'mary-had-a-little-lamb', title: 'Mary Had a Little Lamb', file: 'mary-had-a-little-lamb', units: [] },
-  { id: 'twinkle-twinkle-little-star', title: 'Twinkle Twinkle Little Star', file: 'twinkle-twinkle-little-star', units: [] },
-  { id: 'ode-to-joy', title: 'Ode to Joy', file: 'ode-to-joy', units: ['unit-2'] },
-  { id: 'jingle-bells', title: 'Jingle Bells', file: 'jingle-bells', units: ['unit-3'] },
-  { id: 'when-the-saints-go-marching-in', title: 'When the Saints Go Marching In', file: 'when-the-saints', units: ['unit-4'] },
-  { id: 'minuet-in-g', title: 'Minuet in G', file: 'minuet-in-g', units: [] },
-  { id: 'greensleeves', title: 'Greensleeves', file: 'greensleeves', units: [] },
-  { id: 'fur-elise-opening', title: 'Für Elise (opening)', file: 'fur-elise', units: [] },
-  { id: 'canon-in-d', title: 'Canon in D', file: 'canon-in-d', units: [] },
-  { id: 'clair-de-lune', title: 'Clair de Lune', file: 'clair-de-lune', units: [] },
-  { id: 'chopin-nocturne-op72-1', title: 'Nocturne in E minor, Op. 72 No. 1', file: 'chopin-nocturne-op72-1', units: [] },
-  { id: 'row-row-row-your-boat', title: "Row, Row, Row Your Boat", file: 'row-row-row-your-boat', units: [] },
-  { id: 'london-bridge', title: "London Bridge Is Falling Down", file: 'london-bridge', units: [] },
-  { id: 'frere-jacques', title: "Frère Jacques", file: 'frere-jacques', units: [] },
-  { id: 'yankee-doodle', title: "Yankee Doodle", file: 'yankee-doodle', units: [] },
-  { id: 'oh-susanna', title: "Oh! Susanna", file: 'oh-susanna', units: [] },
-  { id: 'happy-birthday', title: "Happy Birthday to You", file: 'happy-birthday', units: [] },
-  { id: 'amazing-grace', title: "Amazing Grace", file: 'amazing-grace', units: [] },
-  { id: 'brahms-lullaby', title: "Brahms' Lullaby (Wiegenlied)", file: 'brahms-lullaby', units: [] },
-  { id: 'auld-lang-syne', title: "Auld Lang Syne", file: 'auld-lang-syne', units: [] },
-  { id: 'scarborough-fair', title: "Scarborough Fair", file: 'scarborough-fair', units: [] },
-  { id: 'bach-musette-in-d', title: "Musette in D, BWV Anh. 126", file: 'bach-musette-in-d', units: [] },
-  { id: 'tchaikovsky-old-french-song', title: "Old French Song (Op. 39 No. 16)", file: 'tchaikovsky-old-french-song', units: [] },
-  { id: 'schumann-melody-op68-1', title: "Melody (Album for the Young, Op. 68 No. 1)", file: 'schumann-melody-op68-1', units: [] },
-  { id: 'schumann-happy-farmer', title: "The Happy Farmer (Op. 68 No. 10)", file: 'schumann-happy-farmer', units: [] },
-  { id: 'burgmuller-arabesque', title: "Arabesque, Op. 100 No. 2", file: 'burgmuller-arabesque', units: [] },
-  { id: 'bach-prelude-in-c', title: "Prelude in C, BWV 846 (WTC I)", file: 'bach-prelude-in-c', units: [] },
-  { id: 'clementi-sonatina-op36-1-mvt1', title: "Sonatina in C, Op. 36 No. 1, 1st mvt", file: 'clementi-sonatina-op36-1-mvt1', units: [] },
-  { id: 'joplin-the-entertainer', title: "The Entertainer", file: 'joplin-the-entertainer', units: [] },
-];
+/** Entity-decode the few XML escapes a title can carry. */
+const unescapeXml = (t: string) =>
+  t.replace(/&(amp|lt|gt|quot|apos|#39);/g, (_, e: string) => ({ amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'" })[e]!);
+
+/** Every bundled song, derived from the catalog the app ships (never a hand-typed list). Titles come from the file. */
+const SONGS: Bundled[] = BUNDLED_ENTRIES.map((e) => {
+  const xml = readFileSync(new URL(`../src/songs/${e.file}.musicxml`, import.meta.url), 'utf8');
+  const title = xml.match(/<work-title>([^<]*)<\/work-title>/)?.[1];
+  return { id: e.meta.id, file: e.file, title: title ? unescapeXml(title) : e.meta.id };
+});
+
+/** Every learn unit, so any `unlockedBy` a future song carries is open. */
+const ALL_UNITS = UNITS.map((u) => u.id);
 
 /** Bars in the bundled MusicXML, counted from the repo file (the production build does not serve src/). */
 function barsIn(file: string): number {
   return (readFileSync(new URL(`../src/songs/${file}.musicxml`, import.meta.url), 'utf8').match(/<measure[ >]/g) ?? []).length;
 }
 
-/** An Advanced profile with Units 2 to 5 recorded as passed (Units 5 to 9 and Clair de Lune/the Nocturne are open to Advanced by rule). */
-async function advancedPlayer(page: Page, units: string[] = ['unit-2', 'unit-3', 'unit-4', 'unit-5']) {
+/** An Advanced profile with the given learn units recorded as passed (all of them by default; Advanced opens the expert songs by rule). */
+async function advancedPlayer(page: Page, units: string[] = ALL_UNITS) {
   await page.addInitScript(() => {
     const empty = { inputs: new Map(), outputs: new Map(), onstatechange: null };
     Object.defineProperty(Navigator.prototype, 'requestMIDIAccess', { value: () => Promise.resolve(empty), configurable: true });
@@ -82,21 +64,36 @@ async function advancedPlayer(page: Page, units: string[] = ['unit-2', 'unit-3',
   );
 }
 
+test('the song list covers the whole catalog', () => {
+  expect(SONGS.length).toBe(BUNDLED_ENTRIES.length);
+  expect(new Set(SONGS.map((s) => s.id)).size).toBe(SONGS.length);
+});
+
 test.describe('every bundled song plays to the end in Full mode at 100% accuracy', () => {
   test.describe.configure({ mode: 'parallel' });
   for (const song of SONGS) {
     test(`${song.title}`, async ({ page }) => {
       test.setTimeout(420_000);
+      // Playwright's fake clock (time flows until paused): the song plays on virtual time, about 3 times faster than the wall
+      // clock. Judging only reads the timestamps it is given, so the per-note result matches the real clock (V13 spike, PROGRESS.md).
+      // Real-clock timing is still proven by scoring.spec and play.spec.
+      await page.clock.install();
       await advancedPlayer(page);
       await page.goto(`./?debug=1#/play/${song.id}`);
       await expect(page.getByTestId('play-ready')).toBeVisible();
       await page.getByTestId('mode-full').click();
-      const result = await page.evaluate(() => window.__keyfall!.autoplay({}));
+      await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 50);
+      let result: { presses: number } | undefined;
+      const playing = page.evaluate(() => window.__keyfall!.autoplay({})).then((r) => (result = r));
+      const finished = page.getByTestId('play-finished');
+      // Up to 15 virtual minutes (the longest bundled song is about 4.5).
+      for (let i = 0; i < 450 && !(await finished.count()); i++) await page.clock.runFor(2000);
+      await playing;
       await expect(page.getByTestId('play-finished')).toBeVisible({ timeout: 30_000 });
       const hits = (await page.getByTestId('summary-hits').textContent())!.match(/(\d+) of (\d+)/)!;
       expect(hits[1]).toBe(hits[2]);
       expect(Number(hits[2])).toBeGreaterThan(20);
-      expect(result.presses).toBe(Number(hits[2]));
+      expect(result?.presses).toBe(Number(hits[2]));
       await expect(page.getByTestId('summary-accuracy')).toHaveText('100.0%');
     });
   }

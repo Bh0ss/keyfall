@@ -38,7 +38,9 @@ export default defineConfig({
   // Traces, videos and screenshots can capture typed passwords: keep them off.
   use: { baseURL, trace: 'off', video: 'off', screenshot: 'off' },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /(phone|ipad)\.spec\.ts/ },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /(^|\/)(phone|ipad|songs)\.spec\.ts$/ },
+    // Every bundled song, played to the end and rendered as a sheet: the longest project, run on its own with test:e2e:songs.
+    { name: 'songs', use: { ...devices['Desktop Chrome'] }, testMatch: /(^|\/)songs\.spec\.ts$/ },
     { name: 'iphone-landscape', use: iphone, testMatch: /phone\.spec\.ts/ },
     { name: 'ipad-landscape', use: ipadLandscape, testMatch: /ipad\.spec\.ts/ },
     { name: 'ipad-portrait', use: ipadPortrait, testMatch: /ipad\.spec\.ts/ },

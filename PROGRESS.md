@@ -1420,3 +1420,67 @@ default-src 'self'; script-src 'self'; connect-src 'self' https://ubheylmkufyuam
   - Typed title or artist with XML-invalid control characters fails the save; pass them through the existing clean step before building MusicXML.
   - The oEmbed body read is unbounded (fixed host, under the timeout). The CSP e2e guard only bites on the preview build.
   - Code tidy-ups: a shared `.grow` rule redefined globally in app.css; a duplicated comment in PlayScreen; stale comments in the transcribe client, arranger types and accuracy test; an unhandled `backend` worker message; the arrange melody-band test asserts against all events; duplicated model-loading setup in two tests; WebGL context loss mid-run untested.
+
+## v1.3: 100 songs
+
+Requested addition beyond spec (item keyfall-v13-100-songs). This section covers the test infrastructure that lands before the songs (order V13-T, increments 1 to 4 of the test strategy). The phone/iPad sample (increment 5) was ruled out and is not built.
+
+### Built
+
+- `src/ui/playSession.ts`: `createPlaySession(song, setup, {latencyMs, loop})` and `feedNote(session, event, now)`, extracted from `PlayScreen.tsx` with no behaviour change (the v1.2 `preview` flag is intact). `PlayScreen` calls both; so does the new unit test. The nav-swallow check (`isNavSwallowed`) stays in the screen, so the test feed does not include it.
+- `tests/bundled-autoplay.test.ts`: every bundled song (from `bundledSummaries()`), real lazy loader, real `createMidiEngine`, real `runAutoplay`, Full mode, on virtual time. Asserts finished, hits == total > 20, accuracy 1, no misses, presses == total. Negatives: 200 ms late on every note, and 30% skipped notes, both must fall below 100%.
+- `e2e/songs.spec.ts`: the song list is derived from `BUNDLED_ENTRIES` (titles read from each file; no hand list), all learn units (from `UNITS`) are seeded passed, plus a guard that the list covers the whole catalog. The file now runs in its own Playwright project `songs` (Chromium, `testMatch` anchored to `songs.spec.ts`, excluded from `chromium`; `lazy-songs.spec.ts` stays in `chromium`). `npm run test:e2e:songs` runs it alone; the default `npx playwright test` still runs it.
+- The every-song browser play test now runs on Playwright's fake clock (see the spike).
+
+### Fake-clock spike (Full mode, Advanced profile, desktop Chromium, 3 parallel pairs)
+
+Per-note data comes from the saved attempt (`hitOffsets`, grades, misses).
+
+| Song | Clock | Wall | Presses | Hits/total | Accuracy | Grades P/G/G | Max abs hit offset |
+|---|---|---|---|---|---|---|---|
+| The Entertainer | real | 258.7 s | 2621 | 2621/2621 | 1 | 2621/0/0 | 5.5 ms |
+| The Entertainer | fake | 89.9 s | 2621 | 2621/2621 | 1 | 2621/0/0 | 0 ms |
+| Clair de Lune | real | 219.4 s | 1469 | 1469/1469 | 1 | 1469/0/0 | 5.2 ms |
+| Clair de Lune | fake | 74.8 s | 1469 | 1469/1469 | 1 | 1469/0/0 | 0 ms |
+| Mary | real | 24.0 s | 26 | 26/26 | 1 | 26/0/0 | 1.8 ms |
+| Mary | fake | 7.5 s | 26 | 26/26 | 1 | 26/0/0 | 0 ms |
+| Mary, offsetMs 200 | real | 24.2 s | 26 | 0/26 | 0 | 0/0/0 | n/a |
+| Mary, offsetMs 200 | fake | 7.3 s | 26 | 0/26 | 0 | 0/0/0 | n/a |
+
+Wall includes setup. Speed-up about 2.9x on the long songs, 3.2x on Mary. Judgments are identical; the only difference is real-clock jitter in the hit offsets (up to 5.5 ms), which the fake clock removes. The 200 ms offset fails under both clocks.
+
+**Adopted mode: fake clock** for the every-song play test (both conditions in Wrex's ruling hold). Real-clock jitter tolerance stays proven by `scoring.spec`, `play.spec` and the phone/iPad Mary runs.
+
+### Test strategy
+
+| Test | Proves | Does not prove |
+|---|---|---|
+| `song-index.test.ts` every id loads | each file parses through the shipping loader and matches its summary | playability |
+| `bundled-autoplay.test.ts` (new) | with perfectly timed presses through the Play screen's own session factory and note feed, every song ends at 100% with every note judged; the gate can fail | React wiring, drawing, results screen, real timers, latency read from storage |
+| `songs.spec` play (fake clock) | in Chromium each song fetches, plays to the end through the real input, rAF and draw loop, saves, and shows 100.0% on Results | real-clock jitter per song, audio, Safari/WebKit, a real MIDI device |
+| `songs.spec` sheet | OSMD lays out every song: measure count equals the file, more than 20 notes mapped, cursor visible | audio or play timing |
+| `scoring.spec`, `play.spec` | real-clock timing (Mary, offsets 75, -125, 200) | other songs |
+
+Timings (29 songs): songs project 8.5 min on the real clock (63 tests) before, 3.0 min on the fake clock after. New unit test file: 3.2 s for 32 tests. Full default suite 6.5 min (was 11.6 to 11.8 min).
+
+### Checks
+
+| Check | Result |
+|---|---|
+| `npm run typecheck` | clean |
+| `npm run lint` | clean |
+| `npm test` | 68 files, 1145 passed (baseline 1113, +32) |
+| `npx playwright test` (dev, all projects) | 253 passed, 3 skipped, 0 failed, 6.5 min (baseline 252/3/0; +1 catalog-coverage guard) |
+| `npm run test:e2e:songs` | 63 passed, 3.0 min fake clock (8.5 min real clock) |
+| `npm run build` / `npm run lighthouse` | build ok; accessibility 100 on all nine screens |
+
+### Decisions
+
+- `createPlaySession` and `feedNote` live in `src/ui/playSession.ts` (not `engine/`) because the lead-in uses `LOOKAHEAD_BEATS` from `highwayDraw`.
+- The wrong-key negative from the strategy was replaced by a skipped-notes negative: in timed modes a wrong key is ignored and does not lower accuracy (existing behaviour).
+- The non-song tests in `songs.spec.ts` (sheet-in-play, unlocks) moved to the `songs` project with the file; they are light.
+- The playwright `testIgnore`/`testMatch` patterns are anchored so `lazy-songs.spec.ts` is not caught by `songs.spec.ts`.
+
+### Deferred
+
+Phone/iPad sample (ruled out). Songs land in later orders, each batch gated by Vitest then `--project=songs`.

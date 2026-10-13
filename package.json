@@ -13,6 +13,7 @@
     "test:e2e": "playwright test",
     "lighthouse": "npm run build && node scripts/lighthouse.mjs",
     "preview": "vite preview --port 4173 --strictPort",
+    "test:e2e:songs": "playwright test --project=songs",
     "test:e2e:preview": "KEYFALL_PREVIEW=1 playwright test",
     "test:e2e:live": "KEYFALL_BASE_URL=\"${KEYFALL_BASE_URL:-https://bh0ss.github.io/keyfall/}\" playwright test"
   },

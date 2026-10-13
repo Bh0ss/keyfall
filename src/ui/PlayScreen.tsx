@@ -26,9 +26,10 @@ import { scheduleClick } from './audio';
 import { EarnedCard } from './ProgressWidgets';
 import { HelpBubble } from './HelpBubble';
 import { playSound, playStarSequence } from './sounds';
-import { drawFrame, LOOKAHEAD_BEATS, type HelpState } from './highwayDraw';
+import { drawFrame, type HelpState } from './highwayDraw';
 import { buildLayout, keyRangeFor, PHONE_MIN_WHITES } from './highwayLayout';
 import { noteName } from './keyboardLayout';
+import { createPlaySession, feedNote } from './playSession';
 import { profiles, useActiveProfile } from './profileStore';
 import { useMidi } from './useMidi';
 import { useViewportMode } from './useViewportMode';
@@ -242,14 +243,8 @@ function PlayInner({
   );
   const session: PlaySession = useMemo(() => {
     const loop: LoopSpan | undefined = drillSpan ?? (setup.loop ? { fromMeasure: setup.from, toMeasure: setup.to } : undefined);
-    const common = {
-      hands: 'both' as const,
-      leadInBeats: Math.max(LOOKAHEAD_BEATS, bar),
-      loop,
-    };
-    if (setup.mode === 'wait') return new WaitSession(song, common);
-    return new TimedSession(song, { ...common, mode: setup.mode, speed: setup.speedPct / 100, latencyMs });
-  }, [song, setup, bar, latencyMs, drillSpan]);
+    return createPlaySession(song, setup, { latencyMs, loop });
+  }, [song, setup, latencyMs, drillSpan]);
   const viewport = useViewportMode();
   const phone = viewport === 'phone-landscape' || viewport === 'phone-portrait';
   const tablet = viewport === 'tablet-portrait';
@@ -377,9 +372,7 @@ function PlayInner({
     () =>
       midi.subscribeNotes((e) => {
         if (e.type !== 'noteOn' || isNavSwallowed(e.midi)) return;
-        const now = performance.now();
-        if (session.status === 'ready') session.start(now);
-        else session.noteOn(e.midi, now);
+        feedNote(session, e, performance.now());
       }),
     [session],
   );
