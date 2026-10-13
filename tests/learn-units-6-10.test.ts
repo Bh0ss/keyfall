@@ -116,7 +116,7 @@ describe('key signatures', () => {
     }
   });
   it('every note a signature can ask for is a key Unit 7 or earlier teaches', () => {
-    const taught = new Set(taughtThrough(10));
+    const taught = new Set(taughtThrough(getUnit('unit-10')!.number));
     for (const sig of KEY_SIGS) for (const w of WRITTEN_RANGE) expect(taught.has(applyKeySig(sig, w))).toBe(true);
     const upTo7 = new Set(taughtThrough(7));
     for (const sig of KEY_SIGS) for (const w of WRITTEN_RANGE) expect(upTo7.has(applyKeySig(sig, w))).toBe(true);
@@ -335,7 +335,7 @@ describe('prompt generators draw only on what is taught', () => {
   });
   it('unit 10 asks signatures and notes in key; the key to press is the written note with the signature applied', () => {
     const unit = getUnit('unit-10')!;
-    const taught = new Set(taughtThrough(10));
+    const taught = new Set(taughtThrough(getUnit('unit-10')!.number));
     const rng = seeded(31);
     for (const lesson of promptLessons('unit-10')) {
       let prev: number | undefined;

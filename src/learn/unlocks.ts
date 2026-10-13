@@ -1,8 +1,8 @@
 import type { PlayerLevel } from '../storage/types';
-import { UNITS, getUnit, unitNumber, type Unit } from './units';
+import { UNITS, getUnit, type Unit } from './units';
 
-/** Songs behind these units are open for Advanced profiles. */
-const ADVANCED_OPEN_UNITS = new Set([5, 6, 7, 8, 9]);
+/** Songs behind these units (by stable id, not path position) are open for Advanced profiles. */
+const ADVANCED_OPEN_UNITS = new Set(['unit-5', 'unit-6', 'unit-7', 'unit-8', 'unit-9']);
 
 /** `unlockedBy` is a unit id, `'advanced'` (open on Advanced profiles only), or absent (open from the start). */
 export function isSongUnlocked(song: { unlockedBy?: string }, passed: ReadonlySet<string>, level: PlayerLevel): boolean {
@@ -10,17 +10,21 @@ export function isSongUnlocked(song: { unlockedBy?: string }, passed: ReadonlySe
   if (!gate) return true;
   if (gate === 'advanced') return level === 'advanced';
   if (passed.has(gate)) return true;
-  return level === 'advanced' && ADVANCED_OPEN_UNITS.has(unitNumber(gate));
+  return level === 'advanced' && ADVANCED_OPEN_UNITS.has(gate);
 }
 
 export type UnitStatus = 'passed' | 'open' | 'locked' | 'coming-soon';
 
-/** Units go in order: a unit opens when the one before it is passed. */
+/**
+ * Units go in path order: a unit opens when the one before it is passed. A passed unit stays passed, and a
+ * unit stays open when any later unit is passed, so reordering the path never re-locks existing progress.
+ */
 export function unitStatus(unit: Unit, passed: ReadonlySet<string>): UnitStatus {
   if (unit.comingSoon) return 'coming-soon';
   if (passed.has(unit.id)) return 'passed';
   const before = UNITS.find((u) => u.number === unit.number - 1);
-  return !before || passed.has(before.id) ? 'open' : 'locked';
+  if (!before || passed.has(before.id)) return 'open';
+  return UNITS.some((u) => u.number > unit.number && passed.has(u.id)) ? 'open' : 'locked';
 }
 
 /** The unit to continue with: the first playable unit not passed yet, or null when every unit is done. */

@@ -1,10 +1,9 @@
 import { expect, type Page } from '@playwright/test';
 import { test } from './fixtures';
-import { gotoApp, isolateMidi, readStore, seedPassed } from './helpers';
+import { gotoApp, isolateMidi, readStore, displayNumber, idsBefore, seedPassed } from './helpers';
 
 test.use({ permissions: ['midi', 'midi-sysex'] });
 
-const unitIds = (upTo: number) => Array.from({ length: upTo }, (_, i) => `unit-${i + 1}`);
 
 async function press(page: Page, ...midis: number[]) {
   await page.evaluate((ms) => {
@@ -16,7 +15,7 @@ async function press(page: Page, ...midis: number[]) {
 /** Open a unit as a player who has passed every unit before it. */
 async function openUnit(page: Page, n: number, lesson = '') {
   await gotoApp(page, './?debug=1#/learn');
-  await seedPassed(page, unitIds(n - 1));
+  await seedPassed(page, idsBefore(`unit-${n}`));
   await page.goto(`./?debug=1#/learn/unit-${n}${lesson ? `/${lesson}` : ''}`);
 }
 
@@ -63,7 +62,7 @@ async function passTest(page: Page, n: number) {
   await expect(page.getByTestId('learn-count')).toHaveText('1 / 20');
   await runPrompts(page, 20);
   await expect(page.getByTestId('learn-result')).toHaveAttribute('data-passed', 'true');
-  await expect(page.getByTestId('learn-result-title')).toHaveText(`Unit ${n} passed`);
+  await expect(page.getByTestId('learn-result-title')).toHaveText(`Unit ${displayNumber(`unit-${n}`)} passed`);
   const rows = await readStore<{ unitId: string; passed: boolean; bestCorrect: number; bestTotal: number }>(page, 'learnProgress');
   expect(rows.find((r) => r.unitId === `unit-${n}`)).toMatchObject({ passed: true, bestCorrect: 20, bestTotal: 20 });
 }
@@ -112,10 +111,10 @@ test.describe('Learn units 6 to 10', () => {
     await isolateMidi(page);
   });
 
-  test('the path lists all ten units as playable, and a unit opens only after the one before it', async ({ page }) => {
+  test('the path lists all eleven units as playable, and a unit opens only after the one before it', async ({ page }) => {
     await gotoApp(page, './?debug=1#/learn');
-    for (const n of [2, 3, 4, 5, 6, 7, 8, 9, 10]) await expect(page.getByTestId(`learn-unit-${n}`)).toHaveAttribute('data-status', 'locked');
-    await seedPassed(page, unitIds(5));
+    for (const n of [2, 3, 4, 5, 6, 7, 8, 11, 9, 10]) await expect(page.getByTestId(`learn-unit-${n}`)).toHaveAttribute('data-status', 'locked');
+    await seedPassed(page, idsBefore('unit-6'));
     await page.goto('./?debug=1#/learn/unit-6');
     await expect(page.getByTestId('learn-unit-6')).toHaveAttribute('data-status', 'open');
     await expect(page.getByTestId('learn-unit-7')).toHaveAttribute('data-status', 'locked');
@@ -123,6 +122,36 @@ test.describe('Learn units 6 to 10', () => {
     await expect(page.getByTestId('unit-title')).toHaveText('Rhythm basics');
     await page.goto('./?debug=1#/learn/unit-10');
     await expect(page.getByTestId('unit-locked')).toBeVisible();
+  });
+
+  test('the path shows Moving around the keyboard as Unit 9, between Both hands and Eighth notes, and Eighth notes stay locked until it passes', async ({ page }) => {
+    await gotoApp(page, './?debug=1#/learn');
+    await seedPassed(page, idsBefore('unit-11'));
+    await page.goto('./?debug=1#/learn');
+    await expect(page.getByTestId('learn-unit-11')).toBeVisible();
+    const names = await page.locator('.unit-row .unit-name').allTextContents();
+    expect(names.slice(7, 10)).toEqual(['Both hands', 'Moving around the keyboard', 'Eighth notes and dotted rhythms']);
+    await expect(page.getByTestId('learn-unit-11').locator('.unit-dot')).toHaveText('9');
+    await expect(page.getByTestId('learn-unit-9').locator('.unit-dot')).toHaveText('10');
+    await expect(page.getByTestId('learn-unit-10').locator('.unit-dot')).toHaveText('11');
+    await expect(page.getByTestId('learn-unit-11')).toHaveAttribute('data-status', 'open');
+    await expect(page.getByTestId('learn-unit-9')).toHaveAttribute('data-status', 'locked');
+    await page.goto('./?debug=1#/learn/unit-9');
+    await expect(page.getByTestId('unit-locked')).toContainText('Pass Unit 9 · Moving around the keyboard first.');
+    await seedPassed(page, [...idsBefore('unit-11'), 'unit-11']);
+    await page.reload();
+    await expect(page.getByTestId('learn-unit-9')).toHaveAttribute('data-status', 'open');
+  });
+
+  test('a profile that already passed the old Unit 9 is not re-locked', async ({ page }) => {
+    await gotoApp(page, './?debug=1#/learn');
+    await seedPassed(page, [...idsBefore('unit-11'), 'unit-9']);
+    await page.goto('./?debug=1#/learn');
+    await expect(page.getByTestId('learn-unit-9')).toHaveAttribute('data-status', 'passed');
+    await expect(page.getByTestId('learn-unit-10')).toHaveAttribute('data-status', 'open');
+    await expect(page.getByTestId('learn-unit-11')).toHaveAttribute('data-status', 'open');
+    await page.goto('./?debug=1#/learn/unit-9');
+    await expect(page.getByTestId('unit-locked')).toHaveCount(0);
   });
 
   test('Unit 6: reads rhythm, taps it in time, plays the rest song, passes and unlocks Minuet in G', async ({ page }) => {
@@ -240,7 +269,7 @@ test.describe('Learn units 6 to 10', () => {
     await expect(page.getByTestId('learn-result')).toContainText('Unlocked: Für Elise');
   });
 
-  test('Unit 9: eighth and dotted rhythm reading and timed taps, the song, passes and unlocks Canon in D', async ({ page }) => {
+  test('Unit 10: eighth and dotted rhythm reading and timed taps, the song, passes and unlocks Canon in D', async ({ page }) => {
     await openUnit(page, 9);
     await page.goto('./?debug=1#/songs');
     await expect(page.getByTestId('song-canon-in-d')).toHaveAttribute('data-locked', 'true');
@@ -264,7 +293,7 @@ test.describe('Learn units 6 to 10', () => {
     await expect(page.getByTestId('song-canon-in-d')).not.toHaveAttribute('data-locked', 'true');
   });
 
-  test('Unit 10: key signatures drawn and named, notes played with the signature applied, scale and song, passes and unlocks nothing new', async ({ page }) => {
+  test('Unit 11: key signatures drawn and named, notes played with the signature applied, scale and song, passes and unlocks nothing new', async ({ page }) => {
     await openUnit(page, 10, 'read');
     await expect(page.getByTestId('staff').locator('.vf-stave')).toHaveCount(1);
     const c = await card(page);

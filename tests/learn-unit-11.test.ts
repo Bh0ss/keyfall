@@ -33,15 +33,15 @@ function asNotes(song: MiniSong): PositionNote[] {
 }
 
 describe('Unit 11: Moving around the keyboard', () => {
-  it('is the last unit, playable, and opens only after Unit 10 is passed', () => {
-    expect(unit.number).toBe(11);
+  it('sits after Both hands as Unit 9 (stable id unit-11), playable, and opens when Unit 8 is passed', () => {
+    expect(unit.number).toBe(9);
     expect(unit.name).toBe('Moving around the keyboard');
-    expect(UNITS[UNITS.length - 1]).toBe(unit);
+    expect(UNITS[8]).toBe(unit);
     expect(unit.comingSoon).toBe(false);
-    const through9 = new Set(UNITS.slice(0, 9).map((u) => u.id));
-    expect(unitStatus(unit, through9)).toBe('locked');
-    expect(unitStatus(unit, new Set([...through9, 'unit-10']))).toBe('open');
-    expect(nextUnit(new Set(UNITS.slice(0, 10).map((u) => u.id)))!.id).toBe('unit-11');
+    const through7 = new Set(UNITS.slice(0, 7).map((u) => u.id));
+    expect(unitStatus(unit, through7)).toBe('locked');
+    expect(unitStatus(unit, new Set([...through7, 'unit-8']))).toBe('open');
+    expect(nextUnit(new Set(UNITS.slice(0, 8).map((u) => u.id)))!.id).toBe('unit-11');
     expect(nextUnit(new Set(UNITS.map((u) => u.id)))).toBeNull();
   });
 
@@ -93,8 +93,8 @@ describe('Unit 11: Moving around the keyboard', () => {
     expect([...seen].sort((a, b) => a - b)).toEqual([...unit.notes].sort((a, b) => a - b));
   });
 
-  it('a lesson without its own note list keeps drawing from the whole unit (units 1 to 10 are unchanged)', () => {
-    for (const u of UNITS.filter((x) => x.number < 11)) expect(u.lessons.every((l) => l.notes === undefined && !l.eyesOff)).toBe(true);
+  it('a lesson without its own note list keeps drawing from the whole unit (every other unit is unchanged)', () => {
+    for (const u of UNITS.filter((x) => x.id !== 'unit-11')) expect(u.lessons.every((l) => l.notes === undefined && !l.eyesOff)).toBe(true);
   });
 
   it('passes at 18 of 20 and not at 17, and a miss joins the review queue', () => {
@@ -116,7 +116,7 @@ describe('Unit 11: Moving around the keyboard', () => {
   });
 
   it('the shift-drill mini songs are 4 to 8 bars, fully fingered, and use only taught keys', () => {
-    const taught = new Set(taughtThrough(11));
+    const taught = new Set(taughtThrough(unit.number));
     for (const id of ['shift', 'homes']) {
       const song = lesson(id).song!;
       const beats = song.notes.reduce((a, n) => a + n.beats, 0);

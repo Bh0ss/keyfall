@@ -1,10 +1,9 @@
 import { expect, type Page } from '@playwright/test';
 import { test } from './fixtures';
-import { gotoApp, isolateMidi, readStore, seedPassed } from './helpers';
+import { gotoApp, isolateMidi, readStore, idsBefore, seedPassed } from './helpers';
 
 test.use({ permissions: ['midi', 'midi-sysex'] });
 
-const unitIds = (upTo: number) => Array.from({ length: upTo }, (_, i) => `unit-${i + 1}`);
 
 async function press(page: Page, ...midis: number[]) {
   await page.evaluate((ms) => {
@@ -16,7 +15,7 @@ async function press(page: Page, ...midis: number[]) {
 /** Open a unit as a player who has passed every unit before it. */
 async function openUnit(page: Page, n: number) {
   await gotoApp(page, './?debug=1#/learn');
-  await seedPassed(page, unitIds(n - 1));
+  await seedPassed(page, idsBefore(`unit-${n}`));
   await page.goto(`./?debug=1#/learn/unit-${n}`);
 }
 

@@ -102,3 +102,12 @@ export async function seedPassed(page: Page, unitIds: string[]) {
     { pid: profile!.id, ids: unitIds },
   );
 }
+
+/** Learn path order by stable unit id. "Moving around the keyboard" (unit-11) sits after Both hands (unit-8). */
+export const UNIT_ORDER = ['unit-1', 'unit-2', 'unit-3', 'unit-4', 'unit-5', 'unit-6', 'unit-7', 'unit-8', 'unit-11', 'unit-9', 'unit-10'];
+
+/** Every unit id before this one on the path: what a player who reached it has passed. */
+export const idsBefore = (id: string) => UNIT_ORDER.slice(0, UNIT_ORDER.indexOf(id));
+
+/** The number shown for a unit: its position on the path. */
+export const displayNumber = (id: string) => UNIT_ORDER.indexOf(id) + 1;

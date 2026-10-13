@@ -34,7 +34,7 @@ export function LearnPath({ passed, progress, activeId }: { passed: ReadonlySet<
               </span>
             </>
           );
-          const attrs = { 'data-status': status, 'data-active': activeId === u.id ? 'true' : undefined, 'data-testid': `learn-unit-${u.number}` };
+          const attrs = { 'data-status': status, 'data-active': activeId === u.id ? 'true' : undefined, 'data-testid': `learn-${u.id}` };
           return (
             <li key={u.id}>
               {status === 'open' || status === 'passed' ? (

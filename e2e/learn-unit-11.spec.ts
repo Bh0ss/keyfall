@@ -1,10 +1,9 @@
 import { expect, type Page } from '@playwright/test';
 import { test } from './fixtures';
-import { gotoApp, isolateMidi, readStore, seedPassed } from './helpers';
+import { gotoApp, isolateMidi, readStore, idsBefore, seedPassed } from './helpers';
 
 test.use({ permissions: ['midi', 'midi-sysex'] });
 
-const unitIds = (upTo: number) => Array.from({ length: upTo }, (_, i) => `unit-${i + 1}`);
 
 async function press(page: Page, midi: number) {
   await page.evaluate((m) => {
@@ -16,7 +15,7 @@ async function press(page: Page, midi: number) {
 /** Open a unit as a player who has passed every unit before it. */
 async function openUnit(page: Page, n: number, lesson = '') {
   await gotoApp(page, './?debug=1#/learn');
-  await seedPassed(page, unitIds(n - 1));
+  await seedPassed(page, idsBefore(`unit-${n}`));
   await page.goto(`./?debug=1#/learn/unit-${n}${lesson ? `/${lesson}` : ''}`);
 }
 
@@ -126,7 +125,7 @@ test.describe('Learn explainer cards', () => {
     };
     await gotoApp(page, './?debug=1#/learn');
     for (let n = 1; n <= 11; n++) {
-      await seedPassed(page, unitIds(n - 1));
+      await seedPassed(page, idsBefore(`unit-${n}`));
       await page.goto(`./?debug=1#/learn/unit-${n}`);
       const kinds = diagram[n]!;
       await expect(page.getByTestId('intro-step')).toHaveText(`Before you start · 1 of ${kinds.length}`);
@@ -147,13 +146,13 @@ test.describe('Learn unit 11: Moving around the keyboard', () => {
     await isolateMidi(page);
   });
 
-  test('is on the path as the last unit and opens only after Unit 10', async ({ page }) => {
+  test('is on the path as Unit 9, right after Both hands, and opens only after Unit 8', async ({ page }) => {
     await gotoApp(page, './?debug=1#/learn');
     await expect(page.getByTestId('learn-unit-11')).toHaveAttribute('data-status', 'locked');
-    await seedPassed(page, unitIds(9));
+    await seedPassed(page, idsBefore('unit-8'));
     await page.goto('./?debug=1#/learn/unit-11');
     await expect(page.getByTestId('unit-locked')).toBeVisible();
-    await seedPassed(page, unitIds(10));
+    await seedPassed(page, idsBefore('unit-11'));
     await page.reload();
     await expect(page.getByTestId('learn-unit-11')).toHaveAttribute('data-status', 'open');
     await expect(page.getByTestId('unit-title')).toHaveText('Moving around the keyboard');
@@ -203,7 +202,7 @@ test.describe('Learn unit 11: Moving around the keyboard', () => {
     await expect(page.getByTestId('mini-keyboard')).toBeVisible();
     await runPrompts(page, 20, 2);
     await expect(page.getByTestId('learn-result')).toHaveAttribute('data-passed', 'true');
-    await expect(page.getByTestId('learn-result-title')).toHaveText('Unit 11 passed');
+    await expect(page.getByTestId('learn-result-title')).toHaveText('Unit 9 passed');
     await expect(page.getByTestId('learn-result')).toContainText('18 of 20');
     const rows = await readStore<{ unitId: string; passed: boolean; bestCorrect: number }>(page, 'learnProgress');
     expect(rows.find((r) => r.unitId === 'unit-11')).toMatchObject({ passed: true, bestCorrect: 18 });

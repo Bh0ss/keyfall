@@ -125,10 +125,15 @@ const tap = (id: string, title: string, blurb: string, bpm: number, steps: numbe
 const RIGHT_C: Record<number, 1 | 2 | 3 | 4 | 5> = { 60: 1, 62: 2, 64: 3, 65: 4, 67: 5 };
 const LEFT_C: Record<number, 1 | 2 | 3 | 4 | 5> = { 48: 5, 50: 4, 52: 3, 53: 2, 55: 1 };
 
-export const UNITS: Unit[] = [
+type UnitDef = Omit<Unit, 'number'>;
+
+/**
+ * Path order. Ids are stable (synced progress and song gates use them), so a unit can move without
+ * changing id; the display number is the position in this list.
+ */
+const UNIT_DEFS: UnitDef[] = [
   {
     id: 'unit-1',
-    number: 1,
     name: 'Keyboard map',
     blurb: 'Find any white key by the groups of black keys. Two black keys point to C, D and E. Three point to F, G, A and B.',
     comingSoon: false,
@@ -141,7 +146,6 @@ export const UNITS: Unit[] = [
   },
   {
     id: 'unit-2',
-    number: 2,
     name: 'Middle C position',
     blurb: 'Rest your right thumb on middle C. Your five fingers cover C D E F G.',
     comingSoon: false,
@@ -183,7 +187,6 @@ export const UNITS: Unit[] = [
   },
   {
     id: 'unit-3',
-    number: 3,
     name: 'Treble staff',
     blurb: 'Read the lines and spaces of the treble staff, from E4 up to F5.',
     comingSoon: false,
@@ -201,7 +204,6 @@ export const UNITS: Unit[] = [
   },
   {
     id: 'unit-4',
-    number: 4,
     name: 'Bass clef position',
     blurb: 'Put your left little finger on the C below middle C. Your five fingers cover C D E F G.',
     comingSoon: false,
@@ -234,7 +236,6 @@ export const UNITS: Unit[] = [
   },
   {
     id: 'unit-5',
-    number: 5,
     name: 'Bass staff',
     blurb: 'Read the lines and spaces of the bass staff, from G2 up to A3.',
     comingSoon: false,
@@ -251,7 +252,6 @@ export const UNITS: Unit[] = [
   },
   {
     id: 'unit-6',
-    number: 6,
     name: 'Rhythm basics',
     blurb: 'Quarter, half and whole notes and their rests say how long to wait. Read them, then tap them in time.',
     comingSoon: false,
@@ -291,7 +291,6 @@ export const UNITS: Unit[] = [
   },
   {
     id: 'unit-7',
-    number: 7,
     name: 'Sharps and flats',
     blurb: 'A sharp raises a note one key; a flat lowers it one key. The black keys carry both names.',
     comingSoon: false,
@@ -330,7 +329,6 @@ export const UNITS: Unit[] = [
   },
   {
     id: 'unit-8',
-    number: 8,
     name: 'Both hands',
     blurb: 'The grand staff joins treble and bass. Read both, and press keys from both hands at the same time.',
     comingSoon: false,
@@ -370,118 +368,7 @@ export const UNITS: Unit[] = [
     ],
   },
   {
-    id: 'unit-9',
-    number: 9,
-    name: 'Eighth notes and dotted rhythms',
-    blurb: 'Eighth notes split a beat in two. A dot adds half of the note again.',
-    comingSoon: false,
-    notes: [60, 62, 64, 65, 67],
-    symbols: [E, DQ, DH, ER],
-    keyboard: [60, 72],
-    fingers: RIGHT_C,
-    unlocks: 'Canon in D',
-    mnemonics: [
-      { label: 'Eighth note', letters: '½ beat · two eighths fill one beat' },
-      { label: 'The dot adds half', letters: 'dotted quarter = 1½ · dotted half = 3' },
-    ],
-    lessons: [
-      read('read', 'Read the rhythm', 'A note or rest is shown. Name it or say how many beats it lasts.', ['rhythm-name', 'rhythm-beats']),
-      tap('tap-1', 'Rhythm tap: eighth notes', 'Two taps in every beat where you see a pair of eighths.', 60, [Q, E, E, Q, Q, E, E, E, E, H]),
-      tap('tap-2', 'Rhythm tap: dotted rhythms', 'Hold a dotted quarter for a beat and a half, then tap the eighth.', 60, [DQ, E, Q, Q, DQ, E, H]),
-      {
-        id: 'song',
-        kind: 'mini-song',
-        title: 'Mini song: Row, Row, Row Your Boat',
-        blurb: 'Five bars with eighth notes and dotted quarters.',
-        optional: true,
-        song: {
-          title: 'Row, Row, Row Your Boat',
-          beatsPerBar: 4,
-          notes: [
-            { midi: 60, beats: 1, finger: 1 }, { midi: 60, beats: 1, finger: 1 }, { midi: 60, beats: 1.5, finger: 1 }, { midi: 62, beats: 0.5, finger: 2 },
-            { midi: 64, beats: 1.5, finger: 3 }, { midi: 62, beats: 0.5, finger: 2 }, { midi: 64, beats: 1.5, finger: 3 }, { midi: 65, beats: 0.5, finger: 4 },
-            { midi: 67, beats: 4, finger: 5 },
-            { midi: 67, beats: 1.5, finger: 5 }, { midi: 65, beats: 0.5, finger: 4 }, { midi: 64, beats: 1.5, finger: 3 }, { midi: 62, beats: 0.5, finger: 2 },
-            { midi: 60, beats: 4, finger: 1 },
-          ],
-        },
-      },
-      unitTest(['rhythm-name', 'rhythm-beats']),
-    ],
-  },
-  {
-    id: 'unit-10',
-    number: 10,
-    name: 'Key signatures',
-    blurb: 'Sharps or flats at the start of the staff apply to every note of that name, all song long.',
-    comingSoon: false,
-    notes: [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 74, 76, 77],
-    keyboard: [60, 77],
-    mnemonics: [
-      { label: 'Sharps, in order', letters: 'F C G D A E B', phrase: 'Father Charles Goes Down And Ends Battle' },
-      { label: 'Flats, in order', letters: 'B E A D G C F', phrase: 'Battle Ends And Down Goes Charles’s Father' },
-      { label: 'Keys in this unit', letters: 'C · G (1♯) · D (2♯) · A (3♯) · F (1♭) · B♭ (2♭) · E♭ (3♭)' },
-    ],
-    lessons: [
-      {
-        id: 'read',
-        kind: 'key-sig',
-        title: 'Name the key',
-        blurb: 'A key signature is shown. Pick the major key it belongs to.',
-        prompts: 10,
-        kinds: ['keysig-name'],
-      },
-      {
-        id: 'in-key',
-        kind: 'key-sig',
-        title: 'Play it in the key',
-        blurb: 'A key signature and a note are shown. Press the key that note really is, signature applied.',
-        prompts: 10,
-        kinds: ['in-key'],
-      },
-      {
-        id: 'scale',
-        kind: 'mini-song',
-        title: 'Scale: F major',
-        blurb: 'Up and down one octave. The signature turns every B into B♭.',
-        optional: true,
-        song: {
-          title: 'F major scale',
-          beatsPerBar: 4,
-          keySig: 'F',
-          notes: [
-            { midi: 65, beats: 1, finger: 1 }, { midi: 67, beats: 1, finger: 2 }, { midi: 69, beats: 1, finger: 3 }, { midi: 70, beats: 1, finger: 4 },
-            { midi: 72, beats: 1, finger: 1 }, { midi: 74, beats: 1, finger: 2 }, { midi: 76, beats: 1, finger: 3 }, { midi: 77, beats: 1, finger: 4 },
-            { midi: 77, beats: 1, finger: 4 }, { midi: 76, beats: 1, finger: 3 }, { midi: 74, beats: 1, finger: 2 }, { midi: 72, beats: 1, finger: 1 },
-            { midi: 70, beats: 1, finger: 4 }, { midi: 69, beats: 1, finger: 3 }, { midi: 67, beats: 1, finger: 2 }, { midi: 65, beats: 1, finger: 1 },
-          ],
-        },
-      },
-      {
-        id: 'song',
-        kind: 'mini-song',
-        title: 'Mini song: Sharp Eyes',
-        blurb: 'Five bars in G major. The signature makes every F an F♯.',
-        optional: true,
-        song: {
-          title: 'Sharp Eyes',
-          beatsPerBar: 4,
-          keySig: 'G',
-          notes: [
-            { midi: 67, beats: 1, finger: 1 }, { midi: 69, beats: 1, finger: 2 }, { midi: 71, beats: 1, finger: 3 }, { midi: 74, beats: 1, finger: 5 },
-            { midi: 71, beats: 1, finger: 3 }, { midi: 69, beats: 1, finger: 2 }, { midi: 67, beats: 2, finger: 1 },
-            { midi: 64, beats: 1, finger: 2 }, { midi: 66, beats: 1, finger: 3 }, { midi: 67, beats: 1, finger: 4 }, { midi: 69, beats: 1, finger: 5 },
-            { midi: 67, beats: 1, finger: 4 }, { midi: 66, beats: 1, finger: 3 }, { midi: 64, beats: 1, finger: 2 }, { midi: 62, beats: 1, finger: 1 },
-            { midi: 67, beats: 4, finger: 4 },
-          ],
-        },
-      },
-      unitTest(['keysig-name', 'in-key']),
-    ],
-  },
-  {
     id: 'unit-11',
-    number: 11,
     name: 'Moving around the keyboard',
     blurb: 'Find C, F and G anywhere on the keyboard by the black-key groups, then slide your hand to a new position without looking down.',
     comingSoon: false,
@@ -549,15 +436,120 @@ export const UNITS: Unit[] = [
       kf('test', 'Unit test', '20 prompts. Get 18 right to pass.', true),
     ],
   },
+  {
+    id: 'unit-9',
+    name: 'Eighth notes and dotted rhythms',
+    blurb: 'Eighth notes split a beat in two. A dot adds half of the note again.',
+    comingSoon: false,
+    notes: [60, 62, 64, 65, 67],
+    symbols: [E, DQ, DH, ER],
+    keyboard: [60, 72],
+    fingers: RIGHT_C,
+    unlocks: 'Canon in D',
+    mnemonics: [
+      { label: 'Eighth note', letters: '½ beat · two eighths fill one beat' },
+      { label: 'The dot adds half', letters: 'dotted quarter = 1½ · dotted half = 3' },
+    ],
+    lessons: [
+      read('read', 'Read the rhythm', 'A note or rest is shown. Name it or say how many beats it lasts.', ['rhythm-name', 'rhythm-beats']),
+      tap('tap-1', 'Rhythm tap: eighth notes', 'Two taps in every beat where you see a pair of eighths.', 60, [Q, E, E, Q, Q, E, E, E, E, H]),
+      tap('tap-2', 'Rhythm tap: dotted rhythms', 'Hold a dotted quarter for a beat and a half, then tap the eighth.', 60, [DQ, E, Q, Q, DQ, E, H]),
+      {
+        id: 'song',
+        kind: 'mini-song',
+        title: 'Mini song: Row, Row, Row Your Boat',
+        blurb: 'Five bars with eighth notes and dotted quarters.',
+        optional: true,
+        song: {
+          title: 'Row, Row, Row Your Boat',
+          beatsPerBar: 4,
+          notes: [
+            { midi: 60, beats: 1, finger: 1 }, { midi: 60, beats: 1, finger: 1 }, { midi: 60, beats: 1.5, finger: 1 }, { midi: 62, beats: 0.5, finger: 2 },
+            { midi: 64, beats: 1.5, finger: 3 }, { midi: 62, beats: 0.5, finger: 2 }, { midi: 64, beats: 1.5, finger: 3 }, { midi: 65, beats: 0.5, finger: 4 },
+            { midi: 67, beats: 4, finger: 5 },
+            { midi: 67, beats: 1.5, finger: 5 }, { midi: 65, beats: 0.5, finger: 4 }, { midi: 64, beats: 1.5, finger: 3 }, { midi: 62, beats: 0.5, finger: 2 },
+            { midi: 60, beats: 4, finger: 1 },
+          ],
+        },
+      },
+      unitTest(['rhythm-name', 'rhythm-beats']),
+    ],
+  },
+  {
+    id: 'unit-10',
+    name: 'Key signatures',
+    blurb: 'Sharps or flats at the start of the staff apply to every note of that name, all song long.',
+    comingSoon: false,
+    notes: [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 74, 76, 77],
+    keyboard: [60, 77],
+    mnemonics: [
+      { label: 'Sharps, in order', letters: 'F C G D A E B', phrase: 'Father Charles Goes Down And Ends Battle' },
+      { label: 'Flats, in order', letters: 'B E A D G C F', phrase: 'Battle Ends And Down Goes Charles’s Father' },
+      { label: 'Keys in this unit', letters: 'C · G (1♯) · D (2♯) · A (3♯) · F (1♭) · B♭ (2♭) · E♭ (3♭)' },
+    ],
+    lessons: [
+      {
+        id: 'read',
+        kind: 'key-sig',
+        title: 'Name the key',
+        blurb: 'A key signature is shown. Pick the major key it belongs to.',
+        prompts: 10,
+        kinds: ['keysig-name'],
+      },
+      {
+        id: 'in-key',
+        kind: 'key-sig',
+        title: 'Play it in the key',
+        blurb: 'A key signature and a note are shown. Press the key that note really is, signature applied.',
+        prompts: 10,
+        kinds: ['in-key'],
+      },
+      {
+        id: 'scale',
+        kind: 'mini-song',
+        title: 'Scale: F major',
+        blurb: 'Up and down one octave. The signature turns every B into B♭.',
+        optional: true,
+        song: {
+          title: 'F major scale',
+          beatsPerBar: 4,
+          keySig: 'F',
+          notes: [
+            { midi: 65, beats: 1, finger: 1 }, { midi: 67, beats: 1, finger: 2 }, { midi: 69, beats: 1, finger: 3 }, { midi: 70, beats: 1, finger: 4 },
+            { midi: 72, beats: 1, finger: 1 }, { midi: 74, beats: 1, finger: 2 }, { midi: 76, beats: 1, finger: 3 }, { midi: 77, beats: 1, finger: 4 },
+            { midi: 77, beats: 1, finger: 4 }, { midi: 76, beats: 1, finger: 3 }, { midi: 74, beats: 1, finger: 2 }, { midi: 72, beats: 1, finger: 1 },
+            { midi: 70, beats: 1, finger: 4 }, { midi: 69, beats: 1, finger: 3 }, { midi: 67, beats: 1, finger: 2 }, { midi: 65, beats: 1, finger: 1 },
+          ],
+        },
+      },
+      {
+        id: 'song',
+        kind: 'mini-song',
+        title: 'Mini song: Sharp Eyes',
+        blurb: 'Five bars in G major. The signature makes every F an F♯.',
+        optional: true,
+        song: {
+          title: 'Sharp Eyes',
+          beatsPerBar: 4,
+          keySig: 'G',
+          notes: [
+            { midi: 67, beats: 1, finger: 1 }, { midi: 69, beats: 1, finger: 2 }, { midi: 71, beats: 1, finger: 3 }, { midi: 74, beats: 1, finger: 5 },
+            { midi: 71, beats: 1, finger: 3 }, { midi: 69, beats: 1, finger: 2 }, { midi: 67, beats: 2, finger: 1 },
+            { midi: 64, beats: 1, finger: 2 }, { midi: 66, beats: 1, finger: 3 }, { midi: 67, beats: 1, finger: 4 }, { midi: 69, beats: 1, finger: 5 },
+            { midi: 67, beats: 1, finger: 4 }, { midi: 66, beats: 1, finger: 3 }, { midi: 64, beats: 1, finger: 2 }, { midi: 62, beats: 1, finger: 1 },
+            { midi: 67, beats: 4, finger: 4 },
+          ],
+        },
+      },
+      unitTest(['keysig-name', 'in-key']),
+    ],
+  },
 ];
+
+export const UNITS: Unit[] = UNIT_DEFS.map((u, i) => ({ ...u, number: i + 1 }));
 
 export function getUnit(id: string): Unit | undefined {
   return UNITS.find((u) => u.id === id);
-}
-
-export function unitNumber(id: string): number {
-  const n = Number(/^unit-(\d+)$/.exec(id)?.[1]);
-  return Number.isInteger(n) ? n : 0;
 }
 
 /** Every rhythm symbol taught by units up to and including this number. */

@@ -112,7 +112,7 @@ Needs the piano connected. Run `npm run dev` and open http://localhost:5173/keyf
 Needs the piano connected (Phase 0 check passing). Use a Beginner profile you have not used for Learn yet (a new profile starts at Unit 1).
 
 1. Open http://localhost:5173/keyfall/ and pick the profile. On Home, the Learn tile reads "Unit 1 · Keyboard map". Click Continue.
-   - Good: the Learn path lists ten units; 1 is open, 2 to 10 say Locked.
+   - Good: the Learn path lists eleven units; 1 is open, 2 to 11 say Locked.
 2. Unit 1: click Start on "Find the key". A key name (like E4) appears with a hint about the black keys. Press that white key on the piano.
    - Good: the key on screen turns green, "Correct" shows, and the next key name appears after a moment. A wrong key turns red, shows the right one, and waits for Next.
 3. Click "Take the test" and answer 20 prompts. Keyboard labels are hidden here.
@@ -128,11 +128,11 @@ Needs the piano connected (Phase 0 check passing). Use a Beginner profile you ha
 8. Unit 4 (bass clef position): put your left little finger on the C below middle C (finger 5 on C, thumb on G). Do Find the key, Note flash and the mini song "Au Clair de la Lune".
    - Good: bass staff notes match the keys; the mini song plays with the left hand.
 9. Switch to an Advanced profile (avatar button on Home).
-   - Good: Learn still starts at Unit 1; songs behind Units 2 to 4 stay locked until those units are passed (only songs behind Units 6 to 9 open for Advanced profiles, and none of those are bundled yet).
+   - Good: Learn still starts at Unit 1; songs behind Units 2 to 4 stay locked until those units are passed (only songs behind Units 6 to 8 and Unit 10 open for Advanced profiles, and none of those are bundled yet).
 
 ## Phase 5: Sheet music, split view, Expert and the new songs
 
-Needs the piano connected. Use an Advanced profile (Clair de Lune and the Nocturne are open to Advanced profiles; Units 6 to 9 songs too).
+Needs the piano connected. Use an Advanced profile (Clair de Lune and the Nocturne are open to Advanced profiles; the songs behind Units 6 to 8 and Unit 10 too).
 
 1. Open a song you know (Ode to Joy or Minuet in G), choose Start, and click Sheet in the top bar.
    - Good: the score fills the screen, an amber cursor bar moves along with the song and the staff scrolls so the cursor stays about a quarter of the way in from the left. The notes under the cursor are readable from the music rest (about a metre away) and the bar numbers are visible.
@@ -181,13 +181,13 @@ Needs the iPhone with the Web MIDI Browser app and the FP-30X. The Pages URL is 
 
 ## Extra songs: try the 18 added songs
 
-Needs the piano and the dev server or the Pages site. Units 1 to 5 must be passed (or use the Learn test) to unlock the Unit 5 songs; The Entertainer needs Unit 9 (open on Advanced profiles).
+Needs the piano and the dev server or the Pages site. Units 1 to 5 must be passed (or use the Learn test) to unlock the Unit 5 songs; Arabesque and The Entertainer need Unit 10 (open on Advanced profiles).
 
 1. Open Songs and play each one in Wait mode, then once in Full mode. Look for wrong-sounding notes, odd note lengths, and hand or finger numbers that make no sense.
    - Level 1 (open): Row, Row, Row Your Boat; London Bridge Is Falling Down; Frere Jacques; Yankee Doodle; Oh! Susanna; Happy Birthday to You.
    - Level 2 (open): Amazing Grace; Brahms' Lullaby; Auld Lang Syne; Scarborough Fair.
-   - Level 4 (Unit 5): Musette in D (Bach); Old French Song (Tchaikovsky); Melody and The Happy Farmer (Schumann); Arabesque (Burgmueller); Prelude in C (Bach); Sonatina in C, Op. 36 No. 1 (Clementi).
-   - Level 5 (Unit 9): The Entertainer (Joplin).
+   - Level 4 (Unit 5): Musette in D (Bach); Old French Song (Tchaikovsky); Melody and The Happy Farmer (Schumann); Prelude in C (Bach); Sonatina in C, Op. 36 No. 1 (Clementi).
+   - Level 5 (Unit 10): Arabesque (Burgmueller); The Entertainer (Joplin).
 2. Folk tunes that were arranged from memory or a rough reference. Play along and compare with a recording, and note anything that sounds off:
    - London Bridge, bars 7 and 8: the rhythm (D G half notes, then E C half notes) is a reading of "My fair lady".
    - Amazing Grace, bar 2: A eighth, G sixteenth, F sixteenth on "grace". The usual hymn may have a single note.
@@ -217,7 +217,7 @@ Needs the household account (<household email> and its password), the Mac, and t
 
 ## Learn Units 6 to 10 on the FP-30X
 
-Needs the piano connected. Use a Beginner profile that has passed Units 1 to 5 (or pass them first). Each unit opens when the one before it is passed.
+Needs the piano connected. Use a Beginner profile that has passed Units 1 to 5 (or pass them first). Each unit opens when the one before it is passed. The path order is 8 Both hands, 9 Moving around the keyboard, 10 Eighth notes, 11 Key signatures; this section covers 6 to 8, 10 and 11 (Unit 9 has its own check under "v1.1: Learn content").
 
 1. Unit 6 (Rhythm basics): open "Read the rhythm". A quarter, half or whole note or rest is drawn; click the button for its name or its beat count.
    - Good: a wrong button turns red, shows the answer and waits for Next; the symbol shows under "Needs review" until you get it right 3 times in a row.
@@ -232,14 +232,14 @@ Needs the piano connected. Use a Beginner profile that has passed Units 1 to 5 (
 5. Unit 8 (Both hands): "Grand staff note flash" shows a note on either staff. "Both hands together" shows one note in the bass staff and one or two in the treble staff; press them at the same time (left hand and right hand).
    - Good: pressing one key waits; the screen only judges when all keys are down within about a half second; a wrong key turns red and shows the set. Pressing the keys one after the other with a release in between does not count.
    - Good: "Mini song: Hands Together" asks for left and right keys together on steps with two notes, and one hand on the others. Take the test: "Unlocked: Für Elise (opening)".
-6. Unit 9 (Eighth notes and dotted rhythms): "Read the rhythm", then the two tap lessons (eighth pairs, dotted quarters). Tap C on each note; the metronome plays every beat (60 a minute).
+6. Unit 10 (Eighth notes and dotted rhythms; pass Unit 9, Moving around the keyboard, first): "Read the rhythm", then the two tap lessons (eighth pairs, dotted quarters). Tap C on each note; the metronome plays every beat (60 a minute).
    - Good: two taps in one click for a pair of eighths, one long tap for a dotted quarter then an eighth that lands halfway through the next click; the card reports the taps on the beat. Tell me if 60 a minute feels too fast or slow for the eighths.
    - Good: "Mini song: Row, Row, Row Your Boat" plays note by note. Test: "Unlocked: Canon in D".
-7. Unit 10 (Key signatures): "Name the key" shows only a key signature; pick the major key. "Play it in the key" shows a signature and a white-key note on the staff; press the key that note really is (for example F in G major is F♯).
+7. Unit 11 (Key signatures): "Name the key" shows only a key signature; pick the major key. "Play it in the key" shows a signature and a white-key note on the staff; press the key that note really is (for example F in G major is F♯).
    - Good: the key you must press matches the signature (G: F♯; D: F♯ C♯; A: F♯ C♯ G♯; F: B♭; B♭: B♭ E♭; E♭: B♭ E♭ A♭). Play the scale lesson (F major, up and down) and "Mini song: Sharp Eyes" (G major) with the fingers shown. Take the test.
-   - Good: Unit 10 passes with no song unlocked.
+   - Good: Unit 11 passes with no song unlocked.
 8. Switch to an Advanced profile.
-   - Good: the songs behind Units 6 to 9 are open; Unit 10 has no song. The Learn path still starts at Unit 1 and Units 6 to 10 still open in order.
+   - Good: the songs behind Units 6 to 8 and Unit 10 are open; Unit 11 has no song. The Learn path still starts at Unit 1 and the units still open in order.
 
 ## Phase 9: piano navigation, iPad, sounds, streak and badges
 
@@ -303,7 +303,7 @@ Open Keyfall on the Mac with the FP-30X connected, a fresh Beginner profile, Lea
 1. Open Unit 1, then Unit 2, and read each card.
    - Good: the keyboard, posture, hands and staff pictures are clear from the bench, the words are plain, and Skip intro and Got it close the panel; "Show the unit intro" brings it back. The posture and finger-number cards match what you were taught.
    - Bad: anything is hard to read from a metre away, or a picture is confusing.
-2. Open Unit 11 (pass Units 1 to 10 first) and do "C, F and G, eyes off" at the piano.
+2. Open Unit 9, Moving around the keyboard (pass Units 1 to 8 first; it sits right after Both hands), and do "C, F and G, eyes off" at the piano.
    - Good: you can find C, F and G by feel from the black-key groups with the screen keyboard hidden, and the keyboard appearing after each press confirms where the key was.
 3. Play the two shift drills, Hill Climb and Three Homes, with the fingers shown.
    - Good: the moves are comfortable at a slow tempo and the finger numbers tell you where to put your thumb. Tell me if a shift feels too far or the finger number is wrong.

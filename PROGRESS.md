@@ -932,3 +932,50 @@ New tests: `tests/help-bubble.test.ts` (10: the open/close state machine for hov
 - Bubbles on the Play header (view, note names) and inside Learn lessons.
 - A "what is new" nudge for existing profiles; they just see the tour once.
 - Lighthouse is not run against Results or the Play setup (the script audits a fixed list of seven screens); the axe-style controls audit in `e2e/a11y.spec.ts` covers both and passes.
+
+## v1.1: Unit order change (B6, owner's ruling)
+
+Requested addition beyond spec: "Moving around the keyboard" moves from the end of the path to right after Unit 8 (Both hands).
+
+### Built
+
+- `src/learn/units.ts`: the unit definitions moved into path order (`UNIT_DEFS`: 1 to 8, `unit-11`, `unit-9`, `unit-10`). `UNITS` is built from it and the display `number` is the list position, so there is one place that says what order the path is in. Stable ids are untouched.
+- Display numbers now: Both hands 8, Moving around the keyboard 9 (id `unit-11`), Eighth notes 10 (id `unit-9`), Key signatures 11 (id `unit-10`).
+- `src/learn/unlocks.ts`: gating already followed "the unit before it in `UNITS`", so Eighth notes now need `unit-11` and `unit-11` needs `unit-8` with no special case. `ADVANCED_OPEN_UNITS` is now a set of ids (`unit-5` to `unit-9`) instead of numbers parsed out of ids, so its effect is exactly what it was. The now-unused `unitNumber()` helper is removed.
+- `src/progress/badges.ts`: Graduate blurb reads "Pass Units 1 to 8, 10 and 11." (was "Pass Units 1 to 10."), naming the ten required units by their new numbers. Its rule is unchanged (the original ten ids).
+- `src/ui/learn/LearnPath.tsx`: row test id is now `learn-${unit.id}` (same strings as before for every unit: `learn-unit-9` is still the Eighth notes unit), so the test id follows the unit rather than its position.
+- New `tests/learn-order.test.ts` (8 tests), written first (6 red, then green). `e2e/helpers.ts` gained `UNIT_ORDER`, `idsBefore`, `displayNumber`.
+- HUMAN_CHECKS.md: the Unit 11 piano check is now Unit 9; Learn Units 6 to 10 section, The Entertainer lines, and the Advanced-profile lines renumbered.
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| npm run typecheck | clean |
+| npm run lint | clean |
+| npm test | 873 passed (baseline 865, +8 in `tests/learn-order.test.ts`) |
+| npm run build | ok (chunk-size warning as before) |
+| npx playwright test (4 projects) | 226 passed, 3 skipped, 0 failed (first full run: 225 passed, 1 failed, a race in my own new path test, fixed; sync specs passed) |
+| npm run lighthouse | Home 100, Play 100, Songs 100, Learn 100, Stats 100, Settings 100, Credits 100 |
+| git diff --check | clean |
+
+### Decisions
+
+- **Display numbers were not derived from ids in the UI.** `Unit.number` was a hard-coded literal per unit. The only id parsing was `unitNumber(id)` in `isSongUnlocked` (Advanced override), now replaced by an id set. Everything else (Learn path dots, Home tile, finish screen "Unit N passed" and next-unit link, lock text, unlock hints, mini-song and rhythm eyebrows) reads `unit.number`, which is now position-based, so no display code changed.
+- `number` is now computed from list position, not typed in, so it cannot drift from the order again.
+- **Explainer cards** are keyed by unit id, and no card text contains a unit number, so they follow the unit. The B5 help entries and tour steps name no unit numbers. The Home tile reads `unit.number`.
+- **Pool filtering** (`taughtThrough(unit.number)`, `taughtSymbolsThrough`) is by path position, which is the right meaning ("taught before this point"). Eighth notes and Key signatures now also count the moved unit's keys as taught; that only widens the allowed set and their own note lists are unchanged.
+- **Migration / no re-lock rule** (in `unitStatus`, no data rewrite): a passed unit is always `passed`, and a unit not passed whose predecessor is unpassed still opens when any later unit on the path is passed. A profile that passed old Unit 9 or 10 (new 10 or 11) therefore keeps them, and nothing earlier locks under it. `nextUnit` still returns the first unpassed unit in path order, so such a profile is pointed at Moving around the keyboard (id `unit-11`) once, then carries on. Synced `learn_progress` / `review_queue` rows are keyed by id and need nothing. The second clause (open when any later unit is passed) goes beyond the ruling as a defensive addition: real profiles have no gaps in their passed units, so it changes nothing for them, and it only matters for gapped data such as debug seeding.
+- Song gates keep unit ids (Für Elise `unit-8`, Canon, Arabesque and The Entertainer `unit-9`); their hints now read "Pass Unit 10 · Eighth notes and dotted rhythms to unlock". Verified by test.
+- Graduate badge keeps requiring the original ten ids, so no profile gains or loses the badge. The moved unit is not a bonus: new players must pass it to reach Units 10 and 11, so in practice a new player passes all eleven. The blurb names the ten required units by number.
+- Test ids: see Built. Old reference numbers in e2e specs were by id, so only the seeding changed (`idsBefore`).
+
+### Adapted tests
+
+- `tests/learn-unit-11.test.ts` placement test: now asserts number 9, position after Unit 8, locked until `unit-8` is passed, `nextUnit` after Unit 8 is `unit-11` (same shape of assertions as before, new order). "Every other unit has no narrowed lessons" filters by `id !== 'unit-11'` instead of `number < 11`. The shift-drill "taught keys" check uses `taughtThrough(unit.number)` (keys taught up to and including this unit; stricter than the old "all units" set).
+- `tests/learn-units-6-10.test.ts`: two `taughtThrough(10)` uses for Key signatures became `taughtThrough(getUnit('unit-10')!.number)`, same meaning.
+- `e2e/learn-unit-11.spec.ts`, `learn-units-2-5.spec.ts`, `learn-units-6-10.spec.ts`: prerequisite seeding uses `idsBefore(unit id)` instead of "the first n-1 ids"; Unit 11 spec's path/lock test follows the new order and its result title reads "Unit 9 passed"; unit-9 and unit-10 result titles use the display number (10, 11); the "all units locked" list includes `unit-11`.
+
+### Deferred
+
+- None. HUMAN_CHECKS covers the real-piano side.
