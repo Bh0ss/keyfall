@@ -33,3 +33,8 @@ export const MAX_AUDIO_SECONDS_PHONE = 4 * 60;
 export const AUDIO_EXTENSIONS = ['.m4a', '.mp3', '.wav'] as const;
 /** Below this peak a recording counts as silence. */
 export const SILENCE_PEAK = 1e-4;
+
+/** Untrusted text from a file or a web reply, made safe to show: control characters out, whitespace collapsed, capped. */
+export const clean = (s: string | undefined, max = 120) =>
+  // eslint-disable-next-line no-control-regex
+  (s ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);

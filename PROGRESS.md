@@ -1172,3 +1172,55 @@ None.
 - Wiring (route, review screen, tap tempo, version choice, trim): I4. Wait-mode preview: I5.
 - Key override control (see Decisions) and a manual tempo-doubling toggle.
 - Real-recording accuracy: unverified, HUMAN_CHECKS (a real piano solo and a real full mix on the Mac).
+
+### I3: Spotify link module and CSP (dark)
+
+#### Built
+
+- `src/spotify/link.ts`: `parseTrackUrl` (parse with `new URL()`; `https:` only, `hostname === 'open.spotify.com'`, empty port, no userinfo, pathname regex `^/(?:intl-xx(-xxxx)?/)?track/<22-char id>/?$`; returns the canonical `https://open.spotify.com/track/<id>`), `lookupTrack` (oEmbed GET with `credentials: 'omit'`, `referrerPolicy: 'no-referrer'`, `redirect: 'error'`, an abort signal, an 8 s timeout and a caller cancel; reads only `title` and `thumbnail_url`), `cleanTitle`, `thumbnailIfAllowed`. Any failure returns `{ ok: false }` so the later screen can fall back to manual title and artist entry. No proxy.
+- `scripts/csp.ts`: exports `SPOTIFY_OEMBED_HOST` and `SPOTIFY_THUMBNAIL_HOSTS`; the policy and `src/spotify/link.ts` both read them, so the policy and the UI allowlist cannot drift.
+- `clean` moved from `src/import/analyse.ts` to `src/import/limits.ts` (exported, body unchanged) so the link module reuses the existing sanitiser without importing the MIDI library.
+- Debug only (`?debug=1`): `window.__keyfall.spotifyLookup(link)` (lazy `src/spotify/debug.ts`) runs the lookup and renders the thumbnail in an `<img>` so the page CSP applies to it. No route, button or screen.
+- Tests: `tests/spotify-link.test.ts` (URL accept/reject table incl. userinfo, uppercase host, trailing-dot host, encoded slashes; stubbed fetch; title sanitising; thumbnail allowlist; timeout, cancel, no fetch for an invalid link), CSP tests in `tests/sync-limits.test.ts`, built-policy assertions in `tests/bundle-guard.test.ts`, `e2e/spotify-link.spec.ts` (oEmbed stubbed with `page.route`).
+
+#### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm test` | exit 0, 62 files, 1069 tests (I2: 61 files, 994 tests) |
+| `npm run build` | exit 0 |
+| `npx playwright test` (dev, all projects) | 234 passed, 3 skipped (the same 3 orientation skips), 0 failed, 11.6 min (I2: 229 / 3 / 0; +5 new) |
+| `KEYFALL_PREVIEW=1 npx playwright test e2e/spotify-link.spec.ts --project=chromium` | 5 passed, zero CSP violations (the fixtures guard fails any) |
+| `npm run lighthouse` | accessibility 100 on all seven screens |
+
+#### CSP before and after (production meta tag, Supabase host as configured)
+
+Before:
+```
+default-src 'self'; script-src 'self'; connect-src 'self' https://ubheylmkufyuamrgaqev.supabase.co wss://ubheylmkufyuamrgaqev.supabase.co; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self'; style-src-attr 'unsafe-inline'; worker-src 'self' blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'
+```
+After:
+```
+default-src 'self'; script-src 'self'; connect-src 'self' https://ubheylmkufyuamrgaqev.supabase.co wss://ubheylmkufyuamrgaqev.supabase.co https://open.spotify.com; img-src 'self' data: blob: https://image-cdn-fa.spotifycdn.com https://image-cdn-ak.spotifycdn.com; font-src 'self' data:; style-src 'self'; style-src-attr 'unsafe-inline'; worker-src 'self' blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'
+```
+
+#### Decisions
+
+- Requested addition beyond spec; dark, no route or button.
+- D2 (thumbnail shown): `img-src` gains the two Spotify CDN hosts, `connect-src` gains `https://open.spotify.com`. No wildcard; `script-src` and `worker-src` unchanged; no eval or wasm keyword (unit test and bundle guard). The `-ak` host is included because it resolves in DNS, not because it was seen (`-fa` came back in 6 of 6 calls). An unlisted host simply shows no thumbnail.
+- D3: artist is a manual field, to be mapped to the existing composer field in I4 (oEmbed has none).
+- The oEmbed reply is untrusted: only `title` (cleaned, 120 cap) and `thumbnail_url`; `html` and `iframe_url` are never read. Neither the link nor the thumbnail is stored.
+- An uppercase host is accepted: URL parsing lowercases hosts, so `OPEN.SPOTIFY.COM` is the same host. A trailing-dot host, userinfo, a non-default port and any backslash are rejected. `:443` is accepted because it is the default port and parses to empty.
+- `redirect: 'error'` on the oEmbed fetch: a redirect to anywhere else fails to manual entry rather than being followed.
+- The e2e stubs both oEmbed and the image hosts with `page.route`, so no real Spotify call is made in CI. Real-network confirmation is in HUMAN_CHECKS.
+
+#### Adapted tests
+
+- `tests/sync-limits.test.ts`, "allows only own scripts ... for connections": the expected `connect-src` string gained ` https://open.spotify.com` (intentional policy change); the assertion is as strict as before and the test name now mentions Spotify.
+
+#### Deferred
+
+- The link screen, manual title/artist fallback UI and thumbnail display: I4.
+- Real Spotify oEmbed and thumbnail host from the live site: HUMAN_CHECKS.

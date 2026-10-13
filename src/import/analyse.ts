@@ -1,12 +1,8 @@
 import { Midi } from '@tonejs/midi';
 import { parseMusicXml } from '../songs/musicxml';
-import { MAX_BEATS, MAX_FILE_BYTES, MAX_NOTES, ImportError, formatOf, type ImportFormat } from './limits';
+import { MAX_BEATS, MAX_FILE_BYTES, MAX_NOTES, ImportError, clean, formatOf, type ImportFormat } from './limits';
 import { unpackMxl } from './mxl';
 import type { DraftNote, ImportAnalysis } from './types';
-
-const clean = (s: string | undefined, max = 120) =>
-  // eslint-disable-next-line no-control-regex
-  (s ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 
 function titleFromFile(name: string): string {
   const base = name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ');

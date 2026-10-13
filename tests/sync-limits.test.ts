@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { cspPolicy } from '../scripts/csp';
+import { cspPolicy, SPOTIFY_OEMBED_HOST, SPOTIFY_THUMBNAIL_HOSTS } from '../scripts/csp';
 import { MAX_CLOCK_SKEW_MS, MAX_DATA_BYTES, SONG_MIME_TYPES, UPLOAD_CONTENT_TYPE, clampStamp } from '../src/sync/rules';
 import type { RemoteRow } from '../src/sync/types';
 import { FakeRemote } from './sync-fake-remote';
@@ -90,9 +90,9 @@ describe('Content-Security-Policy', () => {
   const policy = cspPolicy('https://abc.supabase.co');
   const directive = (name: string) => policy.split('; ').find((d) => d.startsWith(`${name} `));
 
-  it('allows only own scripts and the Supabase host for connections', () => {
+  it('allows only own scripts, and the Supabase and Spotify oEmbed hosts for connections', () => {
     expect(directive('script-src')).toBe("script-src 'self'");
-    expect(directive('connect-src')).toBe("connect-src 'self' https://abc.supabase.co wss://abc.supabase.co");
+    expect(directive('connect-src')).toBe("connect-src 'self' https://abc.supabase.co wss://abc.supabase.co https://open.spotify.com");
     expect(directive('default-src')).toBe("default-src 'self'");
   });
 
@@ -110,5 +110,42 @@ describe('Content-Security-Policy', () => {
 
   it('falls back to the project host without a configured URL', () => {
     expect(cspPolicy()).toContain('https://ubheylmkufyuamrgaqev.supabase.co');
+  });
+});
+
+describe('Content-Security-Policy: Spotify link lookup', () => {
+  const policy = cspPolicy('https://abc.supabase.co');
+  const directive = (name: string) => policy.split('; ').find((d) => d.startsWith(`${name} `));
+
+  it('is exactly the agreed policy', () => {
+    expect(policy).toBe(
+      [
+        "default-src 'self'",
+        "script-src 'self'",
+        'connect-src \'self\' https://abc.supabase.co wss://abc.supabase.co https://open.spotify.com',
+        "img-src 'self' data: blob: https://image-cdn-fa.spotifycdn.com https://image-cdn-ak.spotifycdn.com",
+        "font-src 'self' data:",
+        "style-src 'self'",
+        "style-src-attr 'unsafe-inline'",
+        "worker-src 'self' blob:",
+        "media-src 'self' blob: data:",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+      ].join('; '),
+    );
+  });
+
+  it('leaves script-src and worker-src alone and has no eval, wasm or wildcard hosts', () => {
+    expect(directive('script-src')).toBe("script-src 'self'");
+    expect(directive('worker-src')).toBe("worker-src 'self' blob:");
+    expect(policy).not.toMatch(/unsafe-eval|wasm-unsafe-eval/);
+    expect(policy).not.toMatch(/\*/);
+  });
+
+  it('is built from the shared host constants the UI allowlist uses', () => {
+    expect(directive('connect-src')).toContain(`https://${SPOTIFY_OEMBED_HOST}`);
+    for (const h of SPOTIFY_THUMBNAIL_HOSTS) expect(directive('img-src')).toContain(`https://${h}`);
+    expect([...SPOTIFY_THUMBNAIL_HOSTS]).toEqual(['image-cdn-fa.spotifycdn.com', 'image-cdn-ak.spotifycdn.com']);
   });
 });

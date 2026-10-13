@@ -1,6 +1,7 @@
 import { waitForCurrentPlay } from '../engine/current';
 import { runAutoplay, type AccuracyProfile, type AutoplayResult } from './autoplay';
 import type { MidiEngine } from './engine';
+import type { DebugSpotifyResult } from '../spotify/debug';
 import type { DebugTranscribeOptions, DebugTranscribeResult } from '../transcribe/debug';
 
 /** A W S E D F T G Y H U J K = C4 to C5 */
@@ -39,6 +40,8 @@ export interface KeyfallDebug {
   autoplay(profile?: AccuracyProfile): Promise<AutoplayResult>;
   /** Decode audio bytes and run the real transcription worker. Never throws; failures come back as { ok: false }. */
   transcribe(bytes: ArrayBuffer | Uint8Array | number[], opts?: DebugTranscribeOptions): Promise<DebugTranscribeResult>;
+  /** Look up a Spotify track link (oEmbed) and render the thumbnail if there is one. Never throws. */
+  spotifyLookup(link: string): Promise<DebugSpotifyResult>;
 }
 
 declare global {
@@ -63,6 +66,7 @@ export function installVirtualInput(engine: MidiEngine, win: Window = window): (
     release: (midi) => engine.release(midi),
     autoplay: async (profile) => runAutoplay(engine, profile, await waitForCurrentPlay()),
     transcribe: async (bytes, opts) => (await import('../transcribe/debug')).debugTranscribe(bytes, opts),
+    spotifyLookup: async (link) => (await import('../spotify/debug')).debugSpotifyLookup(link),
   };
   const held = new Set<number>();
   const onDown = (e: KeyboardEvent) => {

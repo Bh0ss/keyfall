@@ -66,5 +66,7 @@ describe('production bundle and transcription', () => {
     const csp = /Content-Security-Policy" content="([^"]+)"/.exec(readFileSync(join(out, 'index.html'), 'utf8'))?.[1]?.replaceAll('&#39;', "'") ?? '';
     expect(csp).toContain("script-src 'self'");
     expect(csp).not.toMatch(/unsafe-eval|wasm-unsafe-eval/);
+    expect(csp).toMatch(/connect-src [^;]*https:\/\/open\.spotify\.com(;| |$)/);
+    expect(csp).toMatch(/img-src [^;]*https:\/\/image-cdn-fa\.spotifycdn\.com https:\/\/image-cdn-ak\.spotifycdn\.com/);
   });
 });

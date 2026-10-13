@@ -338,3 +338,7 @@ The arranger is dark and only tested on synthetic audio, which is easy. Once the
 1. Take a real recording of a solo piano piece you know (your own, or any you have the right to use) and run it through the flow in Beginner and Full. Play the result: is the right hand the tune you expected, is the left hand sensible under it?
 2. Repeat with a full-band recording with a vocal. Expect worse. Note whether the tune is recognisable and whether the tempo and key guesses were wrong (the tap-tempo control should fix the tempo).
 3. Record what you found in the PROGRESS v1.2 section next to the synthetic F1 table.
+
+## v1.2 I3: Spotify link lookup
+
+- After deploy, from the live site with `?debug=1`, run `await window.__keyfall.spotifyLookup('https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC')` in the console: expect `ok: true`, a title, and `thumbnailLoaded: true` with no CSP error in the console. Also try a region you use: if the thumbnail host is not `image-cdn-fa`/`image-cdn-ak.spotifycdn.com` it shows no thumbnail (by design) and the host should be reported.
