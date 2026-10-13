@@ -1,5 +1,7 @@
 /** XP, levels and rank titles. Pure functions; no storage or UI. */
 
+import { INTRO_ID } from '../learn/explainers';
+
 export const UNIT_PASS_XP = 150;
 export const LESSON_XP = 20;
 
@@ -57,6 +59,6 @@ export function levelFor(totalXp: number): LevelInfo {
 /** XP earned in the Learn path: a flat award per passed unit plus one per finished lesson. */
 export function learnXp(rows: ReadonlyArray<{ passed: boolean; lessonsDone: readonly string[] }>): number {
   let xp = 0;
-  for (const r of rows) xp += (r.passed ? UNIT_PASS_XP : 0) + r.lessonsDone.length * LESSON_XP;
+  for (const r of rows) xp += (r.passed ? UNIT_PASS_XP : 0) + r.lessonsDone.filter((id) => id !== INTRO_ID).length * LESSON_XP;
   return xp;
 }

@@ -11,7 +11,7 @@ function sub(unit: Unit, status: UnitStatus, p?: LearnProgressRecord): string {
   return p && p.attempts ? `In progress · best ${p.bestCorrect} of ${p.bestTotal}` : unit.unlocks ? `Unlocks ${unit.unlocks}` : 'Ready';
 }
 
-/** The "Learn path" column from the canvas: all ten units with their state. */
+/** The "Learn path" column from the canvas: every unit with its state. */
 export function LearnPath({ passed, progress, activeId }: { passed: ReadonlySet<string>; progress: Map<string, LearnProgressRecord>; activeId?: string }) {
   return (
     <aside className="learn-path" aria-label="Learn path">

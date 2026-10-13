@@ -3,6 +3,7 @@ import type { Unit } from '../../learn/units';
 import { bundledSummaries } from '../../songs/bundled';
 import type { LearnProgressRecord, PlayerLevel } from '../../storage/types';
 import { hrefFor } from '../useRoute';
+import { UnitIntro } from './UnitIntro';
 
 const KIND = {
   'key-finder': 'Key finder',
@@ -73,6 +74,8 @@ export function UnitDetail({ unit, status, progress, level }: { unit: Unit; stat
           ))}
         </section>
       )}
+
+      {playable && <UnitIntro key={unit.id} unit={unit} progress={progress} />}
 
       {playable && (
         <ol className="lesson-list">

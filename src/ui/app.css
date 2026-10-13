@@ -2571,3 +2571,33 @@ main:focus {
   font-family: var(--font-mono);
   font-size: 13px;
 }
+
+/* Learn: explainer cards */
+.intro-card {
+  gap: 12px;
+}
+
+.intro-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.intro-tip {
+  padding: 10px 14px;
+  border-left: 4px solid var(--accent);
+  background: var(--raised);
+  border-radius: 8px;
+}
+
+.diagram {
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  align-self: flex-start;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--bg);
+  box-sizing: border-box;
+}

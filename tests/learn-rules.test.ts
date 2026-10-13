@@ -85,8 +85,8 @@ describe('unlock rules', () => {
 });
 
 describe('unit path', () => {
-  it('defines ten units, all playable (6 to 10 were "coming soon" before the Learn Units 6 to 10 addition)', () => {
-    expect(UNITS).toHaveLength(10);
+  it('defines eleven units, all playable (6 to 10 were "coming soon" before the Learn Units 6 to 10 addition; 11 is "Moving around the keyboard", added in v1.1)', () => {
+    expect(UNITS).toHaveLength(11);
     expect(UNITS.every((u) => !u.comingSoon)).toBe(true);
   });
   it('opens units in order', () => {
@@ -97,7 +97,7 @@ describe('unit path', () => {
     expect(unitStatus(getUnit('unit-6')!, new Set(['unit-1', 'unit-2', 'unit-3', 'unit-4', 'unit-5']))).toBe('open');
     expect(unitStatus(getUnit('unit-6')!, new Set(['unit-1', 'unit-2', 'unit-3', 'unit-4']))).toBe('locked');
   });
-  it('nextUnit is the first unit not yet passed, or null after unit 10', () => {
+  it('nextUnit is the first unit not yet passed, or null after the last unit', () => {
     expect(nextUnit(new Set())!.id).toBe('unit-1');
     expect(nextUnit(new Set(['unit-1', 'unit-2']))!.id).toBe('unit-3');
     expect(nextUnit(new Set(['unit-1', 'unit-2', 'unit-3', 'unit-4', 'unit-5']))!.id).toBe('unit-6');

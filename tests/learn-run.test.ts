@@ -21,7 +21,9 @@ describe('lesson generators only use taught notes', () => {
       it(`${unit.id} ${lesson.id}`, () => {
         const rng = seeded(7);
         const taught = new Set(taughtThrough(unit.number));
-        const unitNotes = new Set(unit.notes);
+        // A lesson may narrow the pool to some of the unit's keys (Unit 11 'anchors'); it must still reach every one of them.
+        const poolNotes = lesson.notes ?? unit.notes;
+        const unitNotes = new Set(poolNotes);
         let prev: number | undefined;
         const seen = new Set<number>();
         for (let i = 0; i < 300; i++) {
@@ -33,7 +35,7 @@ describe('lesson generators only use taught notes', () => {
           prev = p.midi;
           seen.add(p.midi);
         }
-        expect(seen.size).toBe(unit.notes.length);
+        expect(seen.size).toBe(poolNotes.length);
       });
     }
   }

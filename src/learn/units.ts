@@ -57,6 +57,10 @@ export interface LessonDef {
   pattern?: RhythmPattern;
   /** Note flash drawn on a grand staff (both clefs). */
   grand?: boolean;
+  /** Prompt lessons: draw only from these keys instead of every key the unit teaches. */
+  notes?: number[];
+  /** Prompt lessons: the on-screen keyboard stays hidden until the answer is in, so the player finds the key by feel. */
+  eyesOff?: boolean;
 }
 
 export interface Unit {
@@ -75,6 +79,8 @@ export interface Unit {
   fingers?: Record<number, 1 | 2 | 3 | 4 | 5>;
   /** Sets of letters to memorise, shown on the "Memory trick" card. */
   mnemonics?: { label: string; letters: string; phrase?: string }[];
+  /** Key-finder hints name the black-key groups beside each letter (the landmark trick from Unit 1). */
+  landmarkHints?: boolean;
   /** Song title shown under the unit as the thing it unlocks. */
   unlocks?: string;
   lessons: LessonDef[];
@@ -471,6 +477,76 @@ export const UNITS: Unit[] = [
         },
       },
       unitTest(['keysig-name', 'in-key']),
+    ],
+  },
+  {
+    id: 'unit-11',
+    number: 11,
+    name: 'Moving around the keyboard',
+    blurb: 'Find C, F and G anywhere on the keyboard by the black-key groups, then slide your hand to a new position without looking down.',
+    comingSoon: false,
+    notes: [48, 50, 52, 53, 55, 57, 59, 60, 62, 64, 65, 67, 69, 71, 72, 74],
+    keyboard: [48, 74],
+    landmarkHints: true,
+    mnemonics: [
+      { label: 'Two black keys', letters: 'C sits just left of the pair, E just right', phrase: 'C is on the left of the twins' },
+      { label: 'Three black keys', letters: 'F sits just left of the trio, B just right', phrase: 'F begins the family of three' },
+      { label: 'G', letters: 'between the first and second of the three' },
+    ],
+    lessons: [
+      kf('landmarks', 'Find the key', 'A key name and octave are shown, such as C4. Use the black-key groups to find it.', false, 15),
+      {
+        id: 'anchors',
+        kind: 'key-finder',
+        title: 'C, F and G, eyes off',
+        blurb: 'Find each key by feel from the black-key groups. The keyboard on screen stays hidden until you press.',
+        prompts: 12,
+        kinds: ['key-finder'],
+        notes: [48, 53, 55, 60, 65, 67, 72],
+        eyesOff: true,
+      },
+      {
+        id: 'shift',
+        kind: 'mini-song',
+        title: 'Shift drill: Hill Climb',
+        blurb: 'Seven bars. Your hand starts on C, then slides up so your thumb sits on G, and comes back.',
+        optional: true,
+        song: {
+          title: 'Hill Climb',
+          beatsPerBar: 4,
+          notes: [
+            { midi: 60, beats: 1, finger: 1 }, { midi: 62, beats: 1, finger: 2 }, { midi: 64, beats: 1, finger: 3 }, { midi: 65, beats: 1, finger: 4 },
+            { midi: 67, beats: 2, finger: 5 }, { midi: 67, beats: 2, finger: 1 },
+            { midi: 69, beats: 1, finger: 2 }, { midi: 71, beats: 1, finger: 3 }, { midi: 72, beats: 1, finger: 4 }, { midi: 74, beats: 1, finger: 5 },
+            { midi: 72, beats: 1, finger: 4 }, { midi: 71, beats: 1, finger: 3 }, { midi: 69, beats: 1, finger: 2 }, { midi: 67, beats: 1, finger: 1 },
+            { midi: 67, beats: 2, finger: 1 }, { midi: 67, beats: 2, finger: 5 },
+            { midi: 65, beats: 1, finger: 4 }, { midi: 64, beats: 1, finger: 3 }, { midi: 62, beats: 1, finger: 2 }, { midi: 60, beats: 1, finger: 1 },
+            { midi: 60, beats: 4, finger: 1 },
+          ],
+        },
+      },
+      {
+        id: 'homes',
+        kind: 'mini-song',
+        title: 'Shift drill: Three Homes',
+        blurb: 'Eight bars that visit the C, F and G positions in turn. Move your thumb to the new home before each new bar.',
+        optional: true,
+        song: {
+          title: 'Three Homes',
+          beatsPerBar: 4,
+          notes: [
+            { midi: 60, beats: 1, finger: 1 }, { midi: 62, beats: 1, finger: 2 }, { midi: 64, beats: 1, finger: 3 }, { midi: 62, beats: 1, finger: 2 },
+            { midi: 60, beats: 1, finger: 1 }, { midi: 64, beats: 1, finger: 3 }, { midi: 67, beats: 1, finger: 5 }, { midi: 64, beats: 1, finger: 3 },
+            { midi: 65, beats: 1, finger: 1 }, { midi: 67, beats: 1, finger: 2 }, { midi: 69, beats: 1, finger: 3 }, { midi: 67, beats: 1, finger: 2 },
+            { midi: 65, beats: 1, finger: 1 }, { midi: 69, beats: 1, finger: 3 }, { midi: 72, beats: 1, finger: 5 }, { midi: 69, beats: 1, finger: 3 },
+            { midi: 67, beats: 1, finger: 1 }, { midi: 69, beats: 1, finger: 2 }, { midi: 71, beats: 1, finger: 3 }, { midi: 69, beats: 1, finger: 2 },
+            { midi: 67, beats: 1, finger: 1 }, { midi: 71, beats: 1, finger: 3 }, { midi: 74, beats: 1, finger: 5 }, { midi: 71, beats: 1, finger: 3 },
+            { midi: 67, beats: 1, finger: 5 }, { midi: 64, beats: 1, finger: 3 }, { midi: 62, beats: 1, finger: 2 }, { midi: 64, beats: 1, finger: 3 },
+            { midi: 60, beats: 4, finger: 1 },
+          ],
+        },
+      },
+      kf('test', 'Unit test', '20 prompts. Get 18 right to pass.', true),
     ],
   },
 ];

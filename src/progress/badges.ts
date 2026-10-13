@@ -41,7 +41,7 @@ export const BADGES: readonly BadgeDef[] = [
   { id: 'star-collector', name: 'Star Collector', blurb: 'Collect 30 stars across your best runs.', group: 'play' },
   { id: 'learn-first-unit', name: 'First Steps', blurb: 'Pass your first Learn unit.', group: 'learn' },
   { id: 'learn-half', name: 'Halfway There', blurb: 'Pass 5 Learn units.', group: 'learn' },
-  { id: 'learn-graduate', name: 'Graduate', blurb: 'Pass all 10 Learn units.', group: 'learn' },
+  { id: 'learn-graduate', name: 'Graduate', blurb: 'Pass Units 1 to 10.', group: 'learn' },
   { id: 'streak-3', name: 'Warming Up', blurb: 'Practice 3 days in a row.', group: 'streak' },
   { id: 'streak-7', name: 'One Full Week', blurb: 'Practice 7 days in a row.', group: 'streak' },
   { id: 'streak-30', name: 'Devoted', blurb: 'Practice 30 days in a row.', group: 'streak' },
@@ -51,6 +51,7 @@ export const BADGES: readonly BadgeDef[] = [
 
 const finished = (a: BadgeAttempt) => a.loop === null;
 
+// The original ten units. Unit 11 (v1.1) is a bonus unit, so the badge profiles already earned stays earned.
 const ALL_UNITS = Array.from({ length: 10 }, (_, i) => `unit-${i + 1}`);
 
 type Rule = (i: BadgeInput, done: readonly BadgeAttempt[]) => boolean;

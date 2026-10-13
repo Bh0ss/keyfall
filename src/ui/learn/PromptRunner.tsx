@@ -223,7 +223,12 @@ function PromptSession({ unit, lesson, profileId, queue, onRetry }: RunnerProps 
             {state === 'right' && prompt && `Correct: that's ${answerText(prompt)} · ${(run.lastMs / 1000).toFixed(1)} s`}
             {state === 'wrong' && prompt && `${wrongPrefix}It's ${answerText(prompt)}.`}
           </div>
-          {prompt && !prompt.choices && <MiniKeyboard range={unit.keyboard} marks={marks} labels={!lesson.test} />}
+          {prompt && !prompt.choices && !(lesson.eyesOff && state === 'asking') && <MiniKeyboard range={unit.keyboard} marks={marks} labels={!lesson.test} />}
+          {prompt && lesson.eyesOff && state === 'asking' && (
+            <p className="prompt-hint" data-testid="eyes-off-note">
+              Find it by feel: touch the black-key groups, then press. The keyboard shows once you press a key.
+            </p>
+          )}
         </div>
 
         <div className="learn-side">
@@ -398,7 +403,7 @@ function PromptBody({ prompt, unit, tone, state, finger, handName, grand, sig, l
             {spellName(prompt.midi, prompt.spell)}
           </div>
           <div className="prompt-hint">
-            {unit.number === 1
+            {unit.landmarkHints || unit.number === 1
               ? KEY_HINTS[letter(prompt.midi)]
               : isBlackKey(prompt.midi)
                 ? blackKeyHint(prompt.midi, prompt.spell ?? 'sharp')

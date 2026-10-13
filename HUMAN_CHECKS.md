@@ -295,3 +295,15 @@ Open Keyfall on the Mac with the FP-30X connected, Advanced profile (every song 
    - Good: a teacher would accept most of them, and the hand rarely has to move to a new position (the shift cue should be occasional, not constant).
    - Tell me which fingers feel wrong (thumb on a black key, an awkward crossing, a same finger on two keys in a quick run). The model is a cost table in src/engine/fingering.ts and is easy to adjust.
 3. Song setup > Auto fingers off, then Start. Good: no parentheses anywhere, and no shift cue or shaded positions for a song with no fingers in its score. The switch is remembered for the profile, and Settings > Auto finger numbers shows the same state.
+
+## v1.1: Learn content
+
+Open Keyfall on the Mac with the FP-30X connected, a fresh Beginner profile, Learn.
+
+1. Open Unit 1, then Unit 2, and read each card.
+   - Good: the keyboard, posture, hands and staff pictures are clear from the bench, the words are plain, and Skip intro and Got it close the panel; "Show the unit intro" brings it back. The posture and finger-number cards match what you were taught.
+   - Bad: anything is hard to read from a metre away, or a picture is confusing.
+2. Open Unit 11 (pass Units 1 to 10 first) and do "C, F and G, eyes off" at the piano.
+   - Good: you can find C, F and G by feel from the black-key groups with the screen keyboard hidden, and the keyboard appearing after each press confirms where the key was.
+3. Play the two shift drills, Hill Climb and Three Homes, with the fingers shown.
+   - Good: the moves are comfortable at a slow tempo and the finger numbers tell you where to put your thumb. Tell me if a shift feels too far or the finger number is wrong.

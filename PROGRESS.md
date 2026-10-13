@@ -836,3 +836,50 @@ Kasumi's Phase 8 lows (Content-Security-Policy, server limits migration) and a w
 ## Licence (owner's ruling)
 
 Added an MIT licence on the Captain's ruling. `LICENSE` (MIT, "Copyright (c) 2026 Bh0ss") with a footer saying it covers the Keyfall code only and that the three CC BY-SA song files (Chopin Nocturne under CC BY-SA 4.0, the two Schumann files under CC BY-SA 2.5) are not relicensed; `src/songs/NOTICE.md` gained a top line pointing at it; `package.json` gained `"license": "MIT"` (still `private`); the Credits About card now reads "a personal project, free to use" and links the MIT licence (`LICENCE_URL` in `src/ui/credits.ts`) and says the song files keep their own terms. Tests: `tests/credits.test.ts` gained a "project licence" block (LICENSE text, package.json field, link, CC files named in LICENSE); `e2e/credits.spec.ts` gained assertions for the MIT line and link. Checks: typecheck clean; lint clean; npm test 42 files / 804 tests passed; build ok; Playwright 194 passed / 3 skipped (all 4 projects); Lighthouse a11y 100 on all 7 screens. Decisions: the old e2e assertion `toContainText('non-commercial')` is inverted to `not.toContainText('non-commercial')` because the phrase intentionally left the screen (adapted test, equally strict); other "commercial" mentions are only this e2e line and a historical PROGRESS.md line describing the old Credits screen, left unchanged.
+
+## v1.1: Learn content (explainer cards and Unit 11)
+
+### Built
+
+- **Explainer cards** (`src/learn/explainers.ts` data, `src/ui/learn/UnitIntro.tsx` and `src/ui/learn/Diagrams.tsx` UI). Every unit, 1 to 11, opens its detail page with a "Before you start" panel of one to three cards: a concept, a small diagram and one tip. Diagrams are inline SVG drawn from data (no images): a keyboard (black-key group brackets, finger numbers, hand-position bands, highlighted keys), a seated posture side view, hands with finger numbers, a treble or bass staff with its lines and spaces, and a counting bar (quarter and half notes, then eighths and a dotted quarter). Coverage: posture and finger numbers in Unit 2 (and left-hand numbers in Unit 4), counting in Units 6 and 9, landmarks and shifting in Unit 11.
+- **Skippable and re-openable.** The panel is open the first time a profile visits a unit. Next / Back step through the cards, "Skip intro" (every card but the last) or "Got it" (last card) closes it and remembers that, and "Show the unit intro" reopens it any time. The lessons stay usable below the cards, so nothing is blocked. The seen flag is the id `intro` in the unit's `lessonsDone` list, so it syncs with the learn progress row like the rest of the profile data; no schema, migration or sync change. `learnXp` ignores that id (no XP for reading), and it is not a lesson in any unit, so the lesson list never shows it as done.
+- **Unit 11, "Moving around the keyboard"** (`src/learn/units.ts`). White keys C3 to D5 (16 keys). Lessons: Find the key (15 prompts, key finder, black-key-group hints for every letter); "C, F and G, eyes off" (12 prompts, only the Cs, Fs and Gs of the keyboard, and the on-screen keyboard stays hidden until the answer is pressed, then shows with the answer marked); two optional shift-drill mini songs, "Hill Climb" (7 bars, right hand C position to G position and back) and "Three Homes" (8 bars through the C, F and G positions); and the 20-prompt unit test (key finder over all 16 keys, labels hidden). Same pass rule as every unit (18 of 20), same review queue, same Finish screen. Two small engine hooks: `LessonDef.notes` (a lesson draws only from some of the unit's keys) and `LessonDef.eyesOff`; `Unit.landmarkHints` turns on the Unit 1 black-key hints.
+- All mini songs and text are original (Hill Climb and Three Homes are five-finger patterns, not a known tune).
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| `npm run lint` | clean |
+| `npm test` | 45 files, 837 tests passed (was 43 files, 815) |
+| `npm run build` | passes (existing chunk-size warning only) |
+| `npx playwright test` (dev server, all 4 projects) | 206 passed, 3 skipped (orientation-specific iPad tests), 0 failed (was 196 / 3) |
+| `npm run lighthouse` | accessibility 100 on Home, Play, Songs, Learn, Stats, Settings, Credits |
+
+New tests: `tests/learn-unit-11.test.ts` (11: unit placement and unlock, no song gated, pool restriction to C/F/G, 18 of 20 pass and 17 fail, review queue entry, mini songs fingered and in range, the hand-position analysis from B1 finds the expected shifts in both drills, songs play through), `tests/learn-explainers.test.ts` (8: every unit has cards, topic coverage, diagram data valid, intro flag, no XP), and 10 e2e in `e2e/learn-unit-11.spec.ts` (cards render, step, skip, persist across reload and reopen; no lesson marked done by skipping; all 11 units show their diagrams; cards operable by the piano command keys; Unit 11 locked until Unit 10, eyes-off lesson hides and then shows the keyboard, wrong key reveals the answer, both drills play to the end, the unit test passes at 18 of 20 and fails at 17 with a review entry recorded). Existing Learn e2e specs are unchanged and green.
+
+### Decisions
+
+- A requested addition beyond the spec (v1.1 batch item 4).
+- **Placement and unlock of the new unit: Unit 11, appended at the end, opening when Unit 10 is passed** (units open in number order). Renumbering it to sit earlier would have changed unit ids and the `unlockedBy` gates of five bundled songs, which the order said not to do unless needed. It unlocks no song (`unlocks` is unset; the Finish screen shows no unlock line). Existing song unlock gates are untouched. Cost: the landmark and shift skills arrive after the rhythm and key-signature units; the Unit 1 and Unit 2 cards already teach the black-key groups and the C position, so a beginner is not missing the basics. If you want it earlier, it needs the unit ids and gates reworked (a separate change).
+- Because the path is now 11 units: `nextUnit` returns Unit 11 for a profile that finished Unit 10 and returns null only after all 11, and the Home tile says "All units done" instead of "All ten units done". The "Learn graduate" badge still asks for the original ten units, so it stays earned for profiles that already have it (Unit 11 is a bonus unit); comment added in `src/progress/badges.ts`.
+- Seen flag stored in `lessonsDone` (id `intro`) rather than a new field: it syncs for free and needs no migration. Side effects handled: `learnXp` skips it, and the unit list only renders lessons from the unit definitions. Skipping writes the row with `markLessonDone` directly, not through `trackLearn`, so it never awards XP or a badge directly. It does update the learn row, and the streak counts every learn row's update day, so closing an intro counts as a practice day toward the streak and the streak badges; accepted as minor.
+- Cards are inline above the lessons, not a modal, so the existing Learn e2e (which click straight into a lesson) and piano navigation (a modal would need `data-nav-modal`) keep working. They show for open or passed units only, not locked ones.
+- "Skip intro" is hidden on the last card, where "Got it" does the same job; a one-card unit therefore shows only "Got it".
+- Eyes-off lesson: the on-screen keyboard is removed from the layout while asking, with a one-line note in its place, and returns after the answer so the player can see where the key was. The unit test is not eyes-off (it keeps the labels-hidden keyboard like every other unit test), so the pass rule is the same as elsewhere.
+- Review queue in the narrowed lesson: queued notes from earlier units can still appear in the eyes-off lesson (the existing "review notes weigh more" rule is unchanged).
+- Shift drills reuse B1: the unit test runs each drill through `analysePositions` and asserts the exact shifts (Hill Climb 60>67, 67>60; Three Homes 60>65, 65>67, 67>60), so the drills are guaranteed to be real shifts. The drills are mini songs (the order allowed reusing existing lesson types); the in-lesson cue is the unit blurb and the finger numbers shown with each next note, not the highway shift marker.
+- TDD: the logic modules (unit 11 data and behaviour, explainer data, XP rule) were written test first with a red run for each. The UI (diagrams, UnitIntro, eyes-off rendering) and the e2e specs came after, written against the already-tested data; the diagrams were checked by screenshot, not unit tests.
+
+### Adapted tests
+
+- `tests/learn-rules.test.ts` "defines ten units": now asserts 11 units (the new unit is intended); the rest of that test is unchanged. Its `nextUnit` test title changed from "after unit 10" to "after the last unit", assertion unchanged.
+- `tests/learn-run.test.ts` "lesson generators only use taught notes": the "every unit note is reached" assertion now compares against `lesson.notes ?? unit.notes`, because the Unit 11 anchors lesson deliberately draws from 7 of the unit's 16 keys. For every other lesson that is the same set as before, so it is as strict as it was.
+
+### Deferred
+
+- Placing the landmarks and shift unit earlier in the path (needs unit ids and song gates reworked).
+- A left-hand shift drill and black-key landmarks in the eyes-off lesson.
+- Playing the shift drills with the highway shift marker (the drills are mini songs on the Learn staff).
+- A one-time "new" nudge on Home for profiles that finished Unit 10 before Unit 11 existed (they simply see Unit 11 as the next unit).

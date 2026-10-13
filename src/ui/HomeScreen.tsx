@@ -125,7 +125,7 @@ export function HomeScreen() {
             ) : (
               <>
                 <div className="tile-title" data-testid="learn-tile-title">
-                  {unlocks ? 'All ten units done' : 'Learn'}
+                  {unlocks ? 'All units done' : 'Learn'}
                 </div>
                 <p className="tile-text">{unlocks ? 'Replay any unit from the Learn path.' : 'Loading your progress.'}</p>
                 <a className="btn big btn-learn" href={hrefFor.learn()}>

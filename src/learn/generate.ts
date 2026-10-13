@@ -63,8 +63,8 @@ function buildPool(own: readonly number[], taught: ReadonlySet<number>, queue: R
   return pool;
 }
 
-function notePool(unit: Unit, queue: ReadonlyMap<number, ReviewEntry>): Map<number, number> {
-  return buildPool(unit.notes, new Set(taughtThrough(unit.number)), queue);
+function notePool(unit: Unit, lesson: LessonDef, queue: ReadonlyMap<number, ReviewEntry>): Map<number, number> {
+  return buildPool(lesson.notes ?? unit.notes, new Set(taughtThrough(unit.number)), queue);
 }
 
 /** A black key shows as a sharp or a flat, at random. */
@@ -131,7 +131,7 @@ function inKey(queue: ReadonlyMap<number, ReviewEntry>, rng: () => number, prev?
 export function makePrompt(unit: Unit, lesson: LessonDef, queue: ReadonlyMap<number, ReviewEntry>, rng: () => number, prev?: number): Prompt {
   const kinds = lesson.kinds ?? [];
   if (kinds.every((k) => NOTE_KINDS.has(k))) {
-    const midi = pickWeighted(notePool(unit, queue), rng, prev);
+    const midi = pickWeighted(notePool(unit, lesson, queue), rng, prev);
     const kind = kinds[Math.min(kinds.length - 1, Math.floor(rng() * kinds.length))] ?? 'key-finder';
     return withSpell({ kind, midi }, rng);
   }
@@ -139,7 +139,7 @@ export function makePrompt(unit: Unit, lesson: LessonDef, queue: ReadonlyMap<num
   switch (kind) {
     case 'key-finder':
     case 'note-flash':
-      return withSpell({ kind, midi: pickWeighted(notePool(unit, queue), rng, prev) }, rng);
+      return withSpell({ kind, midi: pickWeighted(notePool(unit, lesson, queue), rng, prev) }, rng);
     case 'both-hands':
       return bothHands(unit, queue, rng, prev);
     case 'rhythm-name':
