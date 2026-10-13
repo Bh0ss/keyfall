@@ -375,7 +375,7 @@ The arranger is dark and only tested on synthetic audio, which is easy. Once the
    - Bad: the tune is unrecognisable, the tempo is far off and Half or Double does not fix it, or the page freezes.
    - Tell me the song, the length and roughly how many wrong notes you heard in the first 20 seconds.
 2. Mac, full mix: repeat with a real full-band recording of a song with a sung melody.
-   - Expectation (decision D1): this is accepted but much rougher than the piano solo, because Basic Pitch hears every instrument and the arranger has to guess which line is the tune. Measured on synthetic mixes the melody F1 was 0.56 to 0.77 (see PROGRESS), and real vocals are expected to be worse. A recognisable chorus is a pass; a perfect transcription is not expected.
+   - Expectation (decision D1): this is accepted but much rougher than the piano solo, because Basic Pitch hears every instrument and the arranger has to guess which line is the tune. Measured on synthetic mixes the melody F1 was 0.64 to 0.77 (see PROGRESS), and real vocals are expected to be worse. A recognisable chorus is a pass; a perfect transcription is not expected.
 3. Real Spotify link on the live site: paste a track link, press Look up song.
    - Good: the title and the cover picture appear and the console shows no Content-Security-Policy error.
    - Bad: the cover is missing. Open the console, run `await window.__keyfall.spotifyLookup('<the link>')` (with `?debug=1`) and tell me the thumbnail host: `image-cdn-fa.spotifycdn.com` (expected, seen 6 of 6 times) or `image-cdn-ak.spotifycdn.com` (allowed, never seen), or anything else (blocked on purpose).

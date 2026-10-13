@@ -1115,7 +1115,7 @@ Machine: this Mac, headless Chromium from Playwright with `--enable-gpu --ignore
 | cold 1 / 2 / 3 | 5 / 5 / 5 | 1989 / 1862 / 1828 | 8235 / 8216 / 8155 | 1421 |
 | warm 1 / 2 / 3 | 3 / 4 / 4 | 1882 / 1864 / 1844 | 8276 / 8196 / 8305 | 1421 |
 
-  Post-processing is about 80 percent of the total (about 10 s of 10.2 s); this matches the scope's finding. Decode was timed on a WAV (the browser decoder on a 22 kHz mono file); an mp3 or m4a decode is not covered here.
+  Post-processing is about 80 percent of the total (about 8.2 s of about 10.1 s); this matches the scope's finding. Decode was timed on a WAV (the browser decoder on a 22 kHz mono file); an mp3 or m4a decode is not covered here.
 - `dist/assets/*.js` before and after (raw / gzip -9, `scratchpad/edi-i1/{before,after}-sizes.txt`): main `index` 651,862 / 192,277 to 652,333 / 192,418 (+471 B raw, +141 B gzip; budget 2 KB). New: `transcribe.worker` 1,229,698 / 195,618 (minified); `debug` 3,910 / 1,829; `limits` 433 / 318. `analyse` 37,793 to 37,535 and `ImportScreen` 9,287 to 9,321 only moved because `limits.ts` became a shared chunk. Nothing else changed.
 - Raw-transcription onset F1 per fixture, first 10 s, clean synth, tolerance 50 ms exact pitch (`tests/transcribe-model.test.ts`, CPU): Ode to Joy (RH only) F1 1.000 (16 of 16, precision 1.0); When the Saints F1 0.829 (precision 0.708, recall 1.000); Fur Elise F1 0.824 (precision 0.700, recall 1.000). These match Garrus's 20 s table for the same songs (0.809 and 0.786).
 
@@ -1367,7 +1367,6 @@ default-src 'self'; script-src 'self'; connect-src 'self' https://ubheylmkufyuam
 
 - Entry button and `#/import` chooser: I6. Real-device check of the preview: HUMAN_CHECKS (I5).
 
-
 ### I6: Ship (entry point, chooser, sync e2e, docs)
 
 #### Built
@@ -1414,3 +1413,10 @@ default-src 'self'; script-src 'self'; connect-src 'self' https://ubheylmkufyuam
 - Tempo maps (D5), `.aac` and `.flac` (D7), a CPU path for the phone (D6), an artist from Spotify (D3, would need a proxy).
 - Re-editing tempo or trim after save: not possible by design, the audio is gone.
 - Real-recording accuracy, iPhone behaviour and the real Spotify link: HUMAN_CHECKS (I1, I3, I4, I5, I6).
+- Time signature fixed at 4/4 in the review (3-beat LH patterns exist in the arranger but are not reachable from the UI); no key-signature control beyond the key override.
+- Review findings, not fixed under the fix-critical/high-only rule (security review, Kasumi; fitness review, Chakwas):
+  - Pace check: the 3-window sample includes model warm-up and a fixed x5 post-processing factor, so the "works best on the Mac" card can fire on a slow-WebGL Mac or miss a slow post-processing run ("Try anyway" stays available). Specified fix: start the pace clock at the first listening progress and judge on later windows; replace the x5 factor (design call).
+  - A low-bitrate file can decode to far more audio than the duration cap allows before the cap is checked (memory, own file only); needs a pre-decode duration probe or a tighter byte cap. The phone cap is also applied after decode, and the unused phone-caps constant in the decode module should be wired in or removed.
+  - Typed title or artist with XML-invalid control characters fails the save; pass them through the existing clean step before building MusicXML.
+  - The oEmbed body read is unbounded (fixed host, under the timeout). The CSP e2e guard only bites on the preview build.
+  - Code tidy-ups: a shared `.grow` rule redefined globally in app.css; a duplicated comment in PlayScreen; stale comments in the transcribe client, arranger types and accuracy test; an unhandled `backend` worker message; the arrange melody-band test asserts against all events; duplicated model-loading setup in two tests; WebGL context loss mid-run untested.
