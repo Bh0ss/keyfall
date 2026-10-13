@@ -322,3 +322,11 @@ Open Keyfall on the Mac with the FP-30X connected and a fresh Beginner profile.
 4. Open any song's setup and read the Difficulty, Shift drill and "Shift marker and shaded keys" bubbles.
    - Good: a first-time player would understand each; the shift marker text matches what you see on the highway.
    - Tell me any wording that is unclear or wrong.
+
+## v1.2 I1: Transcription engine (iPhone, optional early look)
+
+Nothing is visible in the app yet. This is a one-minute probe of the riskiest unverified thing: does the model run in a worker on the phone?
+
+1. After the build is deployed, open `https://bh0ss.github.io/keyfall/?debug=1` in Web MIDI Browser on the iPhone and, from the Mac with Safari's Web Inspector attached, run `await window.__keyfall.transcribe(new Uint8Array(await (await fetch('some-small.wav')).arrayBuffer()))` against any short WAV you can serve.
+   - Good: `{ ok: true, info: { backend: 'webgl' } }` with a note list.
+   - Also useful: `{ ok: false, kind: 'unsupported' }` means the phone will get the "use the Mac" card later. Tell me which you see.

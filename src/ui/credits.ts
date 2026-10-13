@@ -94,6 +94,8 @@ export const LIBRARIES: readonly Credit[] = [
   { name: 'OpenSheetMusicDisplay', licence: 'BSD-3-Clause', by: 'PhonicScore', what: 'draws the sheet music view' },
   { name: 'VexFlow', licence: 'MIT', by: 'VexFlow contributors', what: 'draws the staff in Learn' },
   { name: '@tonejs/midi', licence: 'MIT', by: 'Yotam Mann', what: 'reads imported MIDI files' },
+  { name: 'Basic Pitch', licence: 'Apache-2.0', by: 'Spotify AB', what: 'the model and note detection that turn a recording into notes' },
+  { name: 'TensorFlow.js', licence: 'Apache-2.0', by: 'Google LLC', what: 'runs that model on this device' },
   { name: 'Dexie', licence: 'Apache-2.0', by: 'the Dexie authors', what: 'stores your data on this device' },
   { name: 'supabase-js', licence: 'MIT', by: 'Supabase', what: 'sign-in and sync' },
   { name: 'React', licence: 'MIT', by: 'Meta Platforms, Inc. and affiliates', what: 'the interface' },

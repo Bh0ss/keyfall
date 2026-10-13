@@ -35,6 +35,8 @@ describe('library and font licences match the installed packages', () => {
     OpenSheetMusicDisplay: 'opensheetmusicdisplay',
     VexFlow: 'vexflow',
     '@tonejs/midi': '@tonejs/midi',
+    'Basic Pitch': '@spotify/basic-pitch',
+    'TensorFlow.js': '@tensorflow/tfjs-core',
     Dexie: 'dexie',
     'supabase-js': '@supabase/supabase-js',
     React: 'react',

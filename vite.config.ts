@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadEnv } from 'vite';
 import { defineConfig, type Plugin } from 'vitest/config';
@@ -7,6 +8,7 @@ import { cspPolicy } from './scripts/csp.ts';
 import { BUNDLED_ENTRIES } from './src/songs/entries.ts';
 import { parseMusicXml } from './src/songs/musicxml.ts';
 import { summarize } from './src/songs/summary.ts';
+import { MODEL_DIR, MODEL_SOURCES } from './src/transcribe/modelFiles.ts';
 
 const VIRTUAL = 'virtual:song-index';
 
@@ -32,6 +34,38 @@ function songIndex(): Plugin {
 }
 
 /**
+ * The Basic Pitch model files, served from node_modules rather than committed (742 KB of binary stays out of git).
+ * The build emits them under the base at `models/basic-pitch-<version>/`, with the package's Apache-2.0 LICENSE
+ * beside them; the dev server serves the same paths. The transcription worker fetches them same-origin.
+ */
+function basicPitchModel(): Plugin {
+  const pkgDir = fileURLToPath(new URL('./node_modules/@spotify/basic-pitch/', import.meta.url));
+  let base = '/';
+  return {
+    name: 'keyfall-basic-pitch-model',
+    configResolved(config) {
+      base = config.base;
+    },
+    generateBundle() {
+      for (const f of MODEL_SOURCES) {
+        this.emitFile({ type: 'asset', fileName: `${MODEL_DIR}${f.to}`, source: readFileSync(join(pkgDir, f.from)) });
+      }
+    },
+    configureServer(server) {
+      const prefix = `${base}${MODEL_DIR}`;
+      server.middlewares.use((req, res, next) => {
+        const path = (req.url ?? '').split('?')[0]!;
+        const name = path.startsWith(prefix) ? path.slice(prefix.length) : path.startsWith(`/${MODEL_DIR}`) ? path.slice(MODEL_DIR.length + 1) : null;
+        const file = MODEL_SOURCES.find((f) => f.to === name);
+        if (!file) return next();
+        res.setHeader('Content-Type', file.type);
+        res.end(readFileSync(join(pkgDir, file.from)));
+      });
+    },
+  };
+}
+
+/**
  * Content-Security-Policy as a <meta> tag, in the production build only: the dev server's HMR client needs an
  * inline script and a websocket back to Vite, so a strict policy there would break `npm run dev`.
  */
@@ -51,7 +85,9 @@ function contentSecurityPolicy(): Plugin {
 
 export default defineConfig({
   base: '/keyfall/',
-  plugins: [react(), songIndex(), contentSecurityPolicy()],
+  plugins: [react(), songIndex(), basicPitchModel(), contentSecurityPolicy()],
+  // The transcription worker is an ES module (it imports TF.js), so it can be code-split like the app.
+  worker: { format: 'es' },
   server: { port: 5173, strictPort: true },
   test: { include: ['tests/**/*.test.ts'] },
 });

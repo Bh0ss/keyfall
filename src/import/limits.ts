@@ -24,3 +24,12 @@ export function formatOf(fileName: string): ImportFormat | null {
   if (ext === '.mxl') return 'mxl';
   return null;
 }
+
+/** Audio import (a recording turned into a song). The file is untrusted input, decoded by the browser only. */
+export const MAX_AUDIO_BYTES = 64 * 1024 * 1024;
+/** Longest decoded recording, in seconds. A phone gets less: it has less memory and a slower GPU. */
+export const MAX_AUDIO_SECONDS = 6 * 60;
+export const MAX_AUDIO_SECONDS_PHONE = 4 * 60;
+export const AUDIO_EXTENSIONS = ['.m4a', '.mp3', '.wav'] as const;
+/** Below this peak a recording counts as silence. */
+export const SILENCE_PEAK = 1e-4;

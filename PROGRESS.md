@@ -1032,3 +1032,79 @@ Wall time 11.6m.
 **Skipped (3, by design, orientation-specific iPad tests):** ipad-landscape skips `e2e/ipad.spec.ts:31` (portrait stacks the song) and `e2e/ipad.spec.ts:60` (portrait split view); ipad-portrait skips `e2e/ipad.spec.ts:73` (landscape keeps the full desktop layout). Same three as the earlier live runs.
 
 **Failures:** none, so no reruns were needed. The sync and RLS specs passed against the live backend. No test or source was edited. The one failure of the first live run (the `learn-units-6-10` Unit 9 test) did not recur after the 9477095 test fix.
+
+## v1.2: Add song from Spotify link + audio file
+
+A requested addition beyond the original spec (Captain's request, 2026-10-13). Plan: the V12 scope (Garrus). Dark until the last increment: no route, button or screen shows it.
+
+### I1: Transcription engine (dark)
+
+#### Built
+
+- Dependencies: `@spotify/basic-pitch` 1.0.1 (model files and note post-processing only) and `@tensorflow/tfjs-core`, `-converter`, `-backend-webgl`, `-backend-cpu`, all exactly 4.22.0. `package.json` `overrides` pins the package's own `@tensorflow/tfjs` dependency to 4.22.0 (`npm ls` shows `@tensorflow/tfjs@4.22.0 overridden`), so the 3.x line it asks for is neither installed nor bundled.
+- `src/transcribe/runner.ts`: our windowing loop over the model (port of `evaluateModel`, Apache-2.0, attribution in the header). `tf.tidy` plus explicit dispose per window, frames and onsets only, a cancel check between windows, progress per window, then `outputToNotesPoly` and `noteFramesToTime` imported by deep path (`@spotify/basic-pitch/esm/toMidi.js`; the package index is never imported). Pure over a `GraphModel`; the worker and the Node test both call it.
+- `src/transcribe/transcribe.worker.ts`: WebGL only. No WebGL reports `unsupported`. The model URL is `BASE_URL` plus a constant from `modelFiles.ts`; the only inbound message is `start` with a `Float32Array`, and no message can name a URL.
+- `src/transcribe/client.ts`: `Transcriber` seam, `workerTranscriber()` (one worker per run, terminated on done, error, unsupported or abort), `TranscribeUnsupportedError`, `liveWorkers()`. `src/transcribe/protocol.ts`: message types.
+- `src/transcribe/decode.ts`: main-thread decode (`OfflineAudioContext(1, 1, 22050).decodeAudioData`), extension and size checks before reading, mono downmix, zero-length, silence, non-finite and duration checks, every failure an `ImportError`. Caps in `src/import/limits.ts` (64 MB; 6 minutes, 4 on a phone; `.m4a .mp3 .wav`). The file and bytes are dropped after decode; nothing is stored.
+- `vite.config.ts`: plugin `keyfall-basic-pitch-model` emits `model.json`, `group1-shard1of1.bin` and the package's Apache-2.0 `LICENSE` to `models/basic-pitch-1.0.1/` in the build and serves them in dev; `worker: { format: 'es' }`. Nothing from the model is committed.
+- `src/ui/credits.ts`: Basic Pitch (Apache-2.0, Spotify AB) and TensorFlow.js (Apache-2.0, Google LLC) on Credits.
+- Debug only (`?debug=1`): `window.__keyfall.transcribe(bytes, { fileName, repeat, cancelAfterMs })`, lazy-imported from `src/transcribe/debug.ts`; never throws.
+- Tests: `tests/fixtures/audio.ts` (synth of bundled songs, WAV out, generated at test time), `tests/fixtures/metrics.ts` (`onsetF1`), `tests/audio-fixtures.test.ts`, `tests/transcribe-decode.test.ts`, `tests/transcribe-client.test.ts` (fake worker), `tests/transcribe-model.test.ts` (real model, Node, CPU backend, same `runner.ts`), `tests/bundle-guard.test.ts` (real production build to a temp dir), `e2e/transcribe-real.spec.ts`.
+
+#### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm test` | exit 0, 54 files, 910 tests (about 24 s; the real-model file is about 21 s of it) |
+| `npm run build` | exit 0 |
+| `npx playwright test` (dev, all projects) | 229 passed, 3 skipped (the same 3 orientation skips), 0 failed, 11.6 min (baseline 226 / 3 / 0, +3 new) |
+| `KEYFALL_PREVIEW=1 npx playwright test e2e/transcribe-real.spec.ts --project=chromium` | 3 passed; `backend=webgl`, zero CSP violations |
+| `npx playwright test e2e/transcribe-real.spec.ts --project=chromium` (dev) | 3 passed |
+| Live URL run of the real-model spec | not run: nothing is deployed yet. Run after deploy: `KEYFALL_BASE_URL=https://bh0ss.github.io/keyfall/ npx playwright test e2e/transcribe-real.spec.ts --project=chromium` |
+| `npm run lighthouse` | accessibility 100 on all seven screens |
+
+#### Measurements
+
+Machine: this Mac, headless Chromium from Playwright with `--enable-gpu --ignore-gpu-blocklist --use-angle=metal` (without the flags, headless software WebGL took 6.2 to 6.5 s for a 10 s clip). Built `vite preview`, base `/keyfall/`, Keyfall CSP. Script: `scratchpad/edi-i1/measure.mjs`.
+
+- Model files (`stat -f %z dist/models/basic-pitch-1.0.1/*`): `model.json` 174,537 B; `group1-shard1of1.bin` 742,392 B; `LICENSE` 11,357 B. gzip -9: 8,107 B and 426,431 B. `vite preview` sends them uncompressed (Content-Length 174537 and 742392, no Content-Encoding); whether Pages compresses the `.bin` is unverified until deploy.
+- Cold model load (`loadGraphModel` timed in the worker, cache disabled, new browser context per run, 3 runs): unthrottled 9, 8, 9 ms (median 9 ms). Fast 4G (CDP `Network.emulateNetworkConditions`, 150 ms latency, 1.6 Mbit/s down, which did reach the worker's requests): 3907, 3910, 3909 ms (median 3.9 s). Live URL: after deploy.
+- 198 s of audio (a 22 s Fur Elise clip tiled 9 times; 189 s was the scope's figure), 3 runs each. Cold = new context, cache disabled. Warm = the same page, after a throwaway run. Each run starts a new worker, so shader compile is paid in both.
+
+| Run | decode ms | inference ms | post-processing ms | notes |
+| --- | --- | --- | --- | --- |
+| cold 1 / 2 / 3 | 5 / 5 / 5 | 1989 / 1862 / 1828 | 8235 / 8216 / 8155 | 1421 |
+| warm 1 / 2 / 3 | 3 / 4 / 4 | 1882 / 1864 / 1844 | 8276 / 8196 / 8305 | 1421 |
+
+  Post-processing is about 80 percent of the total (about 10 s of 10.2 s); this matches the scope's finding. Decode was timed on a WAV (the browser decoder on a 22 kHz mono file); an mp3 or m4a decode is not covered here.
+- `dist/assets/*.js` before and after (raw / gzip -9, `scratchpad/edi-i1/{before,after}-sizes.txt`): main `index` 651,862 / 192,277 to 652,333 / 192,418 (+471 B raw, +141 B gzip; budget 2 KB). New: `transcribe.worker` 1,229,698 / 195,618 (minified); `debug` 3,910 / 1,829; `limits` 433 / 318. `analyse` 37,793 to 37,535 and `ImportScreen` 9,287 to 9,321 only moved because `limits.ts` became a shared chunk. Nothing else changed.
+- Raw-transcription onset F1 per fixture, first 10 s, clean synth, tolerance 50 ms exact pitch (`tests/transcribe-model.test.ts`, CPU): Ode to Joy (RH only) F1 1.000 (16 of 16, precision 1.0); When the Saints F1 0.829 (precision 0.708, recall 1.000); Fur Elise F1 0.824 (precision 0.700, recall 1.000). These match Garrus's 20 s table for the same songs (0.809 and 0.786).
+
+#### Decisions
+
+- Requested addition beyond spec. Everything here is dark: no route, button or screen; Credits lists two new libraries because the licences require it.
+- D4 dependency stance (Wrex ruling): accept the unmaintained `@spotify/basic-pitch` 1.0.1 for its model files and note post-processing only; the model is copied from `node_modules` at build time, not committed. Package ships no NOTICE file, so the shipped Apache-2.0 `LICENSE` beside the model plus the Credits entry carry the attribution.
+- TF.js override: `overrides` pins the package's `@tensorflow/tfjs` to 4.22.0, and our direct dependencies are the four slim packages at exactly 4.22.0. Reason: 3.21 hangs in a worker (scope finding 3). The umbrella 4.22 is installed (as the override's target) but never imported.
+- WebGL only, no CSP widening for transcription (D6): no WebGL gives `unsupported`; the worker does not even import the CPU backend. `scripts/csp.ts` is untouched; `tests/bundle-guard.test.ts` asserts the built policy has no `unsafe-eval` or `wasm-unsafe-eval`. The model is same-origin, so `connect-src 'self'` covers it. The Node test uses the CPU backend, test only.
+- Finding 5: the worker is not governed by the page CSP on Chrome and Pages sends no header. So the preview e2e's zero-violation result covers the document only. The worker is kept minimal instead (single inbound message type, model URL built from `BASE_URL` plus a constant, no `importScripts`, no URL from any message), and a code comment says why.
+- Bundle guard builds for real (programmatic `vite build` into a temp dir, `NODE_ENV=production` for the call) rather than reading `dist/`, so `npm test` does not depend on running `npm run build` first. It takes about 0.5 s.
+- The hook returns structured results instead of throwing, so a failing page does not hide behind a Playwright evaluate error.
+
+#### Adapted tests
+
+- `tests/credits.test.ts`: the package-name map gained `Basic Pitch` and `TensorFlow.js` so the licence-versus-package check covers the new entries. No assertion changed.
+- `e2e/credits.spec.ts`: two rows (`Basic Pitch`, `TensorFlow.js`, both Apache-2.0) added to the library list it already checks. No assertion changed.
+
+#### Deviations from the scope
+
+- `runBasicPitch` returns `{ notes, inferMs, postMs }` rather than a bare `NoteEvent[]`, so the worker can report timings without a second timer. `Transcriber` still resolves to `NoteEvent[]`; timings go to `onInfo`.
+- The scope's section (b) kept a CPU fallback in the worker; the D6 ruling removed it. `@tensorflow/tfjs-backend-cpu` stays a dependency for the Node test only; the worker source does not import it.
+
+#### Deferred
+
+- Live-URL run of `e2e/transcribe-real.spec.ts` and cold model load over the real network: after deploy.
+- Post-processing speed (typed-array port of `outputToNotesPoly`): still deferred, as in the scope.
+- Melody-extraction F1 floors: I2.
+- iPhone behaviour (WebGL in a worker in Web MIDI Browser, memory): HUMAN_CHECKS.

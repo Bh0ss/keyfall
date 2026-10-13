@@ -74,6 +74,8 @@ test.describe('credits', () => {
       ['OpenSheetMusicDisplay', 'BSD-3-Clause'],
       ['VexFlow', 'MIT'],
       ['@tonejs/midi', 'MIT'],
+      ['Basic Pitch', 'Apache-2.0'],
+      ['TensorFlow.js', 'Apache-2.0'],
       ['Dexie', 'Apache-2.0'],
       ['supabase-js', 'MIT'],
       ['React', 'MIT'],

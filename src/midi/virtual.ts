@@ -1,6 +1,7 @@
 import { waitForCurrentPlay } from '../engine/current';
 import { runAutoplay, type AccuracyProfile, type AutoplayResult } from './autoplay';
 import type { MidiEngine } from './engine';
+import type { DebugTranscribeOptions, DebugTranscribeResult } from '../transcribe/debug';
 
 /** A W S E D F T G Y H U J K = C4 to C5 */
 export const KEY_TO_MIDI: Readonly<Record<string, number>> = {
@@ -36,6 +37,8 @@ export interface KeyfallDebug {
   release(midi: number): void;
   /** Play the open song with the given timing offsets and mistakes. Resolves when done. */
   autoplay(profile?: AccuracyProfile): Promise<AutoplayResult>;
+  /** Decode audio bytes and run the real transcription worker. Never throws; failures come back as { ok: false }. */
+  transcribe(bytes: ArrayBuffer | Uint8Array | number[], opts?: DebugTranscribeOptions): Promise<DebugTranscribeResult>;
 }
 
 declare global {
@@ -59,6 +62,7 @@ export function installVirtualInput(engine: MidiEngine, win: Window = window): (
     press: (midi, velocity = 80) => engine.press(midi, velocity),
     release: (midi) => engine.release(midi),
     autoplay: async (profile) => runAutoplay(engine, profile, await waitForCurrentPlay()),
+    transcribe: async (bytes, opts) => (await import('../transcribe/debug')).debugTranscribe(bytes, opts),
   };
   const held = new Set<number>();
   const onDown = (e: KeyboardEvent) => {
