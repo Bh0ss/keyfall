@@ -307,3 +307,18 @@ Open Keyfall on the Mac with the FP-30X connected, a fresh Beginner profile, Lea
    - Good: you can find C, F and G by feel from the black-key groups with the screen keyboard hidden, and the keyboard appearing after each press confirms where the key was.
 3. Play the two shift drills, Hill Climb and Three Homes, with the fingers shown.
    - Good: the moves are comfortable at a slow tempo and the finger numbers tell you where to put your thumb. Tell me if a shift feels too far or the finger number is wrong.
+
+## v1.1: Help bubbles and tips tour
+
+Open Keyfall on the Mac with the FP-30X connected and a fresh Beginner profile.
+
+1. Home shows "Tip 1 of 6" at the top. Read all six tips from a metre away.
+   - Good: the text is readable, the tips match how you use the app, Skip tour hides it for good (also after a reload), and Settings > Show the tips tour again brings it back.
+   - Bad: a tip is wrong or confusing, or the card is in the way.
+2. With the piano only: press D1 until a small (i) button is selected (Settings is a good place), then press C1.
+   - Good: the bubble shows as soon as the (i) is selected, C1 closes it, C1 again reopens it, D1 moves on and the bubble goes away. The bubble text is readable and never covers the control you are about to press.
+3. On the Results screen, press B0 repeatedly.
+   - Good: the selection steps through the (i) buttons and each one shows its bubble; C1 on the screen's normal buttons still retries, D1 still opens Practice my mistakes.
+4. Open any song's setup and read the Difficulty, Shift drill and "Shift marker and shaded keys" bubbles.
+   - Good: a first-time player would understand each; the shift marker text matches what you see on the highway.
+   - Tell me any wording that is unclear or wrong.

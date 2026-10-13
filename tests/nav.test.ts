@@ -110,6 +110,10 @@ describe('results and suspended screens', () => {
     expect(resolveCommand('home', results, route('#/results/a'))).toEqual({ type: 'go', hash: '#/' });
   });
 
+  it('B0 steps through the (i) help buttons, since the other keys are taken; a focused button shows its bubble', () => {
+    expect(resolveCommand('prev', results, route('#/results/a'))).toEqual({ type: 'focus', dir: 'next', only: '.help-btn' });
+  });
+
   it('D1 does nothing when there is nothing to practise', () => {
     expect(resolveCommand('next', { kind: 'results', retryHref: '#/play/x' }, route('#/results/a'))).toEqual({ type: 'none' });
   });

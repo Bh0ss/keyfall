@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { chooseStartFresh, chooseUpload, signIn, signOut, syncNow, useSync, type SyncState } from '../sync/controller';
+import { HelpBubble } from './HelpBubble';
 import { hrefFor } from './useRoute';
 
 export function syncLabel(s: SyncState): string {
@@ -21,7 +22,10 @@ export function AccountPanel({ compact = false }: { compact?: boolean }) {
   if (!s.configured) {
     return (
       <section className="card" data-testid="account-card" data-state="unconfigured">
+        <div className="title-help">
         <h2>Account</h2>
+        <HelpBubble id="settings.account" />
+      </div>
         <p className="muted">Sync is not set up in this build. Keyfall works on this device only.</p>
       </section>
     );
@@ -63,7 +67,10 @@ export function AccountPanel({ compact = false }: { compact?: boolean }) {
   if (s.auth === 'signedIn') {
     return (
       <section className="card" data-testid="account-card" data-state="signed-in">
+        <div className="title-help">
         <h2>Account</h2>
+        <HelpBubble id="settings.account" />
+      </div>
         <p>
           Signed in as <strong data-testid="account-email">{s.email}</strong>. Scores, progress and imported songs sync to your other devices.
         </p>
@@ -89,7 +96,10 @@ export function AccountPanel({ compact = false }: { compact?: boolean }) {
 
   return (
     <form className="card" data-testid="account-card" data-state="signed-out" onSubmit={(e) => void submit(e)}>
-      <h2>{compact ? 'Sync across devices' : 'Sign in to sync'}</h2>
+      <div className="title-help">
+        <h2>{compact ? 'Sync across devices' : 'Sign in to sync'}</h2>
+        <HelpBubble id="settings.account" />
+      </div>
       <p className="muted">Optional. Sign in with the household account to share scores, progress and imported songs between devices. Keyfall works without it.</p>
       <label className="field stack">
         Email

@@ -12,13 +12,13 @@ export type NavScope =
   | { kind: 'suspended' }
   /** The song screen. `blocked` is true when the song uses command notes. While the song runs, C1 only pauses and resumes. */
   | { kind: 'play'; blocked: boolean; status: SessionStatus }
-  /** The results screen: C1 retry, D1 practise my mistakes, A0 back to Songs. */
+  /** The results screen: C1 retry, D1 practise my mistakes, A0 back to Songs, B0 the next (i) help button. */
   | { kind: 'results'; retryHref: string; practiseHref?: string };
 
 /** How long a command key is held on the keyboard check before it counts as a command. */
 export const HOLD_MS = 700;
 
-export type NavAction = { type: 'focus'; dir: 'next' | 'prev' } | { type: 'activate' } | { type: 'go'; hash: string } | { type: 'toggle-pause' } | { type: 'none' };
+export type NavAction = { type: 'focus'; dir: 'next' | 'prev'; only?: string } | { type: 'activate' } | { type: 'go'; hash: string } | { type: 'toggle-pause' } | { type: 'none' };
 
 const NONE: NavAction = { type: 'none' };
 
@@ -48,7 +48,8 @@ export function resolveCommand(command: NavCommand, scope: NavScope, route: Rout
       if (command === 'select') return { type: 'go', hash: scope.retryHref };
       if (command === 'next') return scope.practiseHref ? { type: 'go', hash: scope.practiseHref } : NONE;
       if (command === 'home') return { type: 'go', hash: hrefFor.home() };
-      return NONE;
+      // The other three keys are taken, so B0 steps through the (i) help buttons: focus shows a button's bubble.
+      return command === 'prev' ? { type: 'focus', dir: 'next', only: '.help-btn' } : NONE;
     case 'play':
       if (scope.blocked) return NONE;
       if (scope.status === 'playing' || scope.status === 'waiting' || scope.status === 'paused') {

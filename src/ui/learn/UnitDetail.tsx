@@ -2,6 +2,7 @@ import { isSongUnlocked, unitLockText, type UnitStatus } from '../../learn/unloc
 import type { Unit } from '../../learn/units';
 import { bundledSummaries } from '../../songs/bundled';
 import type { LearnProgressRecord, PlayerLevel } from '../../storage/types';
+import { HelpBubble } from '../HelpBubble';
 import { hrefFor } from '../useRoute';
 import { UnitIntro } from './UnitIntro';
 
@@ -33,6 +34,12 @@ export function UnitDetail({ unit, status, progress, level }: { unit: Unit; stat
         </span>
       </header>
       <p className="tile-text">{unit.blurb}</p>
+      <div className="title-help" data-testid="learn-rules-help">
+        <span className="muted small-text">How passing works</span>
+        <HelpBubble id="learn.pass" />
+        <span className="muted small-text">Review list</span>
+        <HelpBubble id="learn.review" />
+      </div>
 
       {unit.unlocks && (
         <div className="pills">

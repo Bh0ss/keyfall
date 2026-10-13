@@ -6,7 +6,10 @@ import { useNavScope } from '../nav/store';
 import { getDb } from '../storage/db';
 import { clearLatency, saveLatency, savedLatency } from '../storage/latency';
 import { AccountPanel } from './AccountPanel';
+import { SETTINGS_PREFERENCE_HELP } from '../help/content';
+import { REPLAY_TOUR } from '../help/tour';
 import { AppLayout } from './AppLayout';
+import { HelpBubble } from './HelpBubble';
 import { KeyLegend } from './PianoLegend';
 import { profiles, useActiveProfile } from './profileStore';
 import { playSound } from './sounds';
@@ -83,6 +86,7 @@ function Preference({ id, title, text, on, onChange }: { id: string; title: stri
         <strong id={`${id}-label`}>{title}</strong>
         <span id={`${id}-hint`}>{text}</span>
       </div>
+      <HelpBubble id={SETTINGS_PREFERENCE_HELP[id]!} />
       <button
         className="switch"
         type="button"
@@ -161,6 +165,7 @@ function PreferencesCard() {
 export function SettingsScreen() {
   const snapshot = useMidi();
   const device = deviceKey(snapshot.devices.name);
+  const profile = useActiveProfile();
   const [phase, setPhase] = useState<Phase>({ name: 'idle' });
   const [saved, setSaved] = useState<number | null>(null);
   const cleanup = useRef<() => void>(() => undefined);
@@ -204,7 +209,10 @@ export function SettingsScreen() {
         </header>
         <PreferencesCard />
         <section className="card" data-testid="about-card">
-          <h2>About Keyfall</h2>
+          <div className="title-help">
+            <h2>About Keyfall</h2>
+            <HelpBubble id="settings.about" />
+          </div>
           <p>Who made it, the songs and libraries it uses, and their licences.</p>
           <div className="row">
             <a className="btn" href={hrefFor.credits()} data-testid="credits-link">
@@ -212,9 +220,33 @@ export function SettingsScreen() {
             </a>
           </div>
         </section>
+        <section className="card" data-testid="tour-card">
+          <div className="title-help">
+            <h2>Tips tour</h2>
+            <HelpBubble id="settings.tour" />
+          </div>
+          <p>A short walk through the main ideas. It shows once for each new player.</p>
+          <div className="row">
+            <button
+              className="btn"
+              type="button"
+              data-testid="tour-replay"
+              onClick={() => {
+                void profiles.saveSettings(profile.id, REPLAY_TOUR).then(() => {
+                  window.location.hash = hrefFor.home();
+                });
+              }}
+            >
+              Show the tips tour again
+            </button>
+          </div>
+        </section>
         <AccountPanel />
         <section className="card" data-testid="latency-card">
-          <h2>Latency check</h2>
+          <div className="title-help">
+            <h2>Latency check</h2>
+            <HelpBubble id="settings.latency" />
+          </div>
           <p>
             Eight clicks play. Tap any one key on the keyboard in time with each click. Keyfall measures how late the keyboard reaches the game and
             subtracts that from every note you play.

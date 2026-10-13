@@ -52,7 +52,7 @@ export function PianoNav() {
       root.dataset.nav = 'piano';
       switch (action.type) {
         case 'focus':
-          if (moveSelection(action.dir)) playSound('nav');
+          if (moveSelection(action.dir, document, action.only)) playSound('nav');
           break;
         case 'activate':
           if (activateSelection() === 'activated') playSound('select');

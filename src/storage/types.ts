@@ -30,6 +30,8 @@ export interface ProfileSettings {
   pianoNav?: boolean;
   /** The first-run key legend has been shown and dismissed. */
   navLegendSeen?: boolean;
+  /** The one-time tips tour on Home has been finished or skipped. Settings can set it back to false to replay it. */
+  tipsSeen?: boolean;
   /** Interface sounds. On unless false. */
   sound?: boolean;
   /** Turn animations off even when the system does not ask for reduced motion. */

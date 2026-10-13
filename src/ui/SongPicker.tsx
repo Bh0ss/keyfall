@@ -14,6 +14,7 @@ import { getDb } from '../storage/db';
 import { profileAttempts } from '../storage/attempts';
 import { profileScores } from '../storage/scores';
 import { AppLayout } from './AppLayout';
+import { HelpBubble } from './HelpBubble';
 import { profiles, useActiveProfile } from './profileStore';
 import { useAsync } from './useAsync';
 import { useUnlocks } from './useUnlocks';
@@ -57,7 +58,10 @@ export function SongPicker() {
         </header>
         <section className="song-controls" aria-label="Sort and filter" data-testid="song-controls">
           <div className="song-control">
-            <span className="label" id="song-sort-label">Sort by</span>
+            <div className="title-help">
+              <span className="label" id="song-sort-label">Sort by</span>
+              <HelpBubble id="songs.sort" />
+            </div>
             <div className="seg" role="group" aria-labelledby="song-sort-label">
               {SONG_SORTS.map((v) => (
                 <button key={v} type="button" data-testid={`sort-${v}`} aria-pressed={sort === v} onClick={() => choose({ songSort: v })}>
@@ -67,7 +71,10 @@ export function SongPicker() {
             </div>
           </div>
           <div className="song-control">
-            <span className="label" id="song-hands-label">Hands</span>
+            <div className="title-help">
+              <span className="label" id="song-hands-label">Hands</span>
+              <HelpBubble id="songs.hands" />
+            </div>
             <div className="seg" role="group" aria-labelledby="song-hands-label">
               {HANDS_FILTERS.map((v) => (
                 <button key={v} type="button" data-testid={`hands-${v}`} aria-pressed={hands === v} onClick={() => choose({ songHands: v })}>

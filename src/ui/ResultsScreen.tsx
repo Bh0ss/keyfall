@@ -18,6 +18,7 @@ import { getDb } from '../storage/db';
 import { songScores } from '../storage/scores';
 import type { AttemptRecord } from '../storage/types';
 import { AppLayout } from './AppLayout';
+import { HelpBubble } from './HelpBubble';
 import { EarnedCard, useProgress } from './ProgressWidgets';
 import { noteName } from './keyboardLayout';
 import { useProfiles } from './profileStore';
@@ -164,28 +165,38 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
             <div className="stat-big" data-testid="results-score">
               {points(a.score)}
             </div>
-            <div className="stat-cap">Score{personalBest ? ' · new personal best' : ''}</div>
+            <div className="stat-cap title-help">
+              <span>Score{personalBest ? ' · new personal best' : ''}</span>
+              <HelpBubble id="results.score" />
+            </div>
           </div>
           <div className="stat-tile">
             <div className="stat-big" data-tone="correct" data-testid="results-accuracy">
               {Math.round(a.accuracy * 100)}%
             </div>
-            <div className="stat-cap" data-testid="results-notes">
-              Accuracy · {a.hits} of {a.total} notes
+            <div className="stat-cap title-help">
+              <span data-testid="results-notes">
+                Accuracy · {a.hits} of {a.total} notes
+              </span>
+              <HelpBubble id="results.accuracy" />
             </div>
           </div>
           <div className="stat-tile">
             <div className="stat-big" data-tone="accent" data-testid="results-streak">
               {a.longestStreak}
             </div>
-            <div className="stat-cap">Longest streak</div>
+            <div className="stat-cap title-help">
+              <span>Longest streak</span>
+              <HelpBubble id="results.streak" />
+            </div>
           </div>
           <div className="stat-tile">
             <div className="stat-big" data-testid="results-xp">
               +{a.xp} XP
             </div>
-            <div className="stat-cap">
+            <div className="stat-cap title-help">
               <LevelCaption />
+              <HelpBubble id="results.xp" />
             </div>
           </div>
         </section>
@@ -193,7 +204,10 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
 
         <section className="result-cols">
           <div className="panel" data-testid="timing-card">
-            <h2>Timing</h2>
+            <div className="title-help">
+              <h2>Timing</h2>
+              <HelpBubble id="results.timing" />
+            </div>
             {isWait ? (
               <>
                 <Bar name="First try" n={a.hits} total={a.total} colour="var(--correct)" testId="bar-first-try" />
@@ -221,7 +235,10 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
           </div>
 
           <div className="panel">
-            <h2>Where it went wrong</h2>
+            <div className="title-help">
+              <h2>Where it went wrong</h2>
+              <HelpBubble id="results.missed" />
+            </div>
             <div className="muted small-text">Most-missed notes</div>
             <div className="chips" data-testid="missed-notes">
               {mistakes.length === 0 && <span className="muted small-text">None</span>}
@@ -251,6 +268,7 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
             <div className="summary-line" data-testid="miss-summary">
               {missSummary(a.misses, lastBar)}
             </div>
+            <div className="title-help">
             {range ? (
               <a
                 className="btn big"
@@ -267,10 +285,15 @@ export function ResultsScreen({ attemptId }: { attemptId: string }) {
                 Nothing to practise
               </span>
             )}
+              <HelpBubble id="results.practice" />
+            </div>
           </div>
 
           <div className="panel">
-            <h2>High scores · {song.title}</h2>
+            <div className="title-help">
+              <h2>High scores · {song.title}</h2>
+              <HelpBubble id="results.board" />
+            </div>
             <ol className="board" data-testid="board">
               {ranked.length === 0 && <li className="muted small-text">No scores yet.</li>}
               {ranked.map((s) => (

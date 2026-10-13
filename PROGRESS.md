@@ -883,3 +883,52 @@ New tests: `tests/learn-unit-11.test.ts` (11: unit placement and unlock, no song
 - A left-hand shift drill and black-key landmarks in the eyes-off lesson.
 - Playing the shift drills with the highway shift marker (the drills are mini songs on the Learn staff).
 - A one-time "new" nudge on Home for profiles that finished Unit 10 before Unit 11 existed (they simply see Unit 11 as the next unit).
+
+## v1.1: Help bubbles and tips tour (B5)
+
+### Built
+
+- **(i) help bubble** (`src/ui/HelpBubble.tsx`, logic in `src/help/bubble.ts`). A 44 px button named "Help: <title>" with `aria-expanded` and, while open, `aria-describedby` pointing at the bubble (`role="tooltip"`). It opens on mouse hover, on a click or tap (the next one closes it, a press anywhere else closes it) and when it gets focus from Tab or the piano keys (so B0/D1 show it and C1 closes and reopens it). Escape closes it. Only the button is focusable, so nothing is trapped. The bubble is portalled to `body` and fixed to the viewport, kept on screen at the edges, so the scrolling phone setup panel and the transformed Play overlay cannot clip it.
+- **Content in one module** (`src/help/content.ts`): 33 help entries and the 6 tour steps, original plain-language copy. Entries can carry a term list (the four modes; the four grades with their windows).
+- **Coverage.** Play setup: Difficulty (Wait, Practice, Full, Expert each explained), Speed, Metronome, Count-in, Shift drill, Previous/Next shift, "Shift marker and shaded keys" (the dashed highway line, arrow and the solid/dashed zone shading), Auto fingers, Position names, A-B loop, From/To bar. Songs: Sort, Hands filter. Results: points and multiplier, accuracy and stars, longest streak, XP and level, Timing (Perfect/Great/Good/Miss windows), Where it went wrong, Practice my mistakes, High scores. Settings: every preference (Piano navigation, Sounds, Hand-position help, Auto finger numbers, Position names, Reduce animation) plus About Keyfall, Latency check, Tips tour and Account. Learn: "Passing a unit" (18 of 20) and "Review list" (3 in a row), on every unit page.
+- **Tips tour** (`src/ui/TipsTour.tsx`, `src/help/tour.ts`): a six-step card at the top of Home for a profile that has not seen it. Next, Back, Skip tour, and "Got it" on the last step; skipping and finishing both set the flag. The flag is the new profile setting `tipsSeen` (synced with the profile row like every other setting, nothing in Learn progress). Settings has a "Tips tour" card with "Show the tips tour again", which clears the flag and goes to Home.
+- **Piano navigation on Results**: B0 now steps through the (i) buttons there (the other keys keep their retry / practise / Songs / Home meaning); `NavAction` focus gained an optional `only` selector for this.
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| `npm run lint` | clean |
+| `npm test` | 48 files, 865 tests passed (was 45 files, 837) |
+| `npm run build` | passes (existing chunk-size warning only) |
+| `npx playwright test` (dev server, all 4 projects) | 224 tests: first full run 223 passed, 3 skipped, 1 failed (my own new 44 px assertion, 43.9999 px sub-pixel; tolerance set to 43.5 like `e2e/a11y.spec.ts`, then green). Second full run 223 passed, 3 skipped, 1 failed: `e2e/sync.spec.ts` first test, a Supabase sync that stayed on "syncing" past its 30 s wait (network, unrelated to this change; it passed in the first full run and again alone on rerun, 3 of 3; that test takes about 30 s even when it passes). Final full run on the committed tree: 223 passed, 3 skipped, 1 failed: `e2e/sync-rls.spec.ts` server-limits test, `fetch failed` / `ECONNRESET` inside the test's own Supabase client before any assertion. That spec then passed on a serial rerun, 2 of 2. Was 206 / 3 |
+| `npm run lighthouse` | accessibility 100 on Home (with the tour card showing), Play, Songs, Learn, Stats, Settings, Credits |
+
+New tests: `tests/help-bubble.test.ts` (10: the open/close state machine for hover, focus, click, tap, C1, Escape, outside press), `tests/help-content.test.ts` (12: entry quality; every button and select in the Play setup panel, Songs controls and Settings preferences has a help entry and is rendered with its bubble, read from the source files, so adding a Play setup button or select that has a `data-testid`, a Songs control or a Settings preference without help fails the test. Settings cards (About, Latency, Account, Tour) are checked against a fixed list of ids, and a control without a `data-testid` is not detected; modes, grades, Learn rules, shift marker and the tour are covered; no entry is orphaned), `tests/help-tour.test.ts` (5: due for every new profile, not due once seen, replay, step clamping, the flag persists, syncs with the profile row and leaves Learn progress untouched), one case in `tests/nav.test.ts` (B0 on Results). `e2e/help.spec.ts` (18): hover, click-pin, focus and Escape, narrow-screen placement, piano D1/C1, 44 px and names, touch tap and tap-away, Play setup coverage and content, auto fingers, Songs, Settings, Learn, Results (including B0), the tour (shows once, steps, Skip, reload, finish, second profile sees it, replay from Settings, piano keys).
+
+### Decisions
+
+- A requested addition beyond the spec (v1.1 batch item 5), including the scope added after drafting (shift drill, auto fingers, hand-position settings, About/Credits, Songs sort and hands filter, shift marker explanation).
+- Tour is an inline card on Home, not a modal, like the first-run key legend. A modal would block every existing e2e that starts at Home and the piano keys (it would need `data-nav-modal`); the card needs neither. It shows above the legend card. Its buttons are not `data-primary`, so C1 on Home still selects Play first.
+- Existing profiles (made before this change) have no `tipsSeen`, so each sees the tour once. Accepted: it is the first time they could.
+- `tipsSeen` lives in profile settings as the order required, not in `lessonsDone`; tests assert it creates no Learn row (so it cannot count as a practice day).
+- Hover only counts for a real mouse (`pointerType === 'mouse'`), so a tap on a touch screen does not leave a stuck hover bubble. A pointer press that moves focus does not itself open the bubble, otherwise the click that follows would close it again (the state machine has a test for it).
+- Focus opens the bubble, so C1 on a focused (i) closes it and the next C1 reopens it, which is the "C1 opens/closes" behaviour; the bubble is also visible the moment piano navigation lands on the button.
+- Results: the piano scope there is deliberately C1 retry, D1 practise, A0 Songs, E1 Home, so help is reached with B0 (steps the (i) buttons, focus shows the bubble) rather than C1; the other four keys are unchanged. On Results a C1 on a focused (i) would retry, so the bubble is closed by moving on with B0.
+- Help buttons are siblings of headings, labels and switches, never inside them, so heading names, switch names and existing role queries do not change.
+- During a song only the Play setup panel has bubbles (the highway itself is canvas, and C1 pauses). The shift marker is explained from the drill row and in the tour.
+- Bubbles for the Play header controls (view, note names) and the Learn lesson runner were not added: the order scopes Play setup controls, and those are self-labelled.
+- The Account bubble is on all three Account card states; the "This device has data" prompt has none (it is a one-off decision card).
+- TDD: the bubble state machine, the content coverage tests and the tour logic were written test first (red on the missing modules); the nav change was test first. The React components and the e2e specs were written after, against the tested logic. The tour module and its test were written in the same step, so its red was only "module missing".
+
+### Adapted tests
+
+- `tests/fingering.test.ts` "the largest bundled song is fingered on the first, cold call in well under 100 ms": CI flake fix (side item). The measurement is unchanged; the bound stays 100 ms locally and is 300 ms (3x) when `process.env.CI` is set, with a one-line comment (GitHub Actions once measured 115.6 ms). It is not weakened for local runs.
+- No other existing test changed.
+
+### Deferred
+
+- Bubbles on the Play header (view, note names) and inside Learn lessons.
+- A "what is new" nudge for existing profiles; they just see the tour once.
+- Lighthouse is not run against Results or the Play setup (the script audits a fixed list of seven screens); the axe-style controls audit in `e2e/a11y.spec.ts` covers both and passes.

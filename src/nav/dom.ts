@@ -25,12 +25,16 @@ export function show(el: HTMLElement): void {
   el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 
-/** Move the selection one control forward or back (wrapping). With nothing selected yet, the first press selects the default. */
-export function moveSelection(dir: 'next' | 'prev', doc: Document = document): HTMLElement | null {
-  const items = navItems(doc);
+/**
+ * Move the selection one control forward or back (wrapping). With nothing selected yet, the first press selects the default.
+ * `only` limits the stops to controls matching a selector (the first one when the selection is elsewhere).
+ */
+export function moveSelection(dir: 'next' | 'prev', doc: Document = document, only?: string): HTMLElement | null {
+  const items = navItems(doc).filter((e) => !only || e.matches(only));
   if (items.length === 0) return null;
   const at = doc.activeElement instanceof HTMLElement ? items.indexOf(doc.activeElement) : -1;
-  const target = at < 0 ? defaultItem(items)! : items[(at + (dir === 'next' ? 1 : items.length - 1)) % items.length]!;
+  const fallback = only ? items[dir === 'next' ? 0 : items.length - 1]! : defaultItem(items)!;
+  const target = at < 0 ? fallback : items[(at + (dir === 'next' ? 1 : items.length - 1)) % items.length]!;
   show(target);
   return target;
 }

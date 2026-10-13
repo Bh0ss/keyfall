@@ -23,6 +23,7 @@ import { getLatency } from '../storage/latency';
 import { noteStreaks } from '../storage/noteStats';
 import { scheduleClick } from './audio';
 import { EarnedCard } from './ProgressWidgets';
+import { HelpBubble } from './HelpBubble';
 import { playSound, playStarSequence } from './sounds';
 import { drawFrame, LOOKAHEAD_BEATS, type HelpState } from './highwayDraw';
 import { buildLayout, keyRangeFor, PHONE_MIN_WHITES } from './highwayLayout';
@@ -706,29 +707,37 @@ function SetupPanel({
   const bars = Array.from({ length: lastBar }, (_, i) => i + 1);
   return (
     <div className="setup" data-testid="setup">
-      <div className="seg" role="group" aria-label="Difficulty">
-        {MODES.map((m) => (
-          <button key={m.id} type="button" data-testid={`mode-${m.id}`} aria-pressed={setup.mode === m.id} title={m.hint} onClick={() => onChange({ mode: m.id })}>
-            {m.label}
-          </button>
-        ))}
-      </div>
-      {setup.mode === 'practice' && (
-        <div className="seg" role="group" aria-label="Speed">
-          {SPEEDS.map((v) => (
-            <button key={v} type="button" data-testid={`speed-${v}`} aria-pressed={setup.speedPct === v} onClick={() => onChange({ speedPct: v })}>
-              {v}%
+      <div className="help-row">
+        <div className="seg" role="group" aria-label="Difficulty">
+          {MODES.map((m) => (
+            <button key={m.id} type="button" data-testid={`mode-${m.id}`} aria-pressed={setup.mode === m.id} title={m.hint} onClick={() => onChange({ mode: m.id })}>
+              {m.label}
             </button>
           ))}
+        </div>
+        <HelpBubble id="play.mode" />
+      </div>
+      {setup.mode === 'practice' && (
+        <div className="help-row">
+          <div className="seg" role="group" aria-label="Speed">
+            {SPEEDS.map((v) => (
+              <button key={v} type="button" data-testid={`speed-${v}`} aria-pressed={setup.speedPct === v} onClick={() => onChange({ speedPct: v })}>
+                {v}%
+              </button>
+            ))}
+          </div>
+          <HelpBubble id="play.speed" />
         </div>
       )}
       <div className="row setup-row">
         <button className="btn small" type="button" data-testid="toggle-metronome" aria-pressed={setup.metronome} onClick={() => onChange({ metronome: !setup.metronome })}>
           Metronome: {setup.metronome ? 'On' : 'Off'}
         </button>
+        <HelpBubble id="play.metronome" />
         <button className="btn small" type="button" data-testid="toggle-countin" aria-pressed={setup.countIn} onClick={() => onChange({ countIn: !setup.countIn })}>
           Count-in: {setup.countIn ? 'On' : 'Off'}
         </button>
+        <HelpBubble id="play.countIn" />
       </div>
       {shifts.length > 0 && (
         <div className="row setup-row" data-testid="drill-row">
@@ -741,6 +750,8 @@ function SetupPanel({
           >
             Shift drill: {drilling ? 'On' : 'Off'}
           </button>
+          <HelpBubble id="play.drill" />
+          <HelpBubble id="play.shiftMarker" />
           {drilling && (
             <>
               <button className="btn small" type="button" data-testid="drill-prev" onClick={() => step(-1)}>
@@ -749,6 +760,7 @@ function SetupPanel({
               <button className="btn small" type="button" data-testid="drill-next" onClick={() => step(1)}>
                 Next shift
               </button>
+              <HelpBubble id="play.drillStep" />
               <span className="drill-info" data-testid="drill-info">
                 Shift {drilling.index + 1} of {shifts.length} · bar {drilling.measure} · {drilling.label}
               </span>
@@ -761,6 +773,7 @@ function SetupPanel({
           <button className="btn small" type="button" data-testid="toggle-autofingers" aria-pressed={autoFingers} onClick={onAutoFingers}>
             Auto fingers: {autoFingers ? 'On' : 'Off'}
           </button>
+          <HelpBubble id="play.autoFingers" />
         </div>
       )}
       {fingered && (
@@ -768,6 +781,7 @@ function SetupPanel({
           <button className="btn small" type="button" data-testid="toggle-posnames" aria-pressed={posLabels} onClick={onPosLabels}>
             Position names: {posLabels ? 'On' : 'Off'}
           </button>
+          <HelpBubble id="play.positionNames" />
         </div>
       )}
       <div className="row setup-row">
@@ -781,6 +795,7 @@ function SetupPanel({
         >
           A-B loop: {setup.loop && !drilling ? 'On' : 'Off'}
         </button>
+        <HelpBubble id="play.loop" />
         {setup.loop && !drilling && (
           <>
             <label className="field">
@@ -803,6 +818,7 @@ function SetupPanel({
                 ))}
               </select>
             </label>
+            <HelpBubble id="play.loopBars" />
           </>
         )}
       </div>

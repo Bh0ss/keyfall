@@ -10,6 +10,7 @@ import { AppLayout } from './AppLayout';
 import { ConnectionChip } from './ConnectionChip';
 import { FirstRunLegend } from './PianoLegend';
 import { Avatar } from './ProfilePicker';
+import { TipsTour } from './TipsTour';
 import { LevelBar, StreakChip, useProgress } from './ProgressWidgets';
 import { profiles, useActiveProfile } from './profileStore';
 import { useAsync } from './useAsync';
@@ -69,6 +70,7 @@ export function HomeScreen() {
           </div>
         </header>
 
+        <TipsTour />
         <FirstRunLegend />
 
         {progress && (
