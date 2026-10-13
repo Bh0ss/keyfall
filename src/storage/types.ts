@@ -34,6 +34,10 @@ export interface ProfileSettings {
   sound?: boolean;
   /** Turn animations off even when the system does not ask for reduced motion. */
   reduceMotion?: boolean;
+  /** Hand-position help: shift cues, zone shading and the shift drill. On unless false. */
+  handHelp?: boolean;
+  /** Show the key under the thumb next to each finger number on the falling notes. Off unless true. */
+  positionLabels?: boolean;
 }
 
 export interface Profile extends Stamped {

@@ -674,3 +674,48 @@ Kasumi's Phase 8 lows (Content-Security-Policy, server limits migration) and a w
 
 - The Credits screen is a requested addition beyond the spec. External links use `target="_blank" rel="noopener noreferrer"`; the CSP is unchanged (navigation is not covered by `connect-src` and nothing new is loaded).
 - Back (A0) from Credits goes Home, like every screen without a per-screen parent.
+
+## v1.1: Hand-position help (B1)
+
+### Built
+
+- **Detection** (`src/engine/positions.ts`, pure, unit-tested): per hand, each fingered note implies the key under the thumb (white-key steps from the finger number; black keys placed by the typical semitone distance of the finger). A shift is a note whose finger implies a different anchor from the current one and that is not an edge-finger stretch just outside the zone (see Decisions). Output per shift: beat, bar, hand, from and to anchor, direction, first note of the new position, finger, and a label such as "thumb → G". Chords move the hand once (labelled by the lowest finger). Unfingered notes are skipped; the fingering source is a parameter (`FingerOf`) so B2 can swap one in. Also `zonesAt`, `activeShift` (the cue window) and `drillRange`.
+- **Highway**: a cue about one bar before the shift. On the canvas, a dashed line falls with the shift note, with an arrow from the old to the new position and a label pill; as text, a "Shift left/right, ring → C, bar 7" pill at the top of the stage (`data-testid="shift-cue"`, a status region).
+- **Keyboard**: the current five-key zone is a solid tint with a solid bar and a hand tag ("RH"/"LH"); the next zone (inside the cue window) is a lighter tint, dashed outline, dashed bar and "RH next", so the two differ by shape and text. The anchor key gets a white glow (the next anchor pulses). Zones are mirrored as `data-zone-*` attributes on the canvas.
+- **Wait mode**: the existing step-wait already holds at the shift note; the cue now stays up until that note is hit.
+- **Shift drill**: Play setup > "Shift drill" (with Previous and Next shift, wrapping) loops two notes before to the end of two notes after the shift note, in that hand. Sessions now accept a beat range as well as a bar range (`loop.ts`, `LoopSpan`). Reachable with the piano keys (plain buttons in the setup card).
+- **Labels**: "Position names" (Settings and the setup card) shows the finger plus the key under the thumb ("3 · C") on the falling notes.
+- **Setting**: Settings > "Hand-position help" (on unless false) and "Position names on notes" (off unless true), stored in the profile settings (`handHelp`, `positionLabels`); the profile row syncs whole, so both sync like the other switches.
+- Songs with no shifts or no fingers show nothing: no cue, no zones, no drill row.
+- Tests: `tests/positions.test.ts` (31), `tests/highway-help.test.ts` (5), `e2e/hand-position.spec.ts` (6 tests).
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| `npm run lint` | clean |
+| `npm test` | 40 files, 713 tests passed |
+| `npm run build` | passes (existing chunk-size warning only) |
+| `npx playwright test` (dev server, all 4 projects) | 188 passed, 3 skipped (orientation-specific iPad tests), 0 failed |
+| `npm run lighthouse` | accessibility 100 on Home, Play, Songs, Learn, Stats, Settings, Credits |
+
+### Decisions
+
+- A requested addition beyond the spec (v1.1 batch item 1).
+- **Shift rule (revised after fitness review, HIGH-1):** a note can be played from the current position when its finger implies the current anchor, or when it is a one-key stretch just outside the zone by the edge finger (right hand: pinky one key above the zone, thumb one key below it; left hand mirrored: thumb one key above, pinky one key below). Any other mismatch between finger and anchor, even one white key, is a shift, and the anchor and zone move to the new one. The first version tolerated any one-key difference, so one-key moves were never detected and the zone, position labels and from-anchor went stale (Frere Jacques bars 5-6 stayed on C4 to G4 while A4 was played).
+- Hand-checked results under the new rule (right hand unless noted): Mary, Twinkle (A5 pinky is an edge stretch), Ode to Joy and Saints (both hands) have none. Row Row Row Your Boat: bar 5 C4>F4 "pinky → C", bar 5 F4>G4 "thumb → G", bar 6 G4>C4 "middle → E". Frere Jacques: bar 5 C4>D4 "ring → G" (the thumb C4 at the end of bars 5 and 6 is a stretch below the D4 zone), bar 7 D4>G3 "ring → C". Yankee Doodle unchanged: bars 2, 3, 4, 5. London Bridge: bar 7 D4>C4 "index → D". Oh Susanna: bar 2 C4>D4 "index → E", bar 3 D4>C4 "pinky → G", bar 6 C4>D4 "index → E", bar 7 D4>C4 "pinky → G". The e2e spec now follows Frere Jacques through both shifts (zone 60-67 with next 62-69 at the start, 62-69 while A4 is played in bar 5, then next 55-62, then 55-62), and the drill reads "Shift 1 of 2 · bar 5 · ring → G" and loops shift 2.
+- Black key as the first note of a position: the anchor is the white key whose semitone distance best fits the finger (ties: lower for the right hand, higher for the left).
+- The cue window is one bar of the song's time signature. The next zone is shaded only inside that window.
+- The cue closes when the shift note is hit (any mode), or in timed modes when it is missed or half a beat has passed. Hidden on the setup and end cards.
+- The shift drill is offered only when the help is on and the song has shifts. It replaces the A-B loop while on. Its range is in beats; a drill never finishes, so no run is saved.
+- Position names live on the setup card and in Settings, not the Play header (already full).
+- Drawing tests were written after the drawing code (the detection module was test-first).
+
+### Deferred
+
+- Shift cues for the hand the player is not playing (sessions are always both hands today).
+- Auto-advance through the drill after N clean passes.
+- Show every open shift (one per hand): closely spaced shifts get less than a bar of warning, because only the first open shift is cued.
+- The shift-cue pill overlaps the sheet in split/sheet view.
+- Cue timing and which moves count as shifts need the owner's ear at the piano (HUMAN_CHECKS.md).

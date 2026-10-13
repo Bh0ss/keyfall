@@ -421,6 +421,43 @@
   justify-content: center;
 }
 
+.drill-info {
+  font-size: 13px;
+  color: #c9cfda;
+}
+
+.shift-cue {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(11, 14, 19, 0.92);
+  border: 2px solid var(--accent);
+  color: #fff;
+  font-size: 15px;
+  pointer-events: none;
+}
+
+.shift-cue[data-hand='right'] {
+  border-color: #4da8ff;
+}
+
+.shift-cue[data-hand='left'] {
+  border-color: #b78cff;
+}
+
+.shift-cue-where {
+  color: #c9cfda;
+  font-size: 13px;
+}
+
 .setup-note {
   font-size: 13px;
 }

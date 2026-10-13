@@ -4,7 +4,8 @@ import { setCurrentPlay } from '../engine/current';
 import { labelVisible, type LabelMode } from '../engine/fade';
 import type { Mode } from '../engine/judge';
 import { deviceKey } from '../engine/latency';
-import { barBeats, lastMeasure } from '../engine/loop';
+import { barBeats, lastMeasure, type LoopSpan } from '../engine/loop';
+import { activeShift, analysePositions, drillRange, zonesAt, type Shift, type Zone } from '../engine/positions';
 import { clicksDue, isAccent, wantsClick } from '../engine/metronome';
 import type { PlaySession } from '../engine/session';
 import { TimedSession } from '../engine/timed';
@@ -22,7 +23,7 @@ import { noteStreaks } from '../storage/noteStats';
 import { scheduleClick } from './audio';
 import { EarnedCard } from './ProgressWidgets';
 import { playSound, playStarSequence } from './sounds';
-import { drawFrame, LOOKAHEAD_BEATS } from './highwayDraw';
+import { drawFrame, LOOKAHEAD_BEATS, type HelpState } from './highwayDraw';
 import { buildLayout, keyRangeFor, PHONE_MIN_WHITES } from './highwayLayout';
 import { noteName } from './keyboardLayout';
 import { profiles, useActiveProfile } from './profileStore';
@@ -57,6 +58,8 @@ interface Setup {
   loop: boolean;
   from: number;
   to: number;
+  /** Index of the hand-position shift being drilled, or null for the normal run. */
+  drill: number | null;
 }
 
 const HANDS = { right: 'Right hand', left: 'Left hand', both: 'Both hands' } as const;
@@ -208,18 +211,35 @@ function PlayInner({
       loop: preset.from !== undefined,
       from,
       to: Math.max(from, clamp(preset.to ?? Math.min(from + 1, lastBar))),
+      drill: null,
     };
   });
   const bar = barBeats(song);
+  const positions = useMemo(() => analysePositions(song.notes), [song]);
+  const helpOn = profile.settings.handHelp !== false && positions.shifts.length > 0;
+  const posLabels = profile.settings.positionLabels === true && positions.hasFingering;
+  const drillShift = helpOn && setup.drill !== null ? positions.shifts[setup.drill] : undefined;
+  const drillSpan = useMemo(() => (drillShift ? drillRange(drillShift, song.notes) : undefined), [drillShift, song]);
+  // The shift drill replaces the A-B loop; as bars it is the span of the notes it loops.
+  const loopBars = useMemo(
+    () =>
+      drillSpan
+        ? { from: Math.floor(drillSpan.startBeat / bar + 1e-9) + 1, to: Math.max(1, Math.ceil(drillSpan.endBeat / bar - 1e-9)) }
+        : setup.loop
+          ? { from: setup.from, to: setup.to }
+          : null,
+    [drillSpan, setup.loop, setup.from, setup.to, bar],
+  );
   const session: PlaySession = useMemo(() => {
+    const loop: LoopSpan | undefined = drillSpan ?? (setup.loop ? { fromMeasure: setup.from, toMeasure: setup.to } : undefined);
     const common = {
       hands: 'both' as const,
       leadInBeats: Math.max(LOOKAHEAD_BEATS, bar),
-      loop: setup.loop ? { fromMeasure: setup.from, toMeasure: setup.to } : undefined,
+      loop,
     };
     if (setup.mode === 'wait') return new WaitSession(song, common);
     return new TimedSession(song, { ...common, mode: setup.mode, speed: setup.speedPct / 100, latencyMs });
-  }, [song, setup, bar, latencyMs]);
+  }, [song, setup, bar, latencyMs, drillSpan]);
   const viewport = useViewportMode();
   const phone = viewport === 'phone-landscape' || viewport === 'phone-portrait';
   const tablet = viewport === 'tablet-portrait';
@@ -238,6 +258,9 @@ function PlayInner({
   const rulesRef = useRef({ metronome: false, countIn: true, barBeats: bar, playStartBeat: 0 });
   const lastClickRef = useRef(-Infinity);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [cue, setCue] = useState<Shift | null>(null);
+  const cueRef = useRef<Shift | null>(null);
+  const zoneSigRef = useRef('');
   const progressRef = useRef<HTMLDivElement>(null);
 
   useSyncExternalStore(session.subscribe.bind(session), () => session.version);
@@ -280,12 +303,12 @@ function PlayInner({
       song,
       mode: setup.mode,
       speedPct: setup.speedPct,
-      loop: setup.loop ? { from: setup.from, to: setup.to } : null,
+      loop: loopBars,
       summary: session.summary(),
       wait: session instanceof WaitSession ? { wrong: session.stats().wrong, avgTimeToPressMs: session.stats().avgTimeToPressMs } : null,
     }, songLookups);
     void saveRef.current.then(setSaved, () => undefined);
-  }, [status, session, profile.id, song, setup]);
+  }, [status, session, profile.id, song, setup, loopBars]);
 
   // The end card's sounds: a cadence, a chime per star, then a sparkle if the run earned a level or a badge.
   const doneStars = session.status === 'finished' ? session.summary().stars : -1;
@@ -362,6 +385,38 @@ function PlayInner({
         lastClickRef.current = session.status === 'ready' ? Math.ceil(beat - 1e-9) - 1 : Math.floor(beat + 1e-9);
       }
       const { mode: labelsMode, streaks: hits } = labelsRef.current;
+      let help: HelpState | undefined;
+      if (helpOn) {
+        const zones = zonesAt(positions, beat, bar);
+        const open = session.status !== 'ready' && session.status !== 'finished';
+        const next = open
+          ? activeShift(
+              positions.shifts,
+              beat,
+              bar,
+              (sh) =>
+                session.isHit(sh.note.id) ||
+                (session.kind === 'timed' && (session.isMissed(sh.note.id) || beat > sh.beat + 0.5)),
+              { from: session.playStartBeat, to: session.endBeat },
+            )
+          : null;
+        if (next !== cueRef.current) {
+          cueRef.current = next;
+          setCue(next);
+        }
+        help = { zones, cue: next };
+        // The shaded zones as attributes too, for tests and assistive tooling.
+        const span = (z: Zone | null) => (z ? `${z.lo}-${z.hi}` : '');
+        const sig = [zones.right.current, zones.right.next, zones.left.current, zones.left.next].map(span).join('|');
+        if (sig !== zoneSigRef.current) {
+          zoneSigRef.current = sig;
+          const set = (name: string, z: Zone | null) => (z ? canvas.setAttribute(name, span(z)) : canvas.removeAttribute(name));
+          set('data-zone-right', zones.right.current);
+          set('data-zone-next-right', zones.right.next);
+          set('data-zone-left', zones.left.current);
+          set('data-zone-next-left', zones.left.next);
+        }
+      }
       drawFrame(ctx, w, h, {
         layout,
         session,
@@ -370,6 +425,8 @@ function PlayInner({
         labels: labelsMode !== 'off',
         noteLabel: (m) => labelVisible(labelsMode, hits.get(m) ?? 0),
         now,
+        help,
+        positionOf: posLabels ? (id) => positions.anchorOf.get(id) : undefined,
       });
       if (progressRef.current) {
         const frac = Math.min(1, Math.max(0, beat / session.endBeat));
@@ -378,8 +435,14 @@ function PlayInner({
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(raf);
-  }, [session, layout, song, bar]);
+    return () => {
+      cancelAnimationFrame(raf);
+      cueRef.current = null;
+      zoneSigRef.current = '';
+      setCue(null);
+      for (const a of ['data-zone-right', 'data-zone-next-right', 'data-zone-left', 'data-zone-next-left']) canvas.removeAttribute(a);
+    };
+  }, [session, layout, song, bar, helpOn, positions, posLabels]);
 
   // Turning the phone upright mid-song pauses it instead of letting the notes run under the prompt.
   useEffect(() => {
@@ -479,6 +542,27 @@ function PlayInner({
           </div>
         )}
         <canvas ref={canvasRef} className="play-canvas" data-testid="highway" aria-label="Falling notes and keyboard" />
+        {helpOn && cue && (
+          <div
+            className="shift-cue"
+            data-testid="shift-cue"
+            data-hand={cue.hand}
+            data-direction={cue.direction}
+            data-shift={cue.id}
+            data-measure={cue.measure}
+            role="status"
+          >
+            <span className="shift-cue-arrow" aria-hidden="true">
+              {cue.direction === 'right' ? '▶' : '◀'}
+            </span>
+            <strong>Shift {cue.direction}</strong>
+            <span data-testid="shift-cue-label">{cue.label}</span>
+            <span className="shift-cue-where">
+              bar {cue.measure}
+              {song.hands === 'both' ? ` · ${cue.hand} hand` : ''}
+            </span>
+          </div>
+        )}
         {timed && status === 'playing' && timed.last.seq > 0 && (
           <div key={timed.last.seq} className="grade-pop" data-testid="play-grade" data-grade={timed.last.label}>
             {GRADE_TEXT[timed.last.label]}
@@ -486,7 +570,16 @@ function PlayInner({
         )}
         {status === 'ready' && (
           <div className="play-overlay" data-testid="play-ready" data-nav-modal>
-            <SetupPanel setup={setup} lastBar={lastBar} latencyMs={latencyMs} onChange={update} />
+            <SetupPanel
+              setup={setup}
+              lastBar={lastBar}
+              latencyMs={latencyMs}
+              onChange={update}
+              shifts={helpOn ? positions.shifts : []}
+              fingered={positions.hasFingering}
+              posLabels={posLabels}
+              onPosLabels={() => void profiles.saveSettings(profile.id, { positionLabels: !posLabels })}
+            />
             <button className="btn" data-primary type="button" data-testid="play-start" onClick={() => session.start(performance.now())}>
               Start
             </button>
@@ -577,12 +670,23 @@ function SetupPanel({
   lastBar,
   latencyMs,
   onChange,
+  shifts,
+  fingered,
+  posLabels,
+  onPosLabels,
 }: {
   setup: Setup;
   lastBar: number;
   latencyMs: number;
   onChange: (patch: Partial<Setup>) => void;
+  /** The song's hand-position shifts; empty when the help is off or there are none. */
+  shifts: Shift[];
+  fingered: boolean;
+  posLabels: boolean;
+  onPosLabels: () => void;
 }) {
+  const drilling = setup.drill !== null && setup.drill < shifts.length ? shifts[setup.drill]! : null;
+  const step = (by: number) => onChange({ drill: ((setup.drill ?? 0) + by + shifts.length) % shifts.length });
   const bars = Array.from({ length: lastBar }, (_, i) => i + 1);
   return (
     <div className="setup" data-testid="setup">
@@ -610,11 +714,51 @@ function SetupPanel({
           Count-in: {setup.countIn ? 'On' : 'Off'}
         </button>
       </div>
+      {shifts.length > 0 && (
+        <div className="row setup-row" data-testid="drill-row">
+          <button
+            className="btn small"
+            type="button"
+            data-testid="toggle-drill"
+            aria-pressed={drilling !== null}
+            onClick={() => onChange({ drill: drilling ? null : 0 })}
+          >
+            Shift drill: {drilling ? 'On' : 'Off'}
+          </button>
+          {drilling && (
+            <>
+              <button className="btn small" type="button" data-testid="drill-prev" onClick={() => step(-1)}>
+                Previous shift
+              </button>
+              <button className="btn small" type="button" data-testid="drill-next" onClick={() => step(1)}>
+                Next shift
+              </button>
+              <span className="drill-info" data-testid="drill-info">
+                Shift {drilling.index + 1} of {shifts.length} · bar {drilling.measure} · {drilling.label}
+              </span>
+            </>
+          )}
+        </div>
+      )}
+      {fingered && (
+        <div className="row setup-row">
+          <button className="btn small" type="button" data-testid="toggle-posnames" aria-pressed={posLabels} onClick={onPosLabels}>
+            Position names: {posLabels ? 'On' : 'Off'}
+          </button>
+        </div>
+      )}
       <div className="row setup-row">
-        <button className="btn small" type="button" data-testid="toggle-loop" aria-pressed={setup.loop} onClick={() => onChange({ loop: !setup.loop })}>
-          A-B loop: {setup.loop ? 'On' : 'Off'}
+        <button
+          className="btn small"
+          type="button"
+          data-testid="toggle-loop"
+          aria-pressed={setup.loop && !drilling}
+          disabled={drilling !== null}
+          onClick={() => onChange({ loop: !setup.loop })}
+        >
+          A-B loop: {setup.loop && !drilling ? 'On' : 'Off'}
         </button>
-        {setup.loop && (
+        {setup.loop && !drilling && (
           <>
             <label className="field">
               From bar

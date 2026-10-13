@@ -272,3 +272,14 @@ Open https://bh0ss.github.io/keyfall/ on the Mac and on the iPhone or iPad (Web 
    - Good: everything looks and works as before (fonts, sheet music, sign-in, sync status). The site now restricts what it may load, so a blank sheet or a stuck sign-in would mean the policy blocked something; tell me which screen.
 2. Import a MIDI or MusicXML file, then check it appears on your other device.
    - Good: it syncs. Files other than MIDI and MusicXML cannot be stored in your account any more.
+
+## v1.1: Hand-position help
+
+Open Keyfall on the Mac with the FP-30X connected, Beginner profile, Settings > Hand-position help on.
+
+1. Play Frere Jacques in Wait mode.
+   - Good: about a bar before bar 7 a pill appears at the top ("Shift left, ring → C, bar 7") and a dashed line with an arrow falls down the highway with the notes. The keys under the right hand (C4 to G4) are tinted with a solid bar and "RH" underneath, and the key under the thumb has a white glow. The target position (G3 to D4) shows a dashed outline with "RH next".
+   - Good: the song holds on the first note of the new position and the cue stays up until you play it; then the tint moves to the new position.
+   - Bad: the cue is hard to see from the bench, the shading hides which key to play, or the dashed and solid zones look alike.
+2. Song setup > Shift drill on, then Start. Good: only the two notes before, the shift note and two notes after loop; Next shift and Previous shift step through a song with several shifts (try Yankee Doodle or Amazing Grace).
+3. Settings > Position names on notes on. Good: notes show a finger number and the key under the thumb ("3 · C"). Tell me if the moves feel too early or too late, or if it flags moves that a teacher would not call a hand move.

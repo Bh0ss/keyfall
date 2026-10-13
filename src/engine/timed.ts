@@ -1,6 +1,6 @@
 import { Clock, beatsToMs } from './clock';
 import { MISS_ZONE, ScoreBoard, gradeFor, windowsFor, type Grade, type MissEntry, type ScoreSummary, type TimedMode } from './judge';
-import { loopRange, type MeasureLoop } from './loop';
+import { loopRange, type LoopSpan } from './loop';
 import type { PlaySession, PressResult, SessionStatus } from './session';
 import type { Hand, Song, SongNote } from './song';
 
@@ -12,7 +12,7 @@ export interface TimedOptions {
   leadInBeats?: number;
   /** Measured device latency; subtracted from every hit time. */
   latencyMs?: number;
-  loop?: MeasureLoop;
+  loop?: LoopSpan;
 }
 
 export function speedFor(mode: TimedMode, requested = 1): number {

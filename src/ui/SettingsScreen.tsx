@@ -127,6 +127,20 @@ function PreferencesCard() {
         }}
       />
       <Preference
+        id="handHelp"
+        title="Hand-position help"
+        text="Shows when and where your hand has to move: a cue about a bar ahead, shaded keys for the current and next hand position, and a shift drill in the song setup. Needs a song with finger numbers."
+        on={s.handHelp !== false}
+        onChange={(on) => save({ handHelp: on })}
+      />
+      <Preference
+        id="positionLabels"
+        title="Position names on notes"
+        text="Adds the key under your thumb to each finger number, like 3 · C. Shows when note names are on."
+        on={s.positionLabels === true}
+        onChange={(on) => save({ positionLabels: on })}
+      />
+      <Preference
         id="reduceMotion"
         title="Reduce animation"
         text="Stops the celebrations and slides. Keyfall also follows your device's reduce-motion setting."

@@ -1,6 +1,6 @@
 import { Clock, beatsToMs } from './clock';
 import { starsFor, type MissEntry, type ScoreSummary } from './judge';
-import { loopRange, type MeasureLoop } from './loop';
+import { loopRange, type LoopSpan } from './loop';
 import type { PlaySession, PressResult, SessionStatus } from './session';
 import type { Hand, Song, SongNote } from './song';
 
@@ -15,7 +15,7 @@ export interface WaitOptions {
   earlyWindowBeats?: number;
   speed?: number;
   /** Practise only these measures; the song wraps back to the start of the loop. */
-  loop?: MeasureLoop;
+  loop?: LoopSpan;
 }
 
 export interface WaitStats {

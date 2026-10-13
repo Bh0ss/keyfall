@@ -11,8 +11,17 @@ export function barBeats(song: Song): number {
   return (num * 4) / den;
 }
 
-/** Beat range [startBeat, endBeat) of a measure span. Bars are assumed to start at beat 0 with no pickup. */
-export function loopRange(song: Song, loop: MeasureLoop): { startBeat: number; endBeat: number } {
+/** A loop given directly in beats (the shift drill loops a few notes, not whole bars). */
+export interface BeatLoop {
+  startBeat: number;
+  endBeat: number;
+}
+
+export type LoopSpan = MeasureLoop | BeatLoop;
+
+/** Beat range [startBeat, endBeat) of a loop. Measure spans assume bars start at beat 0 with no pickup. */
+export function loopRange(song: Song, loop: LoopSpan): { startBeat: number; endBeat: number } {
+  if ('startBeat' in loop) return { startBeat: loop.startBeat, endBeat: loop.endBeat };
   const bar = barBeats(song);
   const from = Math.max(1, Math.min(loop.fromMeasure, loop.toMeasure));
   const to = Math.max(loop.fromMeasure, loop.toMeasure);
