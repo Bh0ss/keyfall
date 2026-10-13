@@ -48,7 +48,7 @@ afterEach(() => setCurrentPlay(null));
 
 describe('every bundled song, Full mode, perfect player', () => {
   it('the catalog is not empty', () => {
-    expect(bundledSummaries().length).toBeGreaterThanOrEqual(29);
+    expect(bundledSummaries().length).toBeGreaterThanOrEqual(99);
   });
 
   for (const s of bundledSummaries()) {

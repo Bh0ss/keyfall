@@ -249,7 +249,7 @@ test.describe('tips tour', () => {
 
   test('the tour can be stepped and skipped with the piano keys alone', async ({ page }) => {
     await gotoApp(page, './?debug=1#/');
-    for (let i = 0; i < 40 && !(await page.evaluate(() => document.activeElement?.matches('[data-testid="tour-next"]'))); i++) await tap(page, D1);
+    for (let i = 0; i < 100 && !(await page.evaluate(() => document.activeElement?.matches('[data-testid="tour-next"]'))); i++) await tap(page, D1);
     await expect(page.getByTestId('tour-next')).toBeFocused();
     await tap(page, C1);
     await expect(page.getByTestId('tour-step')).toHaveText('Tip 2 of 6');

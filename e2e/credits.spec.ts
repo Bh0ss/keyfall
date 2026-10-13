@@ -68,6 +68,10 @@ test.describe('credits', () => {
 
     await expect(page.getByTestId('credits-mutopia-pd')).toContainText('Keith OHara');
     await expect(page.getByTestId('credits-folk')).toContainText('Frère Jacques');
+    const refs = page.getByTestId('credits-references');
+    await expect(refs).toContainText('Rainer Lewalter');
+    await expect(refs.getByRole('link', { name: 'CC BY-SA 2.0 de' })).toHaveAttribute('href', 'https://creativecommons.org/licenses/by-sa/2.0/de/');
+    await expect(refs.getByRole('link', { name: 'CC BY 3.0' })).toHaveAttribute('href', 'https://creativecommons.org/licenses/by/3.0/');
 
     const libs = page.getByTestId('credits-library-list');
     for (const [name, licence] of [

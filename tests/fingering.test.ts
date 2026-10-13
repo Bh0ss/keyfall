@@ -97,6 +97,58 @@ const MEASURED: Record<string, { measured: number; floor: number }> = {
   'scarborough-fair': { measured: 81.1, floor: 75 },
 };
 
+// The v1.3 songs (levels 1 to 3, fingered by a position-based generator rather than by hand), measured on 2026-10-13 with the
+// same model and the same method. Same rule for the floors. The agreement is lower than on the first 15 because those songs
+// choose where the hand moves differently, not because the model got worse: the first 15 are checked on their own below, with
+// the original floors unchanged.
+const MEASURED_V13: Record<string, { measured: number; floor: number }> = {
+  'hot-cross-buns': { measured: 100, floor: 95 },
+  'au-clair-de-la-lune': { measured: 11.4, floor: 5 },
+  'old-macdonald': { measured: 89.8, floor: 83 },
+  'alle-meine-entchen': { measured: 48.1, floor: 42 },
+  'haenschen-klein': { measured: 100, floor: 95 },
+  'kuckuck': { measured: 100, floor: 95 },
+  'farmer-in-the-dell': { measured: 50, floor: 44 },
+  'hush-little-baby': { measured: 16.7, floor: 10 },
+  'der-kuckuck-und-der-esel': { measured: 88.4, floor: 82 },
+  'wer-hat-die-schoensten-schaefchen': { measured: 92.3, floor: 86 },
+  'haensel-und-gretel-verliefen-sich-im-wald': { measured: 100, floor: 95 },
+  'silent-night': { measured: 49.3, floor: 43 },
+  'joy-to-the-world': { measured: 88.3, floor: 82 },
+  'away-in-a-manger': { measured: 45.6, floor: 39 },
+  'o-christmas-tree': { measured: 46.6, floor: 40 },
+  'deck-the-halls': { measured: 63.6, floor: 57 },
+  'we-wish-you-a-merry-christmas': { measured: 42.1, floor: 36 },
+  'aloha-oe': { measured: 58.9, floor: 52 },
+  'weisst-du-wieviel-sternlein-stehen': { measured: 83.3, floor: 77 },
+  'nicaea-holy-holy-holy': { measured: 65.8, floor: 59 },
+  'kein-schoener-land': { measured: 71.2, floor: 65 },
+  'nearer-my-god-to-thee': { measured: 56.5, floor: 50 },
+  'winter-ade': { measured: 100, floor: 95 },
+  'auf-du-junger-wandersmann': { measured: 75.3, floor: 69 },
+  'alle-jahre-wieder': { measured: 55.6, floor: 49 },
+  'o-du-froehliche': { measured: 82.6, floor: 76 },
+  'hark-the-herald-angels-sing': { measured: 75.4, floor: 69 },
+  'o-come-all-ye-faithful': { measured: 68, floor: 62 },
+  'good-king-wenceslas': { measured: 83.9, floor: 77 },
+  'god-rest-ye-merry-gentlemen': { measured: 57.5, floor: 51 },
+  'nun-danket-alle-gott': { measured: 71.8, floor: 65 },
+  'duke-street': { measured: 50.7, floor: 44 },
+  'lasst-uns-erfreuen': { measured: 58.7, floor: 52 },
+  'allein-gott-in-der-hoeh': { measured: 64.5, floor: 58 },
+  'o-haupt-voll-blut-und-wunden': { measured: 37.5, floor: 31 },
+  'sakura-sakura': { measured: 52.5, floor: 46 },
+  'ding-dong-merrily-on-high': { measured: 58, floor: 52 },
+  'suesser-die-glocken': { measured: 74.5, floor: 68 },
+  'die-gedanken-sind-frei': { measured: 56, floor: 50 },
+  'my-bonnie-lies-over-the-ocean': { measured: 67.5, floor: 61 },
+  'loch-lomond': { measured: 47, floor: 41 },
+  'veni-veni-emmanuel': { measured: 36.1, floor: 30 },
+  'wachet-auf-ruft-uns-die-stimme': { measured: 75.5, floor: 69 },
+  'ein-feste-burg': { measured: 49.5, floor: 43 },
+  'tochter-zion': { measured: 56, floor: 50 },
+};
+
 describe('auto fingering: agreement with the hand-fingered bundled songs (levels 1 to 3)', () => {
   it.each(Object.keys(MEASURED))('%s: strip the fingers, run the model, stay above the floor', (id) => {
     const { measured, floor } = MEASURED[id]!;
@@ -104,27 +156,55 @@ describe('auto fingering: agreement with the hand-fingered bundled songs (levels
     expect(agreement(getSong(id)!)).toBeGreaterThanOrEqual(floor);
   });
 
-  it('covers every hand-fingered song, and the notes-weighted overall agreement stays above 65 (measured 71.8)', () => {
-    const songs = getSongs().filter((s) => typeof s.level === 'number' && s.level <= 3);
-    expect(songs.map((s) => s.id).sort()).toEqual(Object.keys(MEASURED).sort());
+  it.each(Object.keys(MEASURED_V13))('%s: (v1.3) strip the fingers, run the model, stay above the floor', (id) => {
+    const { measured, floor } = MEASURED_V13[id]!;
+    expect(floor).toBeLessThan(measured);
+    expect(agreement(getSong(id)!)).toBeGreaterThanOrEqual(floor);
+  });
+
+  const weighted = (ids: string[]) => {
+    const songs = ids.map((id) => getSong(id)!);
     const total = songs.reduce((a, s) => a + s.notes.length, 0);
     const same = songs.reduce((a, s) => a + (agreement(s) * s.notes.length) / 100, 0);
-    expect((100 * same) / total).toBeGreaterThanOrEqual(65);
+    return (100 * same) / total;
+  };
+
+  it('covers every hand-fingered song, and the notes-weighted overall agreement on the first 15 stays above 65 (measured 71.8)', () => {
+    const songs = getSongs().filter((s) => typeof s.level === 'number' && s.level <= 3);
+    expect(songs.map((s) => s.id).sort()).toEqual([...Object.keys(MEASURED), ...Object.keys(MEASURED_V13)].sort());
+    expect(weighted(Object.keys(MEASURED))).toBeGreaterThanOrEqual(65);
+  });
+
+  it('the v1.3 fingered songs together stay above 58 (measured 63.6)', () => {
+    expect(weighted(Object.keys(MEASURED_V13))).toBeGreaterThanOrEqual(58);
   });
 });
 
 describe('auto fingering: hand-position shifts', () => {
-  it('on the hand-fingered songs the auto fingers make about as many position shifts as the authored ones (measured 45 against 46)', () => {
-    const songs = getSongs().filter((s) => typeof s.level === 'number' && s.level <= 3);
+  it('on the first 15 hand-fingered songs the auto fingers make about as many position shifts as the authored ones (measured 45 against 46)', () => {
     let authored = 0;
     let auto = 0;
-    for (const s of songs) {
+    for (const id of Object.keys(MEASURED)) {
+      const s = getSong(id)!;
       authored += analysePositions(s.notes).shifts.length;
       const m = autoFingers(strip(s));
       auto += analysePositions(s.notes, (x) => m.get(x.id)).shifts.length;
     }
     expect(authored).toBe(46);
     expect(auto).toBeLessThanOrEqual(55);
+  });
+
+  it('on the v1.3 fingered songs the auto fingers make no more than 1.2 times the authored shifts (measured 234 against 423)', () => {
+    let authored = 0;
+    let auto = 0;
+    for (const id of Object.keys(MEASURED_V13)) {
+      const s = getSong(id)!;
+      authored += analysePositions(s.notes).shifts.length;
+      const m = autoFingers(strip(s));
+      auto += analysePositions(s.notes, (x) => m.get(x.id)).shifts.length;
+    }
+    expect(authored).toBe(423);
+    expect(auto).toBeLessThanOrEqual(Math.ceil(authored * 1.2));
   });
 });
 

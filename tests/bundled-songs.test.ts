@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getSong, getSongs } from '../src/songs/catalog';
 import { parseMusicXml } from '../src/songs/musicxml';
 import { isSongUnlocked } from '../src/learn/unlocks';
+import { UNITS } from '../src/learn/units';
 
 const EXPECTED: { id: string; level: number | 'expert'; hands: 'right' | 'both'; unlockedBy?: string; minBars: number }[] = [
   { id: 'mary-had-a-little-lamb', level: 1, hands: 'right', minBars: 4 },
@@ -33,10 +34,80 @@ const EXPECTED: { id: string; level: number | 'expert'; hands: 'right' | 'both';
   { id: 'bach-prelude-in-c', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 35 },
   { id: 'clementi-sonatina-op36-1-mvt1', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 76 },
   { id: 'joplin-the-entertainer', level: 5, hands: 'both', unlockedBy: 'unit-9', minBars: 152 },
+  { id: 'hot-cross-buns', level: 1, hands: 'right', minBars: 8 },
+  { id: 'au-clair-de-la-lune', level: 1, hands: 'right', minBars: 16 },
+  { id: 'old-macdonald', level: 1, hands: 'right', minBars: 16 },
+  { id: 'alle-meine-entchen', level: 1, hands: 'right', minBars: 10 },
+  { id: 'haenschen-klein', level: 1, hands: 'right', minBars: 8 },
+  { id: 'kuckuck', level: 1, hands: 'right', minBars: 12 },
+  { id: 'farmer-in-the-dell', level: 1, hands: 'right', minBars: 9 },
+  { id: 'hush-little-baby', level: 1, hands: 'right', minBars: 8 },
+  { id: 'der-kuckuck-und-der-esel', level: 1, hands: 'right', minBars: 12 },
+  { id: 'wer-hat-die-schoensten-schaefchen', level: 1, hands: 'right', minBars: 8 },
+  { id: 'haensel-und-gretel-verliefen-sich-im-wald', level: 1, hands: 'right', minBars: 16 },
+  { id: 'silent-night', level: 2, hands: 'both', minBars: 23 },
+  { id: 'joy-to-the-world', level: 2, hands: 'both', minBars: 20 },
+  { id: 'away-in-a-manger', level: 2, hands: 'both', minBars: 17 },
+  { id: 'o-christmas-tree', level: 2, hands: 'both', minBars: 13 },
+  { id: 'deck-the-halls', level: 2, hands: 'both', minBars: 16 },
+  { id: 'we-wish-you-a-merry-christmas', level: 2, hands: 'both', minBars: 9 },
+  { id: 'aloha-oe', level: 2, hands: 'both', minBars: 9 },
+  { id: 'weisst-du-wieviel-sternlein-stehen', level: 2, hands: 'both', minBars: 13 },
+  { id: 'nicaea-holy-holy-holy', level: 2, hands: 'both', minBars: 16 },
+  { id: 'kein-schoener-land', level: 2, hands: 'both', minBars: 11 },
+  { id: 'nearer-my-god-to-thee', level: 2, hands: 'both', minBars: 16 },
+  { id: 'winter-ade', level: 2, hands: 'both', minBars: 12 },
+  { id: 'auf-du-junger-wandersmann', level: 2, hands: 'both', minBars: 14 },
+  { id: 'alle-jahre-wieder', level: 2, hands: 'both', minBars: 8 },
+  { id: 'o-du-froehliche', level: 2, hands: 'both', minBars: 16 },
+  { id: 'hark-the-herald-angels-sing', level: 3, hands: 'both', unlockedBy: 'unit-4', minBars: 20 },
+  { id: 'o-come-all-ye-faithful', level: 3, hands: 'both', unlockedBy: 'unit-4', minBars: 21 },
+  { id: 'good-king-wenceslas', level: 3, hands: 'both', unlockedBy: 'unit-4', minBars: 17 },
+  { id: 'god-rest-ye-merry-gentlemen', level: 3, hands: 'both', unlockedBy: 'unit-5', minBars: 20 },
+  { id: 'nun-danket-alle-gott', level: 3, hands: 'both', unlockedBy: 'unit-7', minBars: 16 },
+  { id: 'duke-street', level: 3, hands: 'both', unlockedBy: 'unit-4', minBars: 16 },
+  { id: 'lasst-uns-erfreuen', level: 3, hands: 'both', unlockedBy: 'unit-4', minBars: 21 },
+  { id: 'allein-gott-in-der-hoeh', level: 3, hands: 'both', unlockedBy: 'unit-4', minBars: 28 },
+  { id: 'o-haupt-voll-blut-und-wunden', level: 3, hands: 'both', unlockedBy: 'unit-5', minBars: 22 },
+  { id: 'sakura-sakura', level: 3, hands: 'both', unlockedBy: 'unit-5', minBars: 15 },
+  { id: 'ding-dong-merrily-on-high', level: 3, hands: 'both', unlockedBy: 'unit-4', minBars: 16 },
+  { id: 'suesser-die-glocken', level: 3, hands: 'both', unlockedBy: 'unit-4', minBars: 16 },
+  { id: 'die-gedanken-sind-frei', level: 3, hands: 'both', unlockedBy: 'unit-4', minBars: 12 },
+  { id: 'my-bonnie-lies-over-the-ocean', level: 3, hands: 'both', unlockedBy: 'unit-4', minBars: 16 },
+  { id: 'loch-lomond', level: 3, hands: 'both', unlockedBy: 'unit-5', minBars: 16 },
+  { id: 'veni-veni-emmanuel', level: 3, hands: 'both', unlockedBy: 'unit-5', minBars: 19 },
+  { id: 'wachet-auf-ruft-uns-die-stimme', level: 3, hands: 'both', unlockedBy: 'unit-4', minBars: 32 },
+  { id: 'ein-feste-burg', level: 3, hands: 'both', unlockedBy: 'unit-7', minBars: 20 },
+  { id: 'tochter-zion', level: 3, hands: 'both', unlockedBy: 'unit-7', minBars: 24 },
+  { id: 'burgmuller-la-candeur', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 38 },
+  { id: 'burgmuller-la-pastorale', level: 5, hands: 'both', unlockedBy: 'unit-9', minBars: 37 },
+  { id: 'burgmuller-innocence', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 32 },
+  { id: 'burgmuller-tendre-fleur', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 48 },
+  { id: 'burgmuller-la-petite-reunion', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 54 },
+  { id: 'schumann-traumerei', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 25 },
+  { id: 'schumann-kinderszenen-gluckes-genug', level: 5, hands: 'both', unlockedBy: 'unit-9', minBars: 25 },
+  { id: 'tchaikovsky-morning-prayer', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 24 },
+  { id: 'tchaikovsky-march-wooden-soldiers', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 48 },
+  { id: 'kuhlau-sonatine-op20-1-andante', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 25 },
+  { id: 'bach-menuet-anh-116', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 80 },
+  { id: 'bach-minuet-in-bb-anh-118', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 48 },
+  { id: 'bach-minuet-anh-121', level: 4, hands: 'both', unlockedBy: 'unit-5', minBars: 48 },
+  { id: 'joplin-maple-leaf-rag', level: 5, hands: 'both', unlockedBy: 'unit-9', minBars: 145 },
+  { id: 'joplin-elite-syncopations', level: 5, hands: 'both', unlockedBy: 'unit-9', minBars: 148 },
+  { id: 'joplin-peacherine-rag', level: 5, hands: 'both', unlockedBy: 'unit-9', minBars: 148 },
+  { id: 'joplin-the-easy-winners', level: 5, hands: 'both', unlockedBy: 'unit-9', minBars: 152 },
+  { id: 'joplin-solace', level: 5, hands: 'both', unlockedBy: 'unit-9', minBars: 148 },
+  { id: 'chopin-waltz-op69-2', level: 5, hands: 'both', unlockedBy: 'unit-9', minBars: 177 },
+  { id: 'schubert-moments-musicaux-3', level: 5, hands: 'both', unlockedBy: 'unit-9', minBars: 78 },
+  { id: 'mozart-rondo-alla-turca', level: 5, hands: 'both', unlockedBy: 'unit-9', minBars: 224 },
+  { id: 'chopin-fantaisie-impromptu', level: 'expert', hands: 'both', unlockedBy: 'advanced', minBars: 138 },
+  { id: 'chopin-minute-waltz', level: 'expert', hands: 'both', unlockedBy: 'advanced', minBars: 140 },
+  { id: 'schubert-impromptu-op90-3', level: 'expert', hands: 'both', unlockedBy: 'advanced', minBars: 87 },
+  { id: 'chopin-etude-op10-5', level: 'expert', hands: 'both', unlockedBy: 'advanced', minBars: 85 },
 ];
 
 describe('bundled songs', () => {
-  it('lists the ten spec songs plus the requested additions (Nocturne and 18 more, 29 in all), with levels, hands and unlocks', () => {
+  it('lists the ten spec songs plus the requested additions (Nocturne, 18 more, then the v1.3 batches), with levels, hands and unlocks', () => {
     expect(getSongs().map((s) => s.id)).toEqual(EXPECTED.map((e) => e.id));
     for (const e of EXPECTED) {
       const s = getSong(e.id)!;
@@ -88,6 +159,21 @@ describe('bundled songs', () => {
     expect(isSongUnlocked(ent, none, 'advanced')).toBe(true);
     expect(isSongUnlocked(ent, none, 'beginner')).toBe(false);
     expect(isSongUnlocked(ent, new Set(['unit-9']), 'beginner')).toBe(true);
+  });
+
+  it('every unlockedBy is a real unit id or advanced, and Advanced profiles open every song gated by Units 5 to 9 or advanced', () => {
+    const unitIds = new Set(UNITS.map((u) => u.id));
+    const none = new Set<string>();
+    for (const s of getSongs()) {
+      if (!s.unlockedBy) continue;
+      expect(s.unlockedBy === 'advanced' || unitIds.has(s.unlockedBy), `${s.id} gate ${s.unlockedBy}`).toBe(true);
+      if (s.unlockedBy === 'advanced' || ['unit-5', 'unit-6', 'unit-7', 'unit-8', 'unit-9'].includes(s.unlockedBy)) {
+        expect(isSongUnlocked(s, none, 'advanced'), s.id).toBe(true);
+        expect(isSongUnlocked(s, none, 'beginner'), s.id).toBe(false);
+      }
+      // Whatever the gate, passing that unit (or being Advanced for 'advanced') opens it.
+      expect(isSongUnlocked(s, new Set(unitIds), s.unlockedBy === 'advanced' ? 'advanced' : 'beginner'), s.id).toBe(true);
+    }
   });
 
   it('levels 1 to 3 carry a finger number on every note', () => {

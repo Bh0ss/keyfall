@@ -1,6 +1,6 @@
 import { useNavScope } from '../nav/store';
 import { AppLayout } from './AppLayout';
-import { FOLK_ARRANGEMENTS, FONTS, LIBRARIES, LICENSED_SONGS, LICENCE_URL, MUTOPIA_PUBLIC_DOMAIN, REPO_URL, type Credit } from './credits';
+import { FOLK_ARRANGEMENTS, FONTS, LIBRARIES, LICENSED_SONGS, LICENCE_URL, MUTOPIA_PUBLIC_DOMAIN, REFERENCE_CREDITS, REPO_URL, type Credit } from './credits';
 import { hrefFor } from './useRoute';
 
 /** Opens in a new tab; the Content-Security-Policy governs resource loads, not navigation, so these links need no policy change. */
@@ -96,13 +96,26 @@ export function CreditsScreen() {
           </ul>
           <h3>Original arrangements of public-domain tunes</h3>
           <p>
-            Written for Keyfall. Other recordings were used only to check pitches; nothing was copied. Also arranged here: Mary Had a Little Lamb,
-            Twinkle Twinkle Little Star, Ode to Joy, Jingle Bells, When the Saints Go Marching In and Canon in D.
+            Written for Keyfall: our own key, hands, fingering and left hand. Reference recordings (mostly Wikimedia Commons MIDI files that are
+            CC0 or public domain) were used to check pitches, and for many hymns to read the tune; the arrangement is not copied from them. Also
+            arranged here: Mary Had a Little Lamb, Twinkle Twinkle Little Star, Ode to Joy, Jingle Bells, When the Saints Go Marching In and
+            Canon in D.
           </p>
           <ul className="credit-list" data-testid="credits-folk">
             {FOLK_ARRANGEMENTS.map((s) => (
               <li key={s.file}>
                 <p>{s.work}</p>
+              </li>
+            ))}
+          </ul>
+          <h3>Reference recordings that carry a credit</h3>
+          <p>Used only to check pitches and rhythm; nothing was copied. Credited because of their licences.</p>
+          <ul className="credit-list" data-testid="credits-references">
+            {REFERENCE_CREDITS.map((r) => (
+              <li key={r.file}>
+                <p>
+                  <strong>{r.work}.</strong> Checked against {r.reference} (<Ext href={r.licenceUrl}>{r.licence}</Ext>).
+                </p>
               </li>
             ))}
           </ul>

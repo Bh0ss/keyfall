@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { FOLK_ARRANGEMENTS, FONTS, LIBRARIES, LICENSED_SONGS, MUTOPIA_PUBLIC_DOMAIN, LICENCE_URL, REPO_URL } from '../src/ui/credits';
+import { FOLK_ARRANGEMENTS, FONTS, LIBRARIES, LICENSED_SONGS, MUTOPIA_PUBLIC_DOMAIN, REFERENCE_CREDITS, LICENCE_URL, REPO_URL } from '../src/ui/credits';
 
 const notice = readFileSync(new URL('../src/songs/NOTICE.md', import.meta.url), 'utf8');
 
@@ -16,6 +16,14 @@ describe('credits data stays in step with src/songs/NOTICE.md', () => {
       expect(notice, s.licenceUrl).toContain(s.licenceUrl);
       expect(notice, s.typesetter).toContain(s.typesetter);
       for (const src of s.sources) expect(notice, src.url).toMatch(new RegExp(`id=${src.url.split('id=')[1]}\\b|\\?id=${src.url.split('id=')[1]}\\b`));
+    }
+  });
+
+  it('every attribution-licence reference is named in NOTICE.md with its licence', () => {
+    for (const r of REFERENCE_CREDITS) {
+      expect(notice, r.file).toContain(r.file);
+      expect(notice, r.licence).toContain(r.licence);
+      expect(notice, r.reference).toContain(r.reference.split('"')[1]!);
     }
   });
 
