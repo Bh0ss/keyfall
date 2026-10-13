@@ -1,6 +1,6 @@
 import { useNavScope } from '../nav/store';
 import { AppLayout } from './AppLayout';
-import { FOLK_ARRANGEMENTS, FONTS, LIBRARIES, LICENSED_SONGS, MUTOPIA_PUBLIC_DOMAIN, REPO_URL, type Credit } from './credits';
+import { FOLK_ARRANGEMENTS, FONTS, LIBRARIES, LICENSED_SONGS, LICENCE_URL, MUTOPIA_PUBLIC_DOMAIN, REPO_URL, type Credit } from './credits';
 import { hrefFor } from './useRoute';
 
 /** Opens in a new tab; the Content-Security-Policy governs resource loads, not navigation, so these links need no policy change. */
@@ -44,7 +44,10 @@ export function CreditsScreen() {
 
         <section className="card" data-testid="credits-about">
           <h2>Keyfall</h2>
-          <p>Keyfall is a personal, non-commercial project: a falling-notes piano game for learning to read and play music.</p>
+          <p>Keyfall is a personal project, free to use: a falling-notes piano game for learning to read and play music.</p>
+          <p data-testid="credits-licence">
+            The Keyfall code is under the <Ext href={LICENCE_URL}>MIT licence</Ext>. The bundled song files keep their own terms, listed below.
+          </p>
           <div className="row">
             <a className="btn" href={REPO_URL} target="_blank" rel="noopener noreferrer" data-testid="credits-repo">
               Source code on GitHub

@@ -45,7 +45,11 @@ test.describe('credits', () => {
     await gotoApp(page, './?debug=1#/credits');
     const about = page.getByTestId('credits-about');
     await expect(about).toContainText('Keyfall');
-    await expect(about).toContainText('non-commercial');
+    await expect(about).not.toContainText('non-commercial');
+    await expect(about).toContainText('personal project');
+    await expect(about).toContainText('MIT licence');
+    await expect(about).toContainText('keep their own terms');
+    await expect(page.getByTestId('credits-licence').getByRole('link', { name: 'MIT licence' })).toHaveAttribute('href', 'https://github.com/Bh0ss/keyfall/blob/main/LICENSE');
     const repo = page.getByTestId('credits-repo');
     await expect(repo).toHaveAttribute('href', 'https://github.com/Bh0ss/keyfall');
     await expect(repo).toHaveAttribute('target', '_blank');

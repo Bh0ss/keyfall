@@ -1,5 +1,7 @@
 # Bundled song notices
 
+The Keyfall app code is MIT licensed (see LICENSE at the repository root). The song files are not covered by that licence: their terms are as listed here.
+
 The compositions are in the public domain. The MusicXML files are Keyfall arrangements, except where listed here.
 
 ## chopin-nocturne-op72-1.musicxml

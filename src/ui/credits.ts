@@ -5,6 +5,7 @@
  */
 
 export const REPO_URL = 'https://github.com/Bh0ss/keyfall';
+export const LICENCE_URL = `${REPO_URL}/blob/main/LICENSE`;
 
 export interface LicensedSong {
   /** MusicXML file names in src/songs. */
