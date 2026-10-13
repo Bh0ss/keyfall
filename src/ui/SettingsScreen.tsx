@@ -134,6 +134,13 @@ function PreferencesCard() {
         onChange={(on) => save({ handHelp: on })}
       />
       <Preference
+        id="autoFingering"
+        title="Auto finger numbers"
+        text="Works out finger numbers for songs that have none, and shows them in parentheses and italic, like (3), so you can tell them from the ones in the score. The hand-position help uses them too."
+        on={s.autoFingering !== false}
+        onChange={(on) => save({ autoFingering: on })}
+      />
+      <Preference
         id="positionLabels"
         title="Position names on notes"
         text="Adds the key under your thumb to each finger number, like 3 · C. Shows when note names are on."

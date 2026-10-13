@@ -157,13 +157,17 @@ test.describe('hand-position help', () => {
     expect(errors).toEqual([]);
   });
 
-  test('a song with no finger numbers stays quiet', async ({ page }) => {
+  test('a song with no finger numbers stays quiet (with auto finger numbers off)', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
     // Clair de Lune is open to Advanced profiles and carries no fingering.
     await page.goto('./?debug=1#/');
     await createProfile(page, 'Pro', 'advanced');
+    // Auto fingering (v1.1 B2) is on by default and would give the song fingers; this test is about a song with none.
+    await page.goto('./?debug=1#/settings');
+    await page.getByTestId('pref-autoFingering').click();
+    await expect(page.getByTestId('pref-autoFingering')).toHaveAttribute('aria-checked', 'false');
     await page.goto('./?debug=1#/play/clair-de-lune');
     await expect(page.getByTestId('play-ready')).toBeVisible();
     await expect(page.getByTestId('toggle-drill')).toHaveCount(0);

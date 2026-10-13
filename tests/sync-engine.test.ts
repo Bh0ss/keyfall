@@ -63,6 +63,19 @@ describe('sync engine: last write wins', () => {
   });
 });
 
+describe('sync engine: the auto-fingering switch', () => {
+  it('turning it off on one device reaches the other, because it lives in the profile settings', async () => {
+    const p = await createProfile(a, input, 1000);
+    await sync(a);
+    await sync(b);
+    await saveSettings(a, p.id, { autoFingering: false }, 2000);
+    await sync(a);
+    await sync(b);
+    expect((await listProfiles(b))[0]!.settings.autoFingering).toBe(false);
+    expect(remote.rows('profiles')[0]!.data).toMatchObject({ settings: { autoFingering: false } });
+  });
+});
+
 describe('sync engine: high scores keep the max', () => {
   it('keeps the higher score whichever device syncs last', async () => {
     const p = await createProfile(a, input, 1);

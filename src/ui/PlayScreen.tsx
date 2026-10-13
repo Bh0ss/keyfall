@@ -5,6 +5,7 @@ import { labelVisible, type LabelMode } from '../engine/fade';
 import type { Mode } from '../engine/judge';
 import { deviceKey } from '../engine/latency';
 import { barBeats, lastMeasure, type LoopSpan } from '../engine/loop';
+import { autoFingersFor } from '../engine/fingering';
 import { activeShift, analysePositions, drillRange, zonesAt, type Shift, type Zone } from '../engine/positions';
 import { clicksDue, isAccent, wantsClick } from '../engine/metronome';
 import type { PlaySession } from '../engine/session';
@@ -215,7 +216,11 @@ function PlayInner({
     };
   });
   const bar = barBeats(song);
-  const positions = useMemo(() => analysePositions(song.notes), [song]);
+  // Fingers the song does not carry are worked out once per song (and only when asked for); the position help reads them too.
+  const lacksFingers = useMemo(() => song.notes.some((n) => n.finger === undefined), [song]);
+  const autoOn = profile.settings.autoFingering !== false && lacksFingers;
+  const auto = useMemo(() => (autoOn ? autoFingersFor(song.notes) : null), [autoOn, song]);
+  const positions = useMemo(() => analysePositions(song.notes, auto ? (n) => n.finger ?? auto.get(n.id) : undefined), [song, auto]);
   const helpOn = profile.settings.handHelp !== false && positions.shifts.length > 0;
   const posLabels = profile.settings.positionLabels === true && positions.hasFingering;
   const drillShift = helpOn && setup.drill !== null ? positions.shifts[setup.drill] : undefined;
@@ -417,7 +422,7 @@ function PlayInner({
           set('data-zone-next-left', zones.left.next);
         }
       }
-      drawFrame(ctx, w, h, {
+      const info = drawFrame(ctx, w, h, {
         layout,
         session,
         beat,
@@ -427,7 +432,11 @@ function PlayInner({
         now,
         help,
         positionOf: posLabels ? (id) => positions.anchorOf.get(id) : undefined,
+        autoFinger: auto ? (id) => auto.get(id) : undefined,
       });
+      // How many notes were drawn with an auto finger, for tests and assistive tooling.
+      const drawn = String(info.autoFingers);
+      if (canvas.getAttribute('data-auto-fingers') !== drawn) canvas.setAttribute('data-auto-fingers', drawn);
       if (progressRef.current) {
         const frac = Math.min(1, Math.max(0, beat / session.endBeat));
         progressRef.current.style.width = `${(frac * 100).toFixed(1)}%`;
@@ -442,7 +451,7 @@ function PlayInner({
       setCue(null);
       for (const a of ['data-zone-right', 'data-zone-next-right', 'data-zone-left', 'data-zone-next-left']) canvas.removeAttribute(a);
     };
-  }, [session, layout, song, bar, helpOn, positions, posLabels]);
+  }, [session, layout, song, bar, helpOn, positions, posLabels, auto]);
 
   // Turning the phone upright mid-song pauses it instead of letting the notes run under the prompt.
   useEffect(() => {
@@ -537,7 +546,7 @@ function PlayInner({
         {view !== 'falling' && song.musicXml && (
           <div className="sheet-pane">
             <Suspense fallback={<div className="sheet-note">Loading the score...</div>}>
-              <SheetView song={song} session={session} compact={view === 'split'} approximate={hasApproximateSheet(song.id)} />
+              <SheetView song={song} session={session} compact={view === 'split'} approximate={hasApproximateSheet(song.id)} autoFingers={auto} />
             </Suspense>
           </div>
         )}
@@ -579,6 +588,8 @@ function PlayInner({
               fingered={positions.hasFingering}
               posLabels={posLabels}
               onPosLabels={() => void profiles.saveSettings(profile.id, { positionLabels: !posLabels })}
+              autoFingers={lacksFingers ? autoOn : null}
+              onAutoFingers={() => void profiles.saveSettings(profile.id, { autoFingering: !autoOn })}
             />
             <button className="btn" data-primary type="button" data-testid="play-start" onClick={() => session.start(performance.now())}>
               Start
@@ -674,6 +685,8 @@ function SetupPanel({
   fingered,
   posLabels,
   onPosLabels,
+  autoFingers,
+  onAutoFingers,
 }: {
   setup: Setup;
   lastBar: number;
@@ -684,6 +697,9 @@ function SetupPanel({
   fingered: boolean;
   posLabels: boolean;
   onPosLabels: () => void;
+  /** Whether auto finger numbers are on; null when the song carries a finger on every note. */
+  autoFingers: boolean | null;
+  onAutoFingers: () => void;
 }) {
   const drilling = setup.drill !== null && setup.drill < shifts.length ? shifts[setup.drill]! : null;
   const step = (by: number) => onChange({ drill: ((setup.drill ?? 0) + by + shifts.length) % shifts.length });
@@ -738,6 +754,13 @@ function SetupPanel({
               </span>
             </>
           )}
+        </div>
+      )}
+      {autoFingers !== null && (
+        <div className="row setup-row">
+          <button className="btn small" type="button" data-testid="toggle-autofingers" aria-pressed={autoFingers} onClick={onAutoFingers}>
+            Auto fingers: {autoFingers ? 'On' : 'Off'}
+          </button>
         </div>
       )}
       {fingered && (

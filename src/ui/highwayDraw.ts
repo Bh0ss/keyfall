@@ -44,7 +44,24 @@ export interface HighwayState {
   help?: HelpState;
   /** The key under the thumb (MIDI) for a note; with it the finger label also names the position. */
   positionOf?: (noteId: string) => number | undefined;
+  /** Fingers worked out by the program for notes with none. Drawn in parentheses and italic, never as plain digits. */
+  autoFinger?: (noteId: string) => 1 | 2 | 3 | 4 | 5 | undefined;
 }
+
+/** What a frame drew that tests and the page report on. */
+export interface FrameInfo {
+  /** Notes drawn with an auto finger this frame. */
+  autoFingers: number;
+}
+
+/** The finger to show on a note and whether the program chose it. */
+function fingerFor(n: SongNote, s: HighwayState): { finger: 1 | 2 | 3 | 4 | 5; auto: boolean } | undefined {
+  if (n.finger !== undefined) return { finger: n.finger, auto: false };
+  const finger = s.autoFinger?.(n.id);
+  return finger === undefined ? undefined : { finger, auto: true };
+}
+
+const fingerText = (f: { finger: number; auto: boolean }, suffix = '') => (f.auto ? `(${f.finger}${suffix})` : `${f.finger}${suffix}`);
 
 export function keyboardHeight(h: number): number {
   return Math.min(196, Math.round(h * 0.28));
@@ -59,13 +76,14 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.roundRect(x, y, w, h, r);
 }
 
-function drawNotes(ctx: CanvasRenderingContext2D, w: number, h: number, s: HighwayState) {
+function drawNotes(ctx: CanvasRenderingContext2D, w: number, h: number, s: HighwayState): number {
   const { layout, session, beat } = s;
   const lineY = hitLineY(h);
   const ppb = lineY / LOOKAHEAD_BEATS;
   const waiting = session.status === 'waiting';
   const pending = new Set(session.pendingNotes().map((n) => n.id));
   const areaW = w - PAD_X * 2;
+  let autoDrawn = 0;
 
   ctx.save();
   ctx.beginPath();
@@ -77,9 +95,10 @@ function drawNotes(ctx: CanvasRenderingContext2D, w: number, h: number, s: Highw
     const top = bottom - n.durationBeats * ppb;
     if (bottom < -4 || top > lineY + HIT_LINE_OFFSET) continue;
     if (beat >= n.startBeat + n.durationBeats) continue;
-    drawNote(ctx, n, PAD_X, areaW, top, bottom, s, waiting && pending.has(n.id));
+    if (drawNote(ctx, n, PAD_X, areaW, top, bottom, s, waiting && pending.has(n.id))) autoDrawn++;
   }
   ctx.restore();
+  return autoDrawn;
 }
 
 function drawNote(
@@ -91,7 +110,7 @@ function drawNote(
   bottom: number,
   s: HighwayState,
   isWaitTarget: boolean,
-) {
+): boolean {
   const lane = s.layout.laneOf(n.midi);
   const x = padX + lane.x * areaW + 3;
   const w = Math.max(6, lane.w * areaW - 6);
@@ -131,7 +150,7 @@ function drawNote(
   ctx.stroke();
   ctx.restore();
 
-  if (!s.labels || w < 12 || s.noteLabel?.(n.midi) === false) return;
+  if (!s.labels || w < 12 || s.noteLabel?.(n.midi) === false) return false;
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -140,13 +159,17 @@ function drawNote(
   const size = w >= 36 ? 20 : 13;
   ctx.font = `800 ${size}px ${DISPLAY}`;
   ctx.fillText(name, x + w / 2, bottom - 3 - 17);
-  if (n.finger !== undefined && hgt >= 52 && w >= 26) {
-    ctx.font = `700 12px ${MONO}`;
+  const shown = fingerFor(n, s);
+  let drewAuto = false;
+  if (shown && hgt >= 52 && w >= 26) {
+    ctx.font = `${shown.auto ? 'italic ' : ''}700 12px ${MONO}`;
     const anchor = s.positionOf?.(n.id);
-    const finger = anchor !== undefined && w >= 44 ? `${n.finger} · ${noteName(anchor).replace(/\d+$/, '')}` : String(n.finger);
-    ctx.fillText(finger, x + w / 2, bottom - 3 - 38);
+    const text = anchor !== undefined && w >= 44 ? fingerText(shown, ` · ${noteName(anchor).replace(/\d+$/, '')}`) : fingerText(shown);
+    ctx.fillText(text, x + w / 2, bottom - 3 - 38);
+    drewAuto = shown.auto;
   }
   ctx.restore();
+  return drewAuto;
 }
 
 function drawKeyboard(ctx: CanvasRenderingContext2D, w: number, h: number, s: HighwayState) {
@@ -181,10 +204,11 @@ function drawKeyboard(ctx: CanvasRenderingContext2D, w: number, h: number, s: Hi
       ctx.fillStyle = down ? '#1A1206' : '#5A6272';
       ctx.font = `800 ${kw >= 36 ? 20 : 11}px ${DISPLAY}`;
       if (kw >= 36 || midi % 12 === 0) ctx.fillText(noteName(midi).replace(/\d+$/, ''), x + kw / 2, top + keyH - 26);
-      if (target?.finger !== undefined) {
-        ctx.font = `700 12px ${MONO}`;
+      const shown = target && fingerFor(target, s);
+      if (shown) {
+        ctx.font = `${shown.auto ? 'italic ' : ''}700 12px ${MONO}`;
         ctx.fillStyle = '#1E2430';
-        ctx.fillText(String(target.finger), x + kw / 2, top + keyH - 10);
+        ctx.fillText(fingerText(shown), x + kw / 2, top + keyH - 10);
       }
     }
   });
@@ -200,12 +224,13 @@ function drawKeyboard(ctx: CanvasRenderingContext2D, w: number, h: number, s: Hi
     roundRect(ctx, x, top, bw, keyH * 0.58, [0, 0, 7, 7]);
     ctx.fill();
     ctx.stroke();
-    if (s.labels && target?.finger !== undefined) {
+    const shown = s.labels && target ? fingerFor(target, s) : undefined;
+    if (shown) {
       ctx.fillStyle = '#0B0E13';
-      ctx.font = `700 12px ${MONO}`;
+      ctx.font = `${shown.auto ? 'italic ' : ''}700 12px ${MONO}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(String(target.finger), x + bw / 2, top + keyH * 0.58 - 8);
+      ctx.fillText(fingerText(shown), x + bw / 2, top + keyH * 0.58 - 8);
     }
   }
 }
@@ -337,7 +362,7 @@ function drawShiftMarker(ctx: CanvasRenderingContext2D, w: number, h: number, s:
 }
 
 /** Draw one frame of the highway and keyboard. Coordinates are CSS pixels. */
-export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, s: HighwayState): void {
+export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, s: HighwayState): FrameInfo {
   const lineY = hitLineY(h);
   const areaW = w - PAD_X * 2;
   const n = s.layout.whites.length;
@@ -349,7 +374,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, s
   ctx.fillStyle = '#181D27';
   for (let i = 0; i <= n; i++) ctx.fillRect(Math.round(PAD_X + (i * areaW) / n) - 0.5, 0, 1, lineY + HIT_LINE_OFFSET);
 
-  drawNotes(ctx, w, h, s);
+  const autoFingers = drawNotes(ctx, w, h, s);
 
   ctx.save();
   ctx.globalAlpha = 0.85;
@@ -368,4 +393,5 @@ export function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, s
       if (next) drawZone(ctx, w, h, s, next, 'next');
     }
   }
+  return { autoFingers };
 }

@@ -283,3 +283,15 @@ Open Keyfall on the Mac with the FP-30X connected, Beginner profile, Settings > 
    - Bad: the cue is hard to see from the bench, the shading hides which key to play, or the dashed and solid zones look alike.
 2. Song setup > Shift drill on, then Start. Good: only the two notes before, the shift note and two notes after loop; Next shift and Previous shift step through a song with several shifts (try Yankee Doodle or Amazing Grace).
 3. Settings > Position names on notes on. Good: notes show a finger number and the key under the thumb ("3 · C"). Tell me if the moves feel too early or too late, or if it flags moves that a teacher would not call a hand move.
+
+## v1.1: Auto-fingering
+
+Open Keyfall on the Mac with the FP-30X connected, Advanced profile (every song is unlocked), Settings > Auto finger numbers on.
+
+1. Open Minuet in G (no fingers in the score) and the Falling view with note names on.
+   - Good: each falling note and the key under it show a finger in parentheses and italic, like (3). Fingers that come from a score (open Frere Jacques) are plain digits. Open Sheet view: the same (3) marks sit above right-hand notes and below left-hand ones.
+   - Bad: the marks are hard to tell from printed fingering, or they crowd the staff.
+2. Play the first two lines of Minuet in G, then The Entertainer, using the fingers shown.
+   - Good: a teacher would accept most of them, and the hand rarely has to move to a new position (the shift cue should be occasional, not constant).
+   - Tell me which fingers feel wrong (thumb on a black key, an awkward crossing, a same finger on two keys in a quick run). The model is a cost table in src/engine/fingering.ts and is easy to adjust.
+3. Song setup > Auto fingers off, then Start. Good: no parentheses anywhere, and no shift cue or shaded positions for a song with no fingers in its score. The switch is remembered for the profile, and Settings > Auto finger numbers shows the same state.

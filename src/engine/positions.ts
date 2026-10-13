@@ -51,7 +51,7 @@ function zoneFor(hand: Hand, anchorIndex: number): Zone {
 }
 
 /** The white-key index of the thumb that this note and finger imply. */
-function impliedAnchor(midi: number, finger: Finger, hand: Hand): number {
+export function impliedAnchor(midi: number, finger: Finger, hand: Hand): number {
   const index = whiteIndex(midi);
   const step = finger - 1;
   if (Number.isInteger(index)) return hand === 'right' ? index - step : index + step;
@@ -72,7 +72,7 @@ function impliedAnchor(midi: number, finger: Finger, hand: Hand): number {
 }
 
 /** Whether a note one white key outside the zone is reached by the edge finger stretching, so the hand stays put. */
-function isStretch(implied: number, anchor: number, finger: Finger, hand: Hand): boolean {
+export function isStretch(implied: number, anchor: number, finger: Finger, hand: Hand): boolean {
   const delta = implied - anchor;
   // Right hand: the pinky reaches up past the zone (implied anchor +1), the thumb reaches down (-1). Left hand mirrors.
   if (finger === 5) return delta === (hand === 'right' ? 1 : -1);

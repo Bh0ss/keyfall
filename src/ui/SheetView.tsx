@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { OpenSheetMusicDisplay, type CursorOptions } from 'opensheetmusicdisplay';
 import type { PlaySession } from '../engine/session';
 import type { Song } from '../engine/song';
-import { applyTone, buildNoteMap, cursorIndexAt, type NoteEntry, type SheetTone } from './sheetSync';
+import { applyTone, buildNoteMap, drawAutoFingers, cursorIndexAt, type NoteEntry, type SheetTone } from './sheetSync';
 
 const INK = '#F2F0EA';
 const CURSOR: CursorOptions = { type: 0, color: '#F5A524', alpha: 0.55, follow: false };
@@ -16,7 +16,20 @@ interface Cursor {
  * Scrolling score (OpenSheetMusicDisplay): one long line of music, a cursor that follows
  * the song clock, and notes that turn green when hit and coral when missed.
  */
-export default function SheetView({ song, session, compact, approximate }: { song: Song; session: PlaySession; compact?: boolean; approximate?: boolean }) {
+export default function SheetView({
+  song,
+  session,
+  compact,
+  approximate,
+  autoFingers,
+}: {
+  song: Song;
+  session: PlaySession;
+  compact?: boolean;
+  approximate?: boolean;
+  /** Fingers worked out for notes with none; null or absent when the switch is off. */
+  autoFingers?: ReadonlyMap<string, number> | null;
+}) {
   const hostRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
@@ -89,6 +102,16 @@ export default function SheetView({ song, session, compact, approximate }: { son
     };
   }, [song, compact]);
 
+  // Auto fingers go on (or come off) the score without drawing it again.
+  const [autoDrawn, setAutoDrawn] = useState(0);
+  useEffect(() => {
+    const host = hostRef.current;
+    const s = sync.current;
+    if (state !== 'ready' || !host || !s) return;
+    const hands = new Map(song.notes.map((n) => [n.id, n.hand]));
+    setAutoDrawn(drawAutoFingers(host, autoFingers ? s.entries : [], autoFingers ?? new Map(), (id) => hands.get(id)));
+  }, [state, autoFingers, song]);
+
   // Follow the clock: cursor step, scroll position, note colours.
   useEffect(() => {
     if (state !== 'ready') return;
@@ -153,7 +176,7 @@ export default function SheetView({ song, session, compact, approximate }: { son
   }, [state, session]);
 
   return (
-    <div className="sheet" data-testid="sheet" data-state={state} data-measures={measures} data-mapped={mapped} data-compact={compact ? 'true' : undefined}>
+    <div className="sheet" data-testid="sheet" data-state={state} data-measures={measures} data-mapped={mapped} data-compact={compact ? 'true' : undefined} data-auto-fingers={autoDrawn}>
       {approximate && (
         <div className="sheet-approx" data-testid="sheet-approximate">
           Approximate score, generated from MIDI. Notes are snapped to sixteenths and spelled with sharps.

@@ -77,3 +77,51 @@ export function buildNoteMap(osmd: OpenSheetMusicDisplay, song: Song): NoteEntry
   }
   return out.sort((a, b) => a.startBeat - b.startBeat);
 }
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const AUTO_CLASS = 'auto-finger';
+
+/** Take every auto finger off the score. */
+export function clearAutoFingers(host: ParentNode): void {
+  host.querySelectorAll(`.${AUTO_CLASS}`).forEach((el) => el.remove());
+}
+
+/**
+ * Write the program's finger numbers beside the notes they belong to: above the note for the right hand and below it for
+ * the left, in parentheses and italic so they read differently from fingering printed in the score.
+ */
+export function drawAutoFingers(
+  host: ParentNode,
+  entries: readonly NoteEntry[],
+  fingers: ReadonlyMap<string, number>,
+  handOf: (id: string) => 'right' | 'left' | undefined,
+): number {
+  clearAutoFingers(host);
+  let drawn = 0;
+  for (const entry of entries) {
+    const finger = fingers.get(entry.id);
+    const g = (entry.gn as SvgNote).getSVGGElement?.();
+    if (finger === undefined || !g) continue;
+    let box: DOMRect;
+    try {
+      box = g.getBBox();
+    } catch {
+      continue;
+    }
+    const text = document.createElementNS(SVG_NS, 'text');
+    text.setAttribute('class', AUTO_CLASS);
+    text.setAttribute('aria-hidden', 'true');
+    text.setAttribute('x', String(box.x + box.width / 2));
+    text.setAttribute('y', String(handOf(entry.id) === 'left' ? box.y + box.height + 13 : box.y - 4));
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-style', 'italic');
+    text.setAttribute('font-size', '11');
+    text.setAttribute('font-family', "'JetBrains Mono', ui-monospace, monospace");
+    text.setAttribute('font-weight', '700');
+    text.setAttribute('fill', '#F5A524');
+    text.textContent = `(${finger})`;
+    g.appendChild(text);
+    drawn++;
+  }
+  return drawn;
+}

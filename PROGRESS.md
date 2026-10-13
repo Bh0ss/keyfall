@@ -719,3 +719,80 @@ Kasumi's Phase 8 lows (Content-Security-Policy, server limits migration) and a w
 - Show every open shift (one per hand): closely spaced shifts get less than a bar of warning, because only the first open shift is cued.
 - The shift-cue pill overlaps the sheet in split/sheet view.
 - Cue timing and which moves count as shifts need the owner's ear at the piano (HUMAN_CHECKS.md).
+
+## v1.1: Auto-fingering (B2)
+
+### Built
+
+- **Model** (`src/engine/fingering.ts`, pure, unit-tested, test-first): per hand, dynamic programming over the notes grouped by start time. A step is a note or a chord; a chord takes distinct fingers in pitch order (rising for the right hand, falling for the left, so the options are the 1 to 10 ways to choose them). The state is the chosen fingering plus the hand position, tracked with the same rule as B1 (`impliedAnchor` and `isStretch` from `positions.ts`, now exported), so every move of the position costs 4 and the fewest shifts wins. Other costs: a stretch or squeeze beyond one semitone of what the two fingers reach (finger reach table 0 2 4 5 7, mirrored for the left hand); a crossing (thumb under or over: 4.5 from 3, 6.5 from 2, plus 3 per semitone beyond a fourth; the ring finger with the thumb 20; any crossing with the little finger 40, the same as a same-finger repeat at speed; any other crossing, such as 4 over 3, 10); the same finger on a different key within a beat costs 40 (5 within two beats, 2 beyond); a finger still holding a note from the very next step back costs 50 (only that one step is checked, and chord-to-chord moves skip the check, so a held finger can be reused further on: see the measured clashes in Decisions); the thumb on a black key costs 3, the pinky 1; a changed finger on a repeated key costs 3; chord to chord counts travel of the hand. Ties go to the lower option, with a hair of cost on 2, 4 and 5 so 3 beats 2 and 4 beats 5. Deterministic.
+- **Keeps given fingers**: only notes without a finger are in the result, and every given finger is a fixed constraint for its hand (a chord with some fingers given gets the rest filled around them; if the given fingers cannot fit rising order they are kept and the rest take unused fingers).
+- **Lazy and cached**: `autoFingersFor(notes)` runs the model the first time it is asked for a notes array and caches it (WeakMap); a song with a finger on every note skips the model. The Play screen only asks when the switch is on and the song lacks fingers on some note.
+- **Switch** (per profile, synced): `autoFingering` in the profile settings (on unless false), so it syncs with the profile row like the other switches (new sync test). Settings > "Auto finger numbers", and "Auto fingers: On/Off" on the Play setup card (only for songs with a note lacking a finger; plain button, reachable with the piano keys).
+- **Highway and keyboard strip**: an auto finger is drawn in parentheses and italic, "(3)" ("(3 · C)" with position names on), an authored one stays a plain digit, so the difference is shape and text, not colour. The canvas carries `data-auto-fingers` (notes drawn with an auto finger this frame). `drawFrame` now returns `{ autoFingers }`.
+- **Sheet**: after the score renders, "(n)" labels are added to the notes' SVG (above the note for the right hand, below for the left, italic, amber) and taken off again when the switch goes off, without redrawing the score. The sheet root carries `data-auto-fingers`.
+- **Feeds B1**: `analysePositions(notes, n => n.finger ?? auto.get(n.id))`, so shifts, zones, the cue, position names and the drill all work for unfingered songs and imports while the switch is on; with it off they show nothing for such songs, as before.
+- Tests: `tests/fingering.test.ts` (85 incl. agreement, shift counts, properties and a crossings check over all 29 bundled songs, the Fur Elise worked example, speed, cache, B1 feed), `tests/highway-auto.test.ts` (3), one case in `tests/sync-engine.test.ts`, `e2e/auto-fingering.spec.ts` (6 tests).
+
+### Checks
+
+| Check | Result |
+| --- | --- |
+| `npm run typecheck` | clean |
+| `npm run lint` | clean |
+| `npm test` | 42 files, 802 tests passed |
+| `npm run build` | passes (existing chunk-size warning only) |
+| `npx playwright test` (dev server, all 4 projects) | 194 passed, 3 skipped (orientation-specific iPad tests), 0 failed (188 before + 6 new) |
+| `npm run lighthouse` | accessibility 100 on Home, Play, Songs, Learn, Stats, Settings, Credits |
+
+### Decisions
+
+- A requested addition beyond the spec (v1.1 batch item 2).
+- **Measured agreement** with the hand-fingered bundled songs (levels 1 to 3; fingers stripped, model run, percent of notes with the same finger as the score), and the floors the unit test asserts (a few points under each measurement; do not move a floor to make a change pass):
+
+  | Song | Measured | Floor |
+  | --- | --- | --- |
+  | Mary Had a Little Lamb | 100 | 95 |
+  | Twinkle Twinkle | 61.9 | 55 |
+  | Ode to Joy | 100 | 95 |
+  | Jingle Bells | 100 | 95 |
+  | When the Saints | 100 | 95 |
+  | Row Row Row | 81.5 | 75 |
+  | London Bridge | 87.5 | 80 |
+  | Frere Jacques | 68.8 | 62 |
+  | Yankee Doodle | 24.1 | 18 |
+  | Oh Susanna | 86.7 | 80 |
+  | Happy Birthday | 68.0 | 62 |
+  | Amazing Grace | 20.8 | 15 |
+  | Brahms Lullaby | 74.6 | 68 |
+  | Auld Lang Syne | 47.0 | 42 |
+  | Scarborough Fair | 81.1 | 75 |
+  | Overall (notes-weighted) | 71.8 | 65 |
+
+  The low ones (Yankee Doodle, Amazing Grace) are songs whose score uses a thumb-on-the-first-note position that a note-by-note model cannot guess (the model starts from C with the thumb and fits the phrase around it); both are legitimate fingerings, only different ones. The score is a reference, not the only right answer, so agreement is a regression guard, not a target.
+- **Shift count as the second measure** (the order says minimise shifts): on those 15 songs the hand-fingered scores make 46 B1 shifts and the auto fingers make 45 (asserted at most 55). A first version without hand-position tracking made 103, which is why the position is part of the DP state.
+- **Timing** for the largest bundled song (The Entertainer, 2621 notes): 22 ms on the first call, about the same warm; Clair de Lune (1469 notes) 29 ms cold. The unit test asserts under 100 ms on the cold call.
+- **Default on.** Fingers appear for unfingered songs without the player hunting for a switch; one tap turns them off. A fully fingered song never shows the switch.
+- **Auto fingers only show where note names (labels) show**, like authored ones: they are drawn with the note label, so label modes fade and expert mode hide them.
+- Properties asserted over all 29 bundled songs with fingers stripped: every note gets 1 to 5, a chord uses distinct fingers in pitch order, and a single-note move to a different key within a beat never repeats the finger. A chord next to a single note is not asserted that way (a hand lifts between them).
+- **Held-finger clashes are not rare in a few songs.** The held-note penalty only looks at the very next step and is skipped chord to chord, so a finger can end up on two keys at once (a finger on a key still sounding while it plays another). Measured on all 29 bundled songs with fingers stripped, before and after the crossing fix: Clair de Lune 70 then 64, The Entertainer 20 then 12, Chopin Nocturne 12 then 12, Schumann Happy Farmer 2 then 2, Tchaikovsky Old French Song 1 then 1 (105 then 91 in all; every other song 0). Clashes are a limit of the model, not something the property tests assert away; the fix is under Deferred.
+- **Crossing fix (fitness review).** The first costs let the model buy impossible crossings to save one shift: with the little finger a crossing cost 8 + 1 per semitone and the thumb 4 to 8 plus 1 per semitone beyond a fifth, so avoiding one shift (4) saved more than the move cost. Measured on the first version, single notes within a beat, fingers stripped: 62 crossings with the little finger (Chopin Nocturne 34, Fur Elise 7, The Entertainer 7, Clair de Lune 9, Musette 2, Old French Song 1, Arabesque 1, Prelude in C 1), 16 thumb crossings wider than a sixth (Nocturne 15, Clementi 1) and 106 ring-and-thumb crossings. After: little finger 40 (plus 1 per semitone beyond a fifth), thumb steep past a fourth ((|d| - 4) x 3), ring with thumb 20. Result: 0, 0 and 0 crossings of those kinds on all 29 songs, asserted by a property test per song (the ring-with-thumb count was also measured at 33 with a cost of 9 and 5 with 14, so 20 is the first value that clears it). The worked example is the first two bars of Fur Elise (right hand), now 5 4 5 4 5 2 4 3 2 1 3 4 5 (it was 3 2 3 2 3 1 2 1 5, with the little finger under the thumb); the A4 takes 2 rather than the common 1 and the next note, C4, then takes the thumb; this is a legitimate fingering that differs from the common 1.
+- **Agreement before and after the crossing fix is identical for all 15 hand-fingered songs** (same per-song numbers as the table above, overall 71.8) and so is the shift count (45 against 46 authored), so no floor moved and none was lowered. The crossing costs only touched the harder, unfingered songs. The Minuet shift-cue pin (bar 3, "thumb → C") held and was not changed.
+- `positions.ts` exports `impliedAnchor` and `isStretch` (no behaviour change) so the model uses the same position rule as B1.
+- Sheet labels read the note's bounding box in the browser, so that part is covered by e2e, not unit tests. The drawing code (highway) was written after its tests; the model was test-first throughout.
+- The e2e shift-cue case pins the first right-hand shift of Minuet in G (bar 3, "thumb → C"); retuning the cost table can move it, and the spec should then follow the new first shift.
+
+### Adapted tests
+
+- `e2e/hand-position.spec.ts` "a song with no finger numbers stays quiet" now turns Settings > Auto finger numbers off first (and says so in its name). Auto fingering is on by default and intentionally gives Clair de Lune fingers, so the old premise (no fingers in play) needs the switch off; every assertion in it is unchanged. The on case is covered by `e2e/auto-fingering.spec.ts`.
+
+### Deferred
+
+- Held-finger mask / repair pass: carry the set of fingers still holding a note through the DP (or a second pass that re-fingers a clashing note), including chord to chord and notes held under several later notes, which would bring the clash counts above to zero.
+- Voice-aware fingering (two voices in one hand with different rhythms) and splitting the hand when notes lie far apart.
+- Letting the player override a single auto finger, or print the fingering into an imported song's MusicXML.
+- Hand span: the model assumes an average hand and has no setting for a small hand.
+- Whether the fingers feel right for The Entertainer and the Minuet needs a player (HUMAN_CHECKS.md).
+
+## Licence (owner's ruling)
+
+Added an MIT licence on the Captain's ruling. `LICENSE` (MIT, "Copyright (c) 2026 Bh0ss") with a footer saying it covers the Keyfall code only and that the three CC BY-SA song files (Chopin Nocturne under CC BY-SA 4.0, the two Schumann files under CC BY-SA 2.5) are not relicensed; `src/songs/NOTICE.md` gained a top line pointing at it; `package.json` gained `"license": "MIT"` (still `private`); the Credits About card now reads "a personal project, free to use" and links the MIT licence (`LICENCE_URL` in `src/ui/credits.ts`) and says the song files keep their own terms. Tests: `tests/credits.test.ts` gained a "project licence" block (LICENSE text, package.json field, link, CC files named in LICENSE); `e2e/credits.spec.ts` gained assertions for the MIT line and link. Checks: typecheck clean; lint clean; npm test 42 files / 804 tests passed; build ok; Playwright 194 passed / 3 skipped (all 4 projects); Lighthouse a11y 100 on all 7 screens. Decisions: the old e2e assertion `toContainText('non-commercial')` is inverted to `not.toContainText('non-commercial')` because the phrase intentionally left the screen (adapted test, equally strict); other "commercial" mentions are only this e2e line and a historical PROGRESS.md line describing the old Credits screen, left unchanged.

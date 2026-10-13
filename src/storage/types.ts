@@ -38,6 +38,8 @@ export interface ProfileSettings {
   handHelp?: boolean;
   /** Show the key under the thumb next to each finger number on the falling notes. Off unless true. */
   positionLabels?: boolean;
+  /** Fill in finger numbers the song does not carry (shown in parentheses and italic). On unless false. */
+  autoFingering?: boolean;
 }
 
 export interface Profile extends Stamped {
