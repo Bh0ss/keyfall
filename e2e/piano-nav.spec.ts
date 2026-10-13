@@ -55,6 +55,26 @@ test.describe('piano-key navigation', () => {
     await expect(page.getByTestId('prefs-card').getByTestId('key-legend')).toBeVisible();
   });
 
+  test('Home: on a first run the first D1 lands on the tips tour; All songs and its (i) are reachable and open the Songs list', async ({ page }) => {
+    await gotoApp(page, './?debug=1#/');
+    await tap(page, D1);
+    await expect(page.getByTestId('tour-next')).toBeFocused();
+    await press(page, '[data-testid=tour-skip]');
+    await expect(page.getByTestId('tips-tour')).toBeHidden();
+    await expect(page.getByTestId('featured-songs').locator('li')).toHaveCount(8);
+    // The control is at least 44 px tall and sits next to its help bubble.
+    const box = await page.getByTestId('all-songs').boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    await stepTo(page, '[data-testid=all-songs]');
+    await tap(page, D1);
+    await expect(page.getByTestId('help-home.allSongs')).toBeFocused();
+    await expect(page.getByRole('tooltip')).toBeVisible();
+    await stepTo(page, '[data-testid=all-songs]', B0);
+    await tap(page, C1);
+    await expect(page).toHaveURL(/#\/songs$/);
+    await expect(page.getByTestId('song-count')).toContainText('of 99 songs');
+  });
+
   test('a visible ring marks the selected item', async ({ page }) => {
     await gotoApp(page, './?debug=1#/songs');
     await tap(page, D1);

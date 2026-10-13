@@ -169,19 +169,23 @@ describe('auto fingering: agreement with the hand-fingered bundled songs (levels
     return (100 * same) / total;
   };
 
-  it('covers every hand-fingered song, and the notes-weighted overall agreement on the first 15 stays above 65 (measured 71.8)', () => {
+  it('both lists cover every hand-fingered song (levels 1 to 3), and the notes-weighted agreement on the original 15 stays above 65 (measured 71.8)', () => {
     const songs = getSongs().filter((s) => typeof s.level === 'number' && s.level <= 3);
     expect(songs.map((s) => s.id).sort()).toEqual([...Object.keys(MEASURED), ...Object.keys(MEASURED_V13)].sort());
     expect(weighted(Object.keys(MEASURED))).toBeGreaterThanOrEqual(65);
   });
 
-  it('the v1.3 fingered songs together stay above 58 (measured 63.6)', () => {
+  it('the 45 v1.3 fingered songs together stay above 58 (measured 63.6)', () => {
     expect(weighted(Object.keys(MEASURED_V13))).toBeGreaterThanOrEqual(58);
+  });
+
+  it('all 60 fingered songs together stay above 59 (measured 64.99)', () => {
+    expect(weighted([...Object.keys(MEASURED), ...Object.keys(MEASURED_V13)])).toBeGreaterThanOrEqual(59);
   });
 });
 
 describe('auto fingering: hand-position shifts', () => {
-  it('on the first 15 hand-fingered songs the auto fingers make about as many position shifts as the authored ones (measured 45 against 46)', () => {
+  it('on the original 15 hand-fingered songs the auto fingers make about as many position shifts as the authored ones (measured 45 against 46)', () => {
     let authored = 0;
     let auto = 0;
     for (const id of Object.keys(MEASURED)) {
@@ -194,7 +198,7 @@ describe('auto fingering: hand-position shifts', () => {
     expect(auto).toBeLessThanOrEqual(55);
   });
 
-  it('on the v1.3 fingered songs the auto fingers make no more than 1.2 times the authored shifts (measured 234 against 423)', () => {
+  it('on the 45 v1.3 fingered songs the auto fingers make no more position shifts than measured: 234 against 423 authored', () => {
     let authored = 0;
     let auto = 0;
     for (const id of Object.keys(MEASURED_V13)) {
@@ -204,7 +208,7 @@ describe('auto fingering: hand-position shifts', () => {
       auto += analysePositions(s.notes, (x) => m.get(x.id)).shifts.length;
     }
     expect(authored).toBe(423);
-    expect(auto).toBeLessThanOrEqual(Math.ceil(authored * 1.2));
+    expect(auto).toBeLessThanOrEqual(234);
   });
 });
 

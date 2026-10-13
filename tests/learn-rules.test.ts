@@ -74,9 +74,11 @@ describe('unlock rules', () => {
       expect(isSongUnlocked({ unlockedBy: `unit-${n}` }, none, 'beginner')).toBe(false);
     }
   });
-  it('the Advanced override does not open songs behind units 2 to 4', () => {
-    expect(isSongUnlocked({ unlockedBy: 'unit-2' }, none, 'advanced')).toBe(false);
-    expect(isSongUnlocked({ unlockedBy: 'unit-4' }, none, 'advanced')).toBe(false);
+  it('the Advanced override also opens songs behind units 2 to 4, and Beginners still need the unit', () => {
+    for (const n of [2, 3, 4]) {
+      expect(isSongUnlocked({ unlockedBy: `unit-${n}` }, none, 'advanced')).toBe(true);
+      expect(isSongUnlocked({ unlockedBy: `unit-${n}` }, none, 'beginner')).toBe(false);
+    }
   });
   it('an advanced-only song opens for Advanced profiles only', () => {
     expect(isSongUnlocked({ unlockedBy: 'advanced' }, none, 'advanced')).toBe(true);

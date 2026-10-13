@@ -989,6 +989,10 @@
   gap: 14px;
 }
 
+.all-songs {
+  align-items: center;
+}
+
 .song-tile {
   box-sizing: border-box;
   min-height: 112px;

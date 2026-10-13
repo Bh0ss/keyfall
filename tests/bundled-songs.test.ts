@@ -161,19 +161,27 @@ describe('bundled songs', () => {
     expect(isSongUnlocked(ent, new Set(['unit-9']), 'beginner')).toBe(true);
   });
 
-  it('every unlockedBy is a real unit id or advanced, and Advanced profiles open every song gated by Units 5 to 9 or advanced', () => {
+  it('every unlockedBy is a real unit id or advanced, and Advanced profiles open every song gated by Units 2 to 9 or advanced', () => {
     const unitIds = new Set(UNITS.map((u) => u.id));
     const none = new Set<string>();
     for (const s of getSongs()) {
       if (!s.unlockedBy) continue;
       expect(s.unlockedBy === 'advanced' || unitIds.has(s.unlockedBy), `${s.id} gate ${s.unlockedBy}`).toBe(true);
-      if (s.unlockedBy === 'advanced' || ['unit-5', 'unit-6', 'unit-7', 'unit-8', 'unit-9'].includes(s.unlockedBy)) {
+      if (s.unlockedBy === 'advanced' || ['unit-2', 'unit-3', 'unit-4', 'unit-5', 'unit-6', 'unit-7', 'unit-8', 'unit-9'].includes(s.unlockedBy)) {
         expect(isSongUnlocked(s, none, 'advanced'), s.id).toBe(true);
         expect(isSongUnlocked(s, none, 'beginner'), s.id).toBe(false);
       }
       // Whatever the gate, passing that unit (or being Advanced for 'advanced') opens it.
       expect(isSongUnlocked(s, new Set(unitIds), s.unlockedBy === 'advanced' ? 'advanced' : 'beginner'), s.id).toBe(true);
     }
+  });
+
+  it('every bundled song is open for an Advanced profile with nothing passed, and the gated ones stay locked for a Beginner', () => {
+    const none = new Set<string>();
+    const all = getSongs();
+    expect(all.length).toBeGreaterThanOrEqual(99);
+    for (const s of all) expect(isSongUnlocked(s, none, 'advanced'), s.id).toBe(true);
+    expect(all.filter((s) => s.unlockedBy && !isSongUnlocked(s, none, 'beginner')).length).toBeGreaterThan(50);
   });
 
   it('levels 1 to 3 carry a finger number on every note', () => {
@@ -205,7 +213,9 @@ describe('bundled songs', () => {
       expect(isSongUnlocked(getSong(id)!, none, 'advanced'), id).toBe(true);
       expect(isSongUnlocked(getSong(id)!, none, 'beginner'), id).toBe(false);
     }
-    expect(isSongUnlocked(getSong('when-the-saints-go-marching-in')!, none, 'advanced')).toBe(false);
+    // Advanced opens the Unit 4 gate too (every gated song is open for Advanced); a Beginner still needs the unit.
+    expect(isSongUnlocked(getSong('when-the-saints-go-marching-in')!, none, 'advanced')).toBe(true);
+    expect(isSongUnlocked(getSong('when-the-saints-go-marching-in')!, none, 'beginner')).toBe(false);
     expect(isSongUnlocked(getSong('when-the-saints-go-marching-in')!, new Set(['unit-4']), 'beginner')).toBe(true);
   });
 });

@@ -64,6 +64,12 @@ describe('help content', () => {
     expect(controlIds(songs)).toEqual(expect.arrayContaining(['sort-', 'hands-']));
   });
 
+  it('Home: the All songs control sits next to its help bubble', () => {
+    const home = read('src/ui/HomeScreen.tsx');
+    expect(home).toContain('data-testid="all-songs"');
+    expect(home).toContain('<HelpBubble id="home.allSongs" />');
+  });
+
   it('every Settings preference has a help entry', () => {
     const ids = [...settings.matchAll(/<Preference\s+id="([A-Za-z]+)"/g)].map((m) => m[1]!);
     expect(ids.length).toBeGreaterThanOrEqual(6);
@@ -103,7 +109,7 @@ describe('help content', () => {
   });
 
   it('every help id is used by a bubble somewhere, and every bubble names a real entry', () => {
-    const files = ['PlayScreen', 'SongPicker', 'SettingsScreen', 'ResultsScreen', 'AccountPanel', 'learn/UnitDetail', 'AddAudioScreen', 'ImportScreen'].map((f) => read(`src/ui/${f}.tsx`));
+    const files = ['HomeScreen', 'PlayScreen', 'SongPicker', 'SettingsScreen', 'ResultsScreen', 'AccountPanel', 'learn/UnitDetail', 'AddAudioScreen', 'ImportScreen'].map((f) => read(`src/ui/${f}.tsx`));
     const all = files.join('\n') + read('src/help/content.ts');
     const direct = new Set([...all.matchAll(/<HelpBubble\s+id="([a-zA-Z.]+)"/g)].map((m) => m[1]!));
     const mapped = new Set([...Object.values(CONTROL_HELP), ...Object.values(SETTINGS_PREFERENCE_HELP)]);

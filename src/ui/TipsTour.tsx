@@ -36,11 +36,11 @@ export function TipsTour() {
           </button>
         )}
         {last ? (
-          <button className="btn" type="button" data-testid="tour-done" onClick={finish}>
+          <button className="btn" type="button" data-nav-default data-testid="tour-done" onClick={finish}>
             Got it
           </button>
         ) : (
-          <button className="btn" type="button" data-testid="tour-next" onClick={() => setStep(clampStep(step + 1))}>
+          <button className="btn" type="button" data-nav-default data-testid="tour-next" onClick={() => setStep(clampStep(step + 1))}>
             Next
           </button>
         )}

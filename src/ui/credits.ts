@@ -90,7 +90,7 @@ export const MUTOPIA_PUBLIC_DOMAIN: readonly MutopiaPd[] = [
   { file: 'chopin-fantaisie-impromptu.musicxml', work: 'Chopin, Fantaisie-Impromptu, Op. 66', typesetter: 'Guy D. Lederfein' },
   { file: 'chopin-minute-waltz.musicxml', work: 'Chopin, Waltz in Db major, Op. 64 No. 1 (Minute Waltz)', typesetter: 'Magnus Lewis-Smith' },
   { file: 'schubert-impromptu-op90-3.musicxml', work: 'Schubert, Impromptu in Gb major, D. 899 No. 3 (Op. 90)', typesetter: 'Ph. Raynaud' },
-  { file: 'chopin-etude-op10-5.musicxml', work: 'Chopin, Etude in Gb major, Op. 10 No. 5 ("Black Keys")', typesetter: 'Peters/Herrmann Scholtz 1900b' },
+  { file: 'chopin-etude-op10-5.musicxml', work: 'Chopin, Etude in Gb major, Op. 10 No. 5 ("Black Keys")', typesetter: null },
 ];
 
 /** Original Keyfall arrangements of public-domain tunes. Reference recordings were used to check pitches only. */

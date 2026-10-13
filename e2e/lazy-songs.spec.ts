@@ -17,7 +17,7 @@ test('song data is fetched when a song opens, not with the app', async ({ page }
     if (m && !/\.(woff2?|css|png|svg)$/.test(r.url())) songRequests.push(m[1]!);
   });
   await gotoApp(page, './?debug=1#/');
-  await expect(page.getByTestId('home-song-clair-de-lune')).toBeVisible();
+  await expect(page.getByTestId('home-song-mary-had-a-little-lamb')).toBeVisible();
   await page.goto('./?debug=1#/songs');
   await expect(page.getByTestId('song-mary-had-a-little-lamb')).toContainText('26 notes');
   await expect(page.getByTestId('song-clair-de-lune')).toContainText('notes');

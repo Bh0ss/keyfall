@@ -75,7 +75,7 @@ test.describe('every bundled song plays to the end in Full mode at 100% accuracy
     test(`${song.title}`, async ({ page }) => {
       test.setTimeout(420_000);
       // Playwright's fake clock (time flows until paused): the song plays on virtual time, about 3 times faster than the wall
-      // clock. Judging only reads the timestamps it is given, so the per-note result matches the real clock (V13 spike, PROGRESS.md).
+      // clock. Judging only reads the timestamps it is given, so the per-note result matches the real clock (v1.3 additions, see PROGRESS.md).
       // Real-clock timing is still proven by scoring.spec and play.spec.
       await page.clock.install();
       await advancedPlayer(page);
@@ -175,13 +175,15 @@ test.describe('sheet view in play', () => {
 });
 
 test.describe('unlocks for the new songs', () => {
-  test('a Beginner profile finds the later songs locked; an Advanced one has Units 6 to 9, Clair de Lune and the Nocturne open', async ({ page }) => {
+  test('a Beginner profile finds the later songs locked; an Advanced one has every song open, Saints included', async ({ page }) => {
     await advancedPlayer(page, []);
     await page.goto('./?debug=1#/songs');
     for (const id of ['minuet-in-g', 'greensleeves', 'fur-elise-opening', 'canon-in-d', 'clair-de-lune', 'chopin-nocturne-op72-1', 'bach-prelude-in-c', 'burgmuller-arabesque', 'joplin-the-entertainer']) {
       await expect(page.getByTestId(`song-${id}`)).not.toHaveAttribute('data-locked', 'true');
     }
-    await expect(page.getByTestId('song-locked-when-the-saints-go-marching-in')).toBeVisible();
+    // Saints is gated by Unit 4; Advanced profiles open every gated song.
+    await expect(page.getByTestId('song-when-the-saints-go-marching-in')).not.toHaveAttribute('data-locked', 'true');
+    await expect(page.getByTestId('song-locked-when-the-saints-go-marching-in')).toHaveCount(0);
     await page.goto('./?debug=1#/');
     await page.getByTestId('switch-profile').click();
     await createProfile(page, 'Newbie', 'beginner');

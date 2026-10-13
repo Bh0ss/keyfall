@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="3.1">
   <work><work-title>Tochter Zion (See, the Conquering Hero Comes)</work-title></work>
-  <identification><creator type="composer">G. F. Handel (Judas Maccabaeus, 1747)</creator><rights>Public domain tune (Handel 1747, words not included). Keyfall arrangement: transposed from D to C, first three eight-bar strains (A B A), fingering and left hand are original. Melody cross-checked against, and where my memory was not exact read from, Wikimedia Commons File:Tochter Zion, freue dich.mid (public domain, Rabanus Flavus). Nothing of its harmony or layout used.</rights></identification>
+  <identification><creator type="composer">G. F. Handel (Judas Maccabaeus, 1747)</creator><rights>Public domain tune (Handel 1747, words not included). Keyfall arrangement: transposed from D to C, first three eight-bar strains (A B A), fingering and left hand are original. Melody cross-checked against, and where the remembered tune was not exact read from, Wikimedia Commons File:Tochter Zion, freue dich.mid (public domain, Rabanus Flavus). Nothing of its harmony or layout used.</rights></identification>
   <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
   <part id="P1">
     <measure number="1">

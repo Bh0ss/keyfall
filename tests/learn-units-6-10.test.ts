@@ -80,8 +80,8 @@ describe('units 6 to 10 are defined and playable', () => {
     for (const n of [6, 7, 8, 9]) expect(songs.some((s) => s.unlockedBy === `unit-${n}`)).toBe(true);
     expect(songs.some((s) => s.unlockedBy === 'unit-10')).toBe(false);
   });
-  it('the Advanced override still covers units 5 to 9 only', () => {
-    for (const n of [5, 6, 7, 8, 9]) expect(isSongUnlocked({ unlockedBy: `unit-${n}` }, new Set(), 'advanced')).toBe(true);
+  it('the Advanced override covers units 2 to 9 and not unit 10', () => {
+    for (const n of [2, 3, 4, 5, 6, 7, 8, 9]) expect(isSongUnlocked({ unlockedBy: `unit-${n}` }, new Set(), 'advanced')).toBe(true);
     expect(isSongUnlocked({ unlockedBy: 'unit-10' }, new Set(), 'advanced')).toBe(false);
   });
 });

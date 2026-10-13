@@ -39,7 +39,7 @@ export const BUNDLED_ENTRIES: readonly BundledEntry[] = [
   { file: 'bach-prelude-in-c', meta: { id: 'bach-prelude-in-c', level: 4, unlockedBy: 'unit-5' } },
   { file: 'clementi-sonatina-op36-1-mvt1', meta: { id: 'clementi-sonatina-op36-1-mvt1', level: 4, unlockedBy: 'unit-5' } },
   { file: 'joplin-the-entertainer', meta: { id: 'joplin-the-entertainer', level: 5, unlockedBy: 'unit-9' } },
-  // v1.3: 100 songs, lane(s) L1 L1b (see PROGRESS.md).
+  // v1.3 additions (see PROGRESS.md).
   { file: 'hot-cross-buns', meta: { id: 'hot-cross-buns', level: 1 } },
   { file: 'au-clair-de-la-lune', meta: { id: 'au-clair-de-la-lune', level: 1 } },
   { file: 'old-macdonald', meta: { id: 'old-macdonald', level: 1 } },
@@ -51,7 +51,7 @@ export const BUNDLED_ENTRIES: readonly BundledEntry[] = [
   { file: 'der-kuckuck-und-der-esel', meta: { id: 'der-kuckuck-und-der-esel', level: 1 } },
   { file: 'wer-hat-die-schoensten-schaefchen', meta: { id: 'wer-hat-die-schoensten-schaefchen', level: 1 } },
   { file: 'haensel-und-gretel-verliefen-sich-im-wald', meta: { id: 'haensel-und-gretel-verliefen-sich-im-wald', level: 1 } },
-  // v1.3: 100 songs, lane(s) L2 (see PROGRESS.md).
+  // v1.3 additions (see PROGRESS.md).
   { file: 'silent-night', meta: { id: 'silent-night', level: 2 } },
   { file: 'joy-to-the-world', meta: { id: 'joy-to-the-world', level: 2 } },
   { file: 'away-in-a-manger', meta: { id: 'away-in-a-manger', level: 2 } },
@@ -67,7 +67,7 @@ export const BUNDLED_ENTRIES: readonly BundledEntry[] = [
   { file: 'auf-du-junger-wandersmann', meta: { id: 'auf-du-junger-wandersmann', level: 2 } },
   { file: 'alle-jahre-wieder', meta: { id: 'alle-jahre-wieder', level: 2 } },
   { file: 'o-du-froehliche', meta: { id: 'o-du-froehliche', level: 2 } },
-  // v1.3: 100 songs, lane(s) L3 (see PROGRESS.md).
+  // v1.3 additions (see PROGRESS.md).
   { file: 'hark-the-herald-angels-sing', meta: { id: 'hark-the-herald-angels-sing', level: 3, unlockedBy: 'unit-4' } },
   { file: 'o-come-all-ye-faithful', meta: { id: 'o-come-all-ye-faithful', level: 3, unlockedBy: 'unit-4' } },
   { file: 'good-king-wenceslas', meta: { id: 'good-king-wenceslas', level: 3, unlockedBy: 'unit-4' } },
@@ -87,7 +87,7 @@ export const BUNDLED_ENTRIES: readonly BundledEntry[] = [
   { file: 'wachet-auf-ruft-uns-die-stimme', meta: { id: 'wachet-auf-ruft-uns-die-stimme', level: 3, unlockedBy: 'unit-4' } },
   { file: 'ein-feste-burg', meta: { id: 'ein-feste-burg', level: 3, unlockedBy: 'unit-7' } },
   { file: 'tochter-zion', meta: { id: 'tochter-zion', level: 3, unlockedBy: 'unit-7' } },
-  // v1.3: 100 songs, lane(s) L4 (see PROGRESS.md).
+  // v1.3 additions (see PROGRESS.md).
   { file: 'burgmuller-la-candeur', meta: { id: 'burgmuller-la-candeur', level: 4, unlockedBy: 'unit-5' } },
   { file: 'burgmuller-la-pastorale', meta: { id: 'burgmuller-la-pastorale', level: 5, unlockedBy: 'unit-9' } },
   { file: 'burgmuller-innocence', meta: { id: 'burgmuller-innocence', level: 4, unlockedBy: 'unit-5' } },
@@ -101,7 +101,7 @@ export const BUNDLED_ENTRIES: readonly BundledEntry[] = [
   { file: 'bach-menuet-anh-116', meta: { id: 'bach-menuet-anh-116', level: 4, unlockedBy: 'unit-5' } },
   { file: 'bach-minuet-in-bb-anh-118', meta: { id: 'bach-minuet-in-bb-anh-118', level: 4, unlockedBy: 'unit-5' } },
   { file: 'bach-minuet-anh-121', meta: { id: 'bach-minuet-anh-121', level: 4, unlockedBy: 'unit-5' } },
-  // v1.3: 100 songs, lane(s) L5 (see PROGRESS.md).
+  // v1.3 additions (see PROGRESS.md).
   { file: 'joplin-maple-leaf-rag', meta: { id: 'joplin-maple-leaf-rag', level: 5, unlockedBy: 'unit-9' } },
   { file: 'joplin-elite-syncopations', meta: { id: 'joplin-elite-syncopations', level: 5, unlockedBy: 'unit-9' } },
   { file: 'joplin-peacherine-rag', meta: { id: 'joplin-peacherine-rag', level: 5, unlockedBy: 'unit-9' } },

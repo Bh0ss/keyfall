@@ -1,6 +1,7 @@
-import { nextUnit, unlockHint } from '../learn/unlocks';
+import { nextUnit } from '../learn/unlocks';
 import { BADGES } from '../progress/badges';
 import { upNext, points, stars } from '../engine/results';
+import { featuredSongs } from '../songs/featured';
 import { useLibrary } from '../songs/library';
 import { getDb } from '../storage/db';
 import { profileAttempts } from '../storage/attempts';
@@ -8,6 +9,7 @@ import { bestPerSong, profileScores } from '../storage/scores';
 import { AccountChip } from './AccountPanel';
 import { AppLayout } from './AppLayout';
 import { ConnectionChip } from './ConnectionChip';
+import { HelpBubble } from './HelpBubble';
 import { FirstRunLegend } from './PianoLegend';
 import { Avatar } from './ProfilePicker';
 import { TipsTour } from './TipsTour';
@@ -49,6 +51,7 @@ export function HomeScreen() {
   const nextBest = best?.get(next.id);
   const totalStars = [...bestStars.values()].reduce((a, b) => a + b, 0);
   const { mode, speedPct } = profile.settings;
+  const featured = featuredSongs(open, bestStars, data?.lastSongId, next.id);
   const playLabel = mode === 'practice' ? `Practice ${speedPct}%` : MODE_LABEL[mode];
 
   return (
@@ -140,30 +143,14 @@ export function HomeScreen() {
 
         <section className="stack">
           <div className="section-head">
-            <h2>Songs</h2>
+            <h2>Up next</h2>
             <div className="muted small-text" data-testid="songs-summary">
               {open.length} of {songs.length} unlocked · {totalStars} {totalStars === 1 ? 'star' : 'stars'} earned
             </div>
           </div>
-          <ul className="song-tiles" aria-label="Songs">
-            {songs.map((s) => {
+          <ul className="song-tiles" aria-label="Up next" data-testid="featured-songs">
+            {featured.map((s) => {
               const b = best?.get(s.id);
-              const locked = !!unlocks && !unlocks.isUnlocked(s);
-              if (locked) {
-                return (
-                  <li key={s.id}>
-                    <div className="song-tile" aria-disabled="true" data-locked="true" data-testid={`home-song-${s.id}`}>
-                      <span>
-                        <strong>{s.title}</strong>
-                        <small>{unlockHint(s)}</small>
-                      </span>
-                      <span className="song-stars" aria-label="Locked">
-                        Locked
-                      </span>
-                    </div>
-                  </li>
-                );
-              }
               return (
                 <li key={s.id}>
                   <a className="song-tile" href={hrefFor.play(s.id)} data-testid={`home-song-${s.id}`}>
@@ -181,6 +168,12 @@ export function HomeScreen() {
               );
             })}
           </ul>
+          <div className="row all-songs">
+            <a className="btn" href={hrefFor.songs()} data-testid="all-songs">
+              All songs ({songs.length})
+            </a>
+            <HelpBubble id="home.allSongs" />
+          </div>
         </section>
       </main>
     </AppLayout>

@@ -249,7 +249,10 @@ test.describe('tips tour', () => {
 
   test('the tour can be stepped and skipped with the piano keys alone', async ({ page }) => {
     await gotoApp(page, './?debug=1#/');
-    for (let i = 0; i < 100 && !(await page.evaluate(() => document.activeElement?.matches('[data-testid="tour-next"]'))); i++) await tap(page, D1);
+    // The tour's Next button is the piano-nav default, so the first D1 reaches it. The bound is set by the screen's
+    // structure, not the catalog: everything before the tour in page order is the sidebar links and the header
+    // controls (well under 20 stops), and Home shows at most 8 song tiles plus All songs after it.
+    for (let i = 0; i < 30 && !(await page.evaluate(() => document.activeElement?.matches('[data-testid="tour-next"]'))); i++) await tap(page, D1);
     await expect(page.getByTestId('tour-next')).toBeFocused();
     await tap(page, C1);
     await expect(page.getByTestId('tour-step')).toHaveText('Tip 2 of 6');

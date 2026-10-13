@@ -103,8 +103,9 @@ test.describe('Learn', () => {
 
   test('Ode to Joy unlocks only after Unit 2', async ({ page }) => {
     await gotoApp(page, './?debug=1');
-    // Locked at the start: Home, song list and a direct link.
-    await expect(page.getByTestId('home-song-ode-to-joy')).toHaveAttribute('data-locked', 'true');
+    // Locked at the start: not featured on Home, locked in the song list, and a direct link.
+    await expect(page.getByTestId('home')).toBeVisible();
+    await expect(page.getByTestId('home-song-ode-to-joy')).toHaveCount(0);
     await page.goto('./?debug=1#/songs');
     await expect(page.getByTestId('song-ode-to-joy')).toHaveAttribute('data-locked', 'true');
     await page.goto('./?debug=1#/play/ode-to-joy');
@@ -142,11 +143,11 @@ test.describe('Learn', () => {
     await expect(page.getByTestId('play-finished')).toBeVisible();
   });
 
-  test('an Advanced profile keeps units 2 to 4 songs locked but is not asked to learn first to see the path', async ({ page }) => {
+  test('an Advanced profile has units 2 to 4 songs open and is not asked to learn first to see the path', async ({ page }) => {
     await page.goto('./?debug=1');
     await createProfile(page, 'Alexa', 'advanced');
     await page.goto('./?debug=1#/songs');
-    await expect(page.getByTestId('song-ode-to-joy')).toHaveAttribute('data-locked', 'true');
+    await expect(page.getByTestId('song-ode-to-joy')).not.toHaveAttribute('data-locked', 'true');
     await expect(page.getByTestId('song-mary-had-a-little-lamb')).not.toHaveAttribute('data-locked', 'true');
   });
 

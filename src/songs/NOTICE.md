@@ -49,9 +49,11 @@ Original Keyfall arrangements of public-domain tunes. Other recordings were used
 - auld-lang-syne.musicxml: traditional Scottish, transposed to C; checked against Commons "Auld Lang Syne (three-four).mid" (CC BY 4.0, Rabanus Flavus).
 - scarborough-fair.musicxml: traditional, in A natural minor; checked against Commons "Scarborough-fair.mid" (public domain).
 
-## v1.3 folk, hymn and carol arrangements (L1 L1b)
+## v1.3 folk, hymn and carol arrangements
 
-Original Keyfall arrangements of public-domain tunes (own key, hands, fingering and left hand). The reference encodings are Wikimedia Commons MIDI files; where a line below says "melody from", the tune was read from a CC0 or public-domain encoding, which is a clean source. A BY or BY-SA reference was used for checking only and is named with its licence: Nearer, My God, to Thee (CC BY 3.0, credited) and Sakura Sakura (CC BY-SA 2.0 de, flagged). Nothing from either reference file is in the song files, so no licence passes to them; both are credited on the Credits screen.
+Original Keyfall arrangements of public-domain tunes (own key, hands, fingering and left hand). The reference encodings are Wikimedia Commons MIDI files. Where a line says "melody from", the tune was read from a CC0 or public-domain encoding, which is a clean source; otherwise the file was only checked against it. A BY or BY-SA reference is named on its own line with its licence; nothing from those files is in the song files, so no licence passes to them.
+
+### L1 and L1b
 
 - hot-cross-buns.musicxml: own arrangement, PD tune, no reference file used (the only Commons file is a different regional setting); standard tune.
 - au-clair-de-la-lune.musicxml: own arrangement, PD tune, melody checked against Wikimedia Commons "Au Clair de la Lune children's book 2.mid" (public domain).
@@ -65,9 +67,7 @@ Original Keyfall arrangements of public-domain tunes (own key, hands, fingering 
 - wer-hat-die-schoensten-schaefchen.musicxml: own arrangement, PD tune, melody checked against Wikimedia Commons "Wer hat die schönsten Schäfchen.mid" (CC0).
 - haensel-und-gretel-verliefen-sich-im-wald.musicxml: own arrangement, PD tune, melody checked against Wikimedia Commons "Hänsel und Gretel verliefen sich im Wald.mid" (CC0).
 
-## v1.3 folk, hymn and carol arrangements (L2)
-
-Original Keyfall arrangements of public-domain tunes (own key, hands, fingering and left hand). The reference encodings are Wikimedia Commons MIDI files; where a line below says "melody from", the tune was read from a CC0 or public-domain encoding, which is a clean source. A BY or BY-SA reference was used for checking only and is named with its licence.
+### L2
 
 - silent-night.musicxml: own arrangement, PD tune, melody checked against Wikimedia Commons "Stille Nacht, heilige Nacht.mid" (CC0).
 - joy-to-the-world.musicxml: own arrangement, PD tune, melody checked against Wikimedia Commons "Joy to the World (Freue dich, Welt).mid" (CC0).
@@ -79,15 +79,13 @@ Original Keyfall arrangements of public-domain tunes (own key, hands, fingering 
 - weisst-du-wieviel-sternlein-stehen.musicxml: own arrangement, PD tune, melody checked against Wikimedia Commons "Weisst du, wie viel Sternlein stehen.mid" (CC0).
 - nicaea-holy-holy-holy.musicxml: own arrangement, PD tune, melody checked against Wikimedia Commons "Nicaea (hymn tune).mid" (CC0).
 - kein-schoener-land.musicxml: own arrangement, PD tune, melody checked against Wikimedia Commons "Kein schoener Land.mid" (CC0).
-- nearer-my-god-to-thee.musicxml: own arrangement, PD tune, melody checked against Wikimedia Commons "Naeher, mein Gott, zu dir.mid" (CC BY 3.0, Rabanus Flavus; pitch and rhythm check only, credited here and in the file).
+- nearer-my-god-to-thee.musicxml: own arrangement, PD tune, melody checked against Wikimedia Commons "Naeher, mein Gott, zu dir.mid" (CC BY 3.0, Rabanus Flavus; pitch and rhythm check only, nothing copied; credited here, in the file and on the Credits screen).
 - winter-ade.musicxml: own arrangement, PD tune, melody checked against Wikimedia Commons "Winter, ade.mid" (CC0).
 - auf-du-junger-wandersmann.musicxml: own arrangement, PD tune, melody checked against Wikimedia Commons "Auf, du junger Wandersmann.mid" (CC0).
 - alle-jahre-wieder.musicxml: own arrangement, PD tune, melody checked against Wikimedia Commons "Alle Jahre wieder.mid" (CC0).
 - o-du-froehliche.musicxml: own arrangement, PD tune, melody checked against Wikimedia Commons "O du froehliche.mid" (CC0).
 
-## v1.3 folk, hymn and carol arrangements (L3)
-
-Original Keyfall arrangements of public-domain tunes (own key, hands, fingering and left hand). The reference encodings are Wikimedia Commons MIDI files; where a line below says "melody from", the tune was read from a CC0 or public-domain encoding, which is a clean source. A BY or BY-SA reference was used for checking only and is named with its licence.
+### L3
 
 - hark-the-herald-angels-sing.musicxml: own arrangement, PD tune, melody from Wikimedia Commons "Hark! The Herald Angels Sing.mid" (public domain).
 - o-come-all-ye-faithful.musicxml: own arrangement, PD tune, melody from Wikimedia Commons "Herbei, o ihr Gläub'gen.mid" (CC0).
@@ -98,7 +96,7 @@ Original Keyfall arrangements of public-domain tunes (own key, hands, fingering 
 - lasst-uns-erfreuen.musicxml: own arrangement, PD tune, melody from Wikimedia Commons "Lasst uns erfreuen herzlich sehr.mid" (CC0).
 - allein-gott-in-der-hoeh.musicxml: own arrangement, PD tune, melody from Wikimedia Commons "Allein Gott in der Höh sei Ehr.mid" (CC0).
 - o-haupt-voll-blut-und-wunden.musicxml: own arrangement, PD tune, melody from Wikimedia Commons "O Haupt voll Blut und Wunden (EG, ältere Form).mid" (CC0).
-- sakura-sakura.musicxml: own arrangement, PD tune, melody written from memory, then checked against Wikimedia Commons "Sakura.MID" (CC BY-SA 2.0 de, Rainer Lewalter; pitch and rhythm check only, nothing copied).
+- sakura-sakura.musicxml: own arrangement, PD tune, melody written from memory, then checked against Wikimedia Commons "Sakura.MID" (CC BY-SA 2.0 de, Rainer Lewalter; pitch and rhythm check only, nothing copied; flagged here and credited on the Credits screen).
 - ding-dong-merrily-on-high.musicxml: own arrangement, PD tune, melody from Wikimedia Commons "Ding! dong! merrily on high.mid" (CC0).
 - suesser-die-glocken.musicxml: own arrangement, PD tune, melody from Wikimedia Commons "Süßer die Glocken nie klingen.mid" (CC0).
 - die-gedanken-sind-frei.musicxml: own arrangement, PD tune, melody from Wikimedia Commons "Die Gedanken sind frei.mid" (CC0).
@@ -142,4 +140,4 @@ Converted from the Mutopia MIDI exports of typesettings whose own licence is Pub
 - chopin-fantaisie-impromptu.musicxml: Frederic Chopin, Fantaisie-Impromptu, Op. 66. Mutopia id 1693 (https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1693), typeset by Guy D. Lederfein, Herrmann Scholtz. Public domain licence on the Mutopia page; converted from the Mutopia MIDI export.
 - chopin-minute-waltz.musicxml: Frederic Chopin, Waltz in Db major, Op. 64 No. 1 (Minute Waltz). Mutopia id 483 (https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=483), typeset by Magnus Lewis-Smith, Edition Peters. Public domain licence on the Mutopia page; converted from the Mutopia MIDI export.
 - schubert-impromptu-op90-3.musicxml: Franz Schubert, Impromptu in Gb major, D. 899 No. 3 (Op. 90). Mutopia id 1193 (https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=1193), typeset by Ph. Raynaud, Breitkopf & Haertel 1888. Public domain licence on the Mutopia page; converted from the Mutopia MIDI export.
-- chopin-etude-op10-5.musicxml: Frederic Chopin, Etude in Gb major, Op. 10 No. 5 ("Black Keys"). Mutopia id 926 (https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=926), typeset by Peters/Herrmann Scholtz 1900b. Public domain licence on the Mutopia page; converted from the Mutopia MIDI export.
+- chopin-etude-op10-5.musicxml: Frederic Chopin, Etude in Gb major, Op. 10 No. 5 ("Black Keys"). Mutopia id 926 (https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=926), from the Peters/Herrmann Scholtz 1900b edition (no typesetter named). Public domain licence on the Mutopia page; converted from the Mutopia MIDI export.

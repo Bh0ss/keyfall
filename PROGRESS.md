@@ -1527,8 +1527,8 @@ The levels 1 to 3 finger test passed on every batch with no exemptions.
 
 #### Sources and licences
 
-- 26 folk, hymn and carol songs at Levels 1 and 2 plus 19 at Level 3 (45 in all) are our own arrangements of public-domain tunes. 44 of the 45 reference files are Wikimedia Commons MIDI files that are CC0 or public domain; Hot Cross Buns used none. At Level 3 the tune was read from the CC0 or public-domain encoding (a clean source); at Levels 1 and 2 the file was only checked against it.
-- Two references carry attribution and were used for checking only: Nearer, My God, to Thee (CC BY 3.0, credited in the file, NOTICE.md and the Credits screen) and Sakura Sakura (CC BY-SA 2.0 de, flagged BY-SA in NOTICE.md, credited on the Credits screen). Nothing from either file is in the song files.
+- 26 folk, hymn and carol songs at Levels 1 and 2 plus 19 at Level 3 (45 in all) are our own arrangements of public-domain tunes. 42 of the 44 reference files are CC0 or public domain (Wikimedia Commons MIDI files); Hot Cross Buns used none. Nearer, My God, to Thee's reference is CC BY 3.0 and Sakura Sakura's is CC BY-SA 2.0 de. At Level 3 the tune was read from the CC0 or public-domain encoding (a clean source); at Levels 1 and 2 the file was only checked against it.
+- Those two references carry attribution and were used for checking only: Nearer, My God, to Thee (CC BY 3.0, credited in the file, NOTICE.md and the Credits screen) and Sakura Sakura (CC BY-SA 2.0 de, flagged BY-SA in NOTICE.md, credited on the Credits screen). Sakura was written from memory and then checked against the BY-SA file. Nothing from either file is in the song files.
 - 25 songs (Burgmüller, Bach, Tchaikovsky, Kuhlau, Schumann, Joplin, Chopin, Schubert, Mozart) were converted from Mutopia Project MIDI exports whose own licence is Public Domain. No CC BY or CC BY-SA Mutopia file is used.
 - `src/songs/NOTICE.md` has one line per new song with its source and licence. `src/ui/credits.ts` and the Credits screen gained the new songs, a "Reference recordings that carry a credit" list (the two above), and reworded intro copy (the tune was read from a reference for many hymns, so "checked only" was no longer true for all of them). The credits test checks every credited file and reference against NOTICE.md.
 
@@ -1574,7 +1574,7 @@ The first full run had 4 failures: three stale catalog counts or a press bound (
 - Provenance: a public-domain melody read from a CC0 or public-domain reference encoding is a clean source; BY and BY-SA references were check-only and are credited.
 - Levels and unlocks follow the lane manifests, with the rulings: Glückes genug at Level 5 behind Unit 9; the Level 3 unit-5 and unit-7 gates accepted; Expert songs behind `advanced`.
 - Unit 4 gates are not opened by the Advanced rule: `ADVANCED_OPEN_UNITS` is Units 5 to 9 by design (CLAUDE.md), so the 11 Level 3 songs behind Unit 4 stay locked for an Advanced profile until Unit 4 is passed, like When the Saints. The new test `tests/bundled-songs.test.ts` "every unlockedBy is a real unit id or advanced" checks that every gate exists, that every song gated by Units 5 to 9 or `advanced` opens for Advanced, and that passing the gate opens every song.
-- The Home screen lists every song as a tile (it did before). At 99 songs that is long, and a piano-only user needs more than 40 D1 presses to reach the tips tour on Home. Not changed here (see Deferred).
+- The Home screen listed every song as a tile (it did before). At 99 songs that was long, and a piano-only user needed more than 40 D1 presses to reach the tips tour on Home. Fixed in the review fixes below.
 
 #### Adapted tests
 
@@ -1588,6 +1588,39 @@ The first full run had 4 failures: three stale catalog counts or a press bound (
 #### Deferred
 
 - Prelude Op. 28 No. 4 and Raindrop (see Skipped).
-- Home lists all songs; a cap or a "Show all" control (and a way to reach the tips tour in fewer piano presses) is a design change for the Captain.
 - The Credits screen still does not list the three older BY or BY-SA reference recordings in NOTICE.md (Row Row Row Your Boat, Amazing Grace, Auld Lang Syne); their authors are not named in NOTICE.md.
 - The phone and iPad per-song layout sample stays ruled out.
+
+### Review fixes (order V13-F)
+
+Owner/coordinator rulings on Chakwas's review (Shepard's decisions, logged as made).
+
+#### Decisions
+
+- Home and piano-nav (Q7): on a profile's first run the tips tour takes piano focus (`data-nav-default` on its Next and Got it buttons), so one D1 reaches it. Home features a capped set under "Up next" with an "All songs (N)" link to the existing sortable Songs list, 44 px, the normal piano-nav ring, and an (i) bubble (`home.allSongs`) covered by `tests/help-content.test.ts`. The rest of Home (up-next card, Learn tile, `songs-summary` "N of 99 unlocked") is unchanged.
+- Featured-set rule (`src/songs/featured.ts`, `featuredSongs`, `FEATURED_LIMIT` = 8, unit-tested in `tests/featured-songs.test.ts`): from the songs the profile can play, the up-next song first, then the song played last (to pick it up again), then the rest ordered by never played first, then fewer best stars, then easier level (1 to 5, Expert), then title. Locked songs are not shown on Home (they are on the Songs list).
+- Advanced profiles open every gated song: `ADVANCED_OPEN_UNITS` is now Units 2 to 9 (plus the existing `advanced` sentinel). This extends the spec's literal "units 6-9" Advanced rule because the Captain was told "Advanced gets everything". CLAUDE.md is unchanged. Unit 10 gates no song and stays outside the rule (existing test). Supersedes the v1.3 decision above that Unit 4 gates stay locked for Advanced.
+- Fingering test tightening only: the 45-song shift bound is now exactly the measured auto value, 234 (was 1.2 x 423 = 508), and a floor of 59 on the notes-weighted agreement of all 60 fingered songs was added (measured 64.99). The order estimated about 260 for the shift bound; the measurement is 234.
+- Licence sentence corrected (42 of 44 reference files CC0 or PD; Nearer and Sakura are the two attribution cases). Chopin Etude Op. 10 No. 5 has no typesetter named (the edition is the source) in `credits.ts` and NOTICE.md. First-person wording removed from the Sakura and Tochter Zion `<rights>` and from HUMAN_CHECKS item 4; item 6 now says "uses a command note". Build-process comments in `entries.ts` and `e2e/songs.spec.ts` now read "v1.3 additions (see PROGRESS.md)". NOTICE.md: the BY/BY-SA note moved onto the Nearer and Sakura lines, and the folk-arrangements intro appears once.
+
+#### Adapted tests
+
+- `e2e/help.spec.ts` tour-by-piano test: the D1 search bound is 30 (was 100 after this branch, 40 before), justified in a comment by the screen's structure (sidebar plus header stops before the tour; at most 8 tiles after), not by the song count. Assertions unchanged.
+- `e2e/lazy-songs.spec.ts`: the Home tile it waits for is Mary (featured) instead of Clair de Lune (not featured now); the no-fetch assertions are unchanged.
+- `e2e/learn.spec.ts` "Ode to Joy unlocks only after Unit 2": Home no longer lists locked tiles, so the Home assertion is that Ode to Joy is not on Home; the Songs-list and direct-link lock assertions are unchanged. The "39 of 99 unlocked" summary is unchanged.
+- `e2e/learn.spec.ts` "an Advanced profile ... units 2 to 4 songs": Ode to Joy is now open for Advanced (was locked); the Mary assertion is unchanged.
+- `e2e/songs.spec.ts` unlocks test: an Advanced profile now has When the Saints (Unit 4) open instead of locked; the Beginner locked assertions are unchanged.
+- `tests/learn-units-6-10.test.ts`: the Advanced-override test covers Units 2 to 9 (was 5 to 9) and still excludes Unit 10. `tests/bundled-songs.test.ts`: the unlock-integrity test lists Units 2 to 9; new test that every bundled song is open for an Advanced profile with nothing passed.
+- `tests/learn-rules.test.ts` "the Advanced override does not open songs behind units 2 to 4" is inverted to the new rule (Advanced opens them; Beginners still need the unit), and the Saints assertion in `tests/bundled-songs.test.ts` likewise (Advanced true, Beginner false).
+- `tests/help-content.test.ts`: HomeScreen added to the files scanned for bubbles; new Home test.
+- Tests that counted Home tiles or "N of 99": `songs-summary` assertions kept as they were; none counted tiles.
+
+#### Checks (review fixes)
+
+| Check | Result |
+|---|---|
+| `npm run typecheck` / `npm run lint` | clean / clean |
+| `npm test` | 69 files, 1483 passed (baseline 1474, +9: featured-set 6, Advanced-opens-everything 1, help Home 1, fingering all-60 floor 1) |
+| `npx playwright test` (dev, all projects incl. songs) | 394 passed, 3 skipped, 0 failed, 11.7 min (baseline 393 / 3 / 0, +1 Home piano-nav test) |
+| `npm run build` | ok |
+| `npm run lighthouse` | accessibility 100 on all nine screens, Home and Songs included |

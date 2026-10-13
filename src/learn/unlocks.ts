@@ -1,8 +1,8 @@
 import type { PlayerLevel } from '../storage/types';
 import { UNITS, getUnit, type Unit } from './units';
 
-/** Songs behind these units (by stable id, not path position) are open for Advanced profiles. */
-const ADVANCED_OPEN_UNITS = new Set(['unit-5', 'unit-6', 'unit-7', 'unit-8', 'unit-9']);
+/** Songs behind these units (by stable id, not path position) are open for Advanced profiles: every gated song there is. */
+const ADVANCED_OPEN_UNITS = new Set(['unit-2', 'unit-3', 'unit-4', 'unit-5', 'unit-6', 'unit-7', 'unit-8', 'unit-9']);
 
 /** `unlockedBy` is a unit id, `'advanced'` (open on Advanced profiles only), or absent (open from the start). */
 export function isSongUnlocked(song: { unlockedBy?: string }, passed: ReadonlySet<string>, level: PlayerLevel): boolean {

@@ -75,6 +75,11 @@ const ENTRIES = {
     text: 'Shows only songs for one hand: Right, Left, or Both hands together. All shows every song.',
   },
 
+  'home.allSongs': {
+    title: 'All songs',
+    text: 'Home shows a few songs to try next. This opens the full Songs list, where you can sort by difficulty, title or recent and filter by hand.',
+  },
+
   // Settings
   'settings.pianoNav': {
     title: 'Piano navigation',

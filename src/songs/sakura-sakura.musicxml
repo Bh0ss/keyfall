@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="3.1">
   <work><work-title>Sakura Sakura (Cherry Blossoms)</work-title></work>
-  <identification><creator type="composer">Traditional (Japan, Edo period)</creator><rights>Public domain traditional Japanese melody. Keyfall arrangement: key (A, using only the white keys A B C E F), fingering and left hand are original. Melody written from my knowledge of the tune and checked against Wikimedia Commons File:Sakura.MID (CC BY-SA 2.0 de, Rainer Lewalter) as a pitch and rhythm reference only, nothing copied from its file.</rights></identification>
+  <identification><creator type="composer">Traditional (Japan, Edo period)</creator><rights>Public domain traditional Japanese melody. Keyfall arrangement: key (A, using only the white keys A B C E F), fingering and left hand are original. Melody written from memory of the tune and checked against Wikimedia Commons File:Sakura.MID (CC BY-SA 2.0 de, Rainer Lewalter) as a pitch and rhythm reference only, nothing copied from its file.</rights></identification>
   <part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
   <part id="P1">
     <measure number="1">
